@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [master, develop]
+  push:
+    branches: [master, develop]
+
+jobs:
+  branch-name:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate branch name
+        run: |
+          branch="${{ github.head_ref }}"
+          if [[ "$branch" == release-please--branches--* ]]; then
+            echo "Branch name '$branch' OK (Release Please's own branch, exempt)"
+            exit 0
+          fi
+          if [[ "$branch" == "develop" ]]; then
+            echo "Branch name '$branch' OK (develop promotion into master)"
+            exit 0
+          fi
+          if [[ ! "$branch" =~ ^(fix|feat|feature|hotfix|chore|docs)/[a-zA-Z0-9._/-]+$ ]]; then
+            echo "::error::Branch name '$branch' isn't allowed. Use one of: feat/, fix/, hotfix/, chore/, docs/ (docs/ only for doc-only changes), followed by a slug. (feature/ is also still accepted, for branches created before the feat/ convention.)"
+            exit 1
+          fi
+          echo "Branch name '$branch' OK"
+
+  master-source-check:
+    if: github.event_name == 'pull_request' && github.base_ref == 'master'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR source branch
+        run: |
+          branch="${{ github.head_ref }}"
+          if [[ "$branch" == "develop" ]]; then
+            echo "Branch '$branch' OK (develop promotion)"
+            exit 0
+          fi
+          if [[ "$branch" == hotfix/* ]]; then
+            echo "Branch '$branch' OK (hotfix)"
+            exit 0
+          fi
+          if [[ "$branch" == "release-please--branches--master" ]]; then
+            echo "Branch '$branch' OK (Release Please's own release branch)"
+            exit 0
+          fi
+          echo "::error::PRs into master are only allowed from 'develop' (a release promotion) or 'hotfix/*' (got '$branch')."
+          exit 1
+
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          # 21, not 17: Error Prone 2.50.0's plugin class is compiled to bytecode
+          # major 65 (Java 21) and cannot even be loaded on a JDK 17 host - it
+          # crashes inside ClassLoader.defineClass during javac's plugin
+          # ServiceLoader lookup, before any of its own code runs (issue #199).
+          # This does NOT change what bytecode the project itself compiles to -
+          # pom.xml's maven.compiler.source/target stay 17 - only which JDK runs
+          # Maven/javac, same reasoning already applied to SpotBugs (see its
+          # pom.xml comment: "Maven runs on the machine's JDK, which may be newer
+          # than the project's Java 17 compile target").
+          java-version: '21'
+          cache: maven
+
+      - name: Build and test (unit + acceptance + integration)
+        run: mvn -B verify

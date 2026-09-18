@@ -1,0 +1,224 @@
+name: Release
+
+on:
+  push:
+    branches: [master, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# RELEASE_PLEASE_TOKEN (a fine-grained PAT, Contents + Pull requests:
+# read/write on this repo) is used instead of the default GITHUB_TOKEN
+# for release-please-action and the auto-merge step below. GitHub
+# suppresses further workflow-triggering events from a push/merge made
+# with GITHUB_TOKEN (to prevent recursive runs), so a GITHUB_TOKEN-merged
+# release PR never fired the follow-up push that would let
+# release-please-action notice the release commit and actually cut the
+# tag/GitHub Release — the merge landed but nothing downstream ran. A PAT
+# isn't subject to that suppression. It also avoids GitHub's fork-PR
+# workflow-approval gate catching the bot-authored release PR's checks.
+jobs:
+  # master = stable releases (vX.Y.Z)
+  release-please-stable:
+    if: github.event_name == 'push' && github.ref_name == 'master'
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v5
+        id: release
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          target-branch: master
+      - name: Auto-merge the release PR once required checks pass
+        if: steps.release.outputs.release_created != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+        run: |
+          pr_number=$(gh pr list --repo "${{ github.repository }}" \
+            --head "release-please--branches--master" --base master \
+            --state open --json number --jq '.[0].number')
+          if [ -n "$pr_number" ]; then
+            gh pr merge "$pr_number" --repo "${{ github.repository }}" --auto --merge \
+              || echo "Auto-merge request failed or was already set on PR #$pr_number — not fatal, skipping."
+          else
+            echo "No open release PR found for master; nothing to auto-merge."
+          fi
+
+  # develop = beta prereleases (vX.Y.Z-beta.N), promoted to a stable release
+  # once develop is merged into master.
+  release-please-beta:
+    if: github.event_name == 'push' && github.ref_name == 'develop'
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v5
+        id: release
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          config-file: release-please-config-beta.json
+          manifest-file: .release-please-manifest-beta.json
+          target-branch: develop
+      - name: Auto-merge the release PR once required checks pass
+        if: steps.release.outputs.release_created != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+        run: |
+          pr_number=$(gh pr list --repo "${{ github.repository }}" \
+            --head "release-please--branches--develop" --base develop \
+            --state open --json number --jq '.[0].number')
+          if [ -n "$pr_number" ]; then
+            gh pr merge "$pr_number" --repo "${{ github.repository }}" --auto --merge \
+              || echo "Auto-merge request failed or was already set on PR #$pr_number — not fatal, skipping."
+          else
+            echo "No open release PR found for develop; nothing to auto-merge."
+          fi
+
+  build-installers:
+    needs: [release-please-stable, release-please-beta]
+    # always() because a job skipped by its own `if` (the stable/beta job that
+    # didn't match this push's branch) would otherwise skip this job too.
+    if: >
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
+       needs.release-please-stable.outputs.release_created == 'true' ||
+       needs.release-please-beta.outputs.release_created == 'true')
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            jpackage_type: exe
+          - os: ubuntu-latest
+            jpackage_type: deb
+          - os: macos-latest
+            jpackage_type: pkg
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: >-
+            ${{ needs.release-please-stable.outputs.tag_name ||
+                needs.release-please-beta.outputs.tag_name ||
+                github.sha }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          # jpackage's --app-content flag (bundles mods/ alongside the
+          # executable) needs JDK 18+ (JDK-8274346); the project itself
+          # still targets bytecode 17 (pom.xml's maven.compiler.source/
+          # target), so this only bumps the JDK used to build/package.
+          java-version: '21'
+          cache: maven
+
+      - name: Install Linux packaging tools
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y fakeroot
+
+      - name: Build shaded jar
+        shell: bash
+        run: mvn -B -DskipTests package
+
+      - name: Stage jpackage input
+        shell: bash
+        run: |
+          mkdir -p target/jpackage-input
+          cp target/Veil-*-app.jar target/jpackage-input/
+          # mods/ is NOT staged here: jpackage places --input content inside
+          # an app/ subfolder, but ModLoader resolves mods/ relative to the
+          # running game's working directory, which is the top-level install
+          # directory (verified against a local jpackage app-image build —
+          # app/mods/ is invisible from there). It's bundled at the top
+          # level instead via --app-content in the "Build installer" step.
+
+      - name: Determine version
+        shell: bash
+        env:
+          TAG_NAME: >-
+            ${{ needs.release-please-stable.outputs.tag_name ||
+                needs.release-please-beta.outputs.tag_name }}
+        run: |
+          if [ -n "$TAG_NAME" ]; then
+            full_version="${TAG_NAME#v}"
+          else
+            full_version=$(grep -m1 '<version>' pom.xml | sed -E 's/.*<version>(.*)<\/version>.*/\1/')
+          fi
+          echo "FULL_VERSION=$full_version" >> "$GITHUB_ENV"
+          # jpackage's Windows/macOS installers require a clean numeric
+          # version (no -beta.N suffix); the full version (with suffix) is
+          # used for the uploaded filename instead, further down.
+          echo "APP_VERSION=${full_version%%-*}" >> "$GITHUB_ENV"
+
+      - name: Build installer
+        shell: bash
+        run: |
+          jar=$(ls target/jpackage-input/*.jar | head -n1)
+          jar_name=$(basename "$jar")
+
+          jpackage_version="$APP_VERSION"
+
+          extra_args=()
+          case "${{ matrix.os }}" in
+            windows-latest)
+              extra_args+=(--win-menu --win-shortcut --win-dir-chooser)
+              ;;
+            ubuntu-latest)
+              extra_args+=(--linux-shortcut --linux-package-name veil)
+              ;;
+            macos-latest)
+              extra_args+=(--mac-package-identifier com.swiftfaze.veil)
+              # macOS pkg additionally rejects a major version of 0 ("The
+              # first number in an app-version cannot be zero or negative").
+              # We're still pre-1.0, so bump just this OS's internal bundle
+              # version metadata; the uploaded filename still uses the real
+              # FULL_VERSION.
+              if [ "${APP_VERSION%%.*}" = "0" ]; then
+                jpackage_version="1${APP_VERSION#0}"
+              fi
+              ;;
+          esac
+
+          jpackage --type "${{ matrix.jpackage_type }}" \
+            --input target/jpackage-input \
+            --dest target/dist \
+            --name Veil \
+            --app-version "$jpackage_version" \
+            --vendor SwiftFaze \
+            --main-jar "$jar_name" \
+            --main-class com.swiftfaze.veil.Main \
+            --app-content mods \
+            "${extra_args[@]}"
+
+      - name: Normalize installer filename
+        shell: bash
+        run: |
+          src=$(ls target/dist/*.${{ matrix.jpackage_type }} | head -n1)
+          mv "$src" "target/dist/Veil-${FULL_VERSION}.${{ matrix.jpackage_type }}"
+
+      - name: Upload installer as a workflow artifact (manual test runs)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.os }}
+          path: target/dist/Veil-${{ env.FULL_VERSION }}.${{ matrix.jpackage_type }}
+
+      - name: Upload installer to the GitHub Release
+        if: >-
+          needs.release-please-stable.outputs.release_created == 'true' ||
+          needs.release-please-beta.outputs.release_created == 'true'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: >-
+            ${{ needs.release-please-stable.outputs.tag_name ||
+                needs.release-please-beta.outputs.tag_name }}
+        run: |
+          gh release upload "$TAG_NAME" "target/dist/Veil-${FULL_VERSION}.${{ matrix.jpackage_type }}" --clobber --repo ${{ github.repository }}

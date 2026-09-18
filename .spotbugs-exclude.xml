@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- SpotBugs exclusion filter for the Veil project.
+         Per check-clean.sh, exclusions are diff-scoped to added lines only, so this
+         file captures only genuine false positives - patterns SpotBugs commonly
+         misreads in this codebase's context (e.g. Swing ActionListener patterns).
+         No exclusion is added speculatively; each entry must be justified by a
+         real finding on a committed line. -->
+</FindBugsFilter>

@@ -1,0 +1,10 @@
+# IDE
+.idea/
+*.iml
+
+# Claude Code local state
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+
+# Runtime-written game settings
+/settings.json

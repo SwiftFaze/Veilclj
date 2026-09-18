@@ -1,0 +1,1315 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="Veil Clean Code Gate"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 http://pmd.sourceforge.net/ruleset_2_0_0.xsd">
+
+    <description>
+        Clean Code (Uncle Bob) rules, applied to CHANGED FILES ONLY by
+        .claude/tools/check-clean.sh. Deliberately NOT bound to `mvn verify`.
+
+        Why separate from .pmd-minimal.xml: that ruleset is a repo-wide build
+        gate, so every rule in it must be green across all 77 main classes.
+        These rules are not — the codebase predates them. Scoping them to the
+        diff is what lets them land without a red build on day one, which is
+        the same reasoning behind the instruction-budget baselines in
+        docs/instruction-files.md.
+
+        Sections map 1:1 onto the rule table in docs/clean-code-gate.md. Keep
+        them in step: that doc is what an agent reads to fix a violation.
+
+        Thresholds are dials, not laws. If you change one, change it there too
+        and say why in the commit message.
+    </description>
+
+    <!-- ============================================================
+         1. Function size, complexity, nesting depth
+         Length (>40), cyclomatic complexity (>8) and parameter count (>4)
+         are NOT here — they are repo-wide build gates in .pmd-minimal.xml
+         and would double-report. These are the diff-scoped additions.
+         ============================================================ -->
+
+    <!-- More than 3 levels of nested ifs: the classic "extract a method"
+         signal. Uncle Bob's indent-level heuristic (Clean Code, G34). -->
+    <rule ref="category/java/design.xml/AvoidDeeplyNestedIfStmts">
+        <properties>
+            <property name="problemDepth" value="3"/>
+        </properties>
+    </rule>
+
+    <!-- Cognitive complexity weights NESTING, unlike cyclomatic complexity,
+         so it catches the deeply-indented method that CC 8 lets through. -->
+    <rule ref="category/java/design.xml/CognitiveComplexity">
+        <properties>
+            <property name="reportLevel" value="15"/>
+        </properties>
+    </rule>
+
+    <!-- Acyclic execution paths. Catches the combinatorial explosion that a
+         sequence of flat ifs produces while keeping CC just under 8. -->
+    <rule ref="category/java/design.xml/NPathComplexity">
+        <properties>
+            <property name="reportLevel" value="200"/>
+        </properties>
+    </rule>
+
+    <!-- ============================================================
+         2. Single Responsibility (heuristics)
+         These are PROXIES for SRP, not proofs of it. A class can pass all
+         of them and still do two things; see the judgment checklist in
+         docs/clean-code-gate.md.
+         ============================================================ -->
+
+    <!-- Weighted method count + access to foreign data + low cohesion.
+         The closest mechanical stand-in for "this class does unrelated
+         things" that PMD offers. -->
+    <rule ref="category/java/design.xml/GodClass"/>
+
+    <rule ref="category/java/design.xml/TooManyMethods">
+        <properties>
+            <property name="maxmethods" value="15"/>
+        </properties>
+    </rule>
+
+    <!-- Unrelated instance variables are the other half of low cohesion. -->
+    <rule ref="category/java/design.xml/TooManyFields">
+        <properties>
+            <property name="maxfields" value="10"/>
+        </properties>
+    </rule>
+
+    <rule ref="category/java/design.xml/ExcessivePublicCount">
+        <properties>
+            <property name="minimum" value="20"/>
+        </properties>
+    </rule>
+
+    <!-- Fan-out. A class that names 15+ other types has more than one
+         reason to change almost by definition. -->
+    <rule ref="category/java/design.xml/CouplingBetweenObjects">
+        <properties>
+            <property name="threshold" value="15"/>
+        </properties>
+    </rule>
+
+    <!-- ============================================================
+         3. Naming
+         ShortVariable already exempts for-loop counters, foreach vars,
+         catch parameters and lambda parameters in its own XPath (verified
+         against pmd-java 7.17.0), which is exactly the "trivial loop
+         counter" carve-out we want. Do not re-add it here.
+         ============================================================ -->
+
+    <!-- CUSTOM: ShortVariable with a domain allow-list. The built-in rule's
+         own XPath (copied below from pmd-java 7.17.0) already exempts for-loop
+         counters, foreach variables, catch parameters and lambda parameters.
+         What it does NOT exempt is method parameters, and in a Swing/2D
+         codebase that made it unusable: measured against this repo it produced
+         224 hits, of which `e` (ActionEvent/KeyEvent, 60), `x`/`y` (tile
+         coordinates, 48), `g` (Graphics2D, 16) and `id` (43) are all more
+         intention-revealing in context than any longer name would be.
+
+         The allow-list is that measured set and nothing more. Names like `r`
+         and `c` are deliberately still flagged - checking the sites they came
+         from showed genuine "what is this?" locals, not domain shorthand. -->
+    <rule name="VeilShortVariable"
+          language="java"
+          message="Variable name ''{0}'' is too short to reveal intent"
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+        <description>
+Clean Code, N1. Short names are fine where the scope is a couple of lines or
+the name is domain-standard (a Graphics2D is always `g`); everywhere else they
+force the reader to reconstruct meaning from use.
+        </description>
+        <priority>3</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+//VariableId[string-length(@Name) < 3]
+ (: Swing and 2D-geometry idiom - see the comment above this rule :)
+ [not(@Name = ('x','y','z','w','h','dx','dy','dw','dh','cx','cy','g','g2','e','id'))]
+ (: ForStatement :)
+ [not(../../parent::ForInit)]
+ (: Foreach statement :)
+ [not(../../parent::ForeachStatement)]
+ (: Catch statement parameter :)
+ [not(parent::CatchParameter)]
+ (: Lambda expression parameter :)
+ [not(parent::LambdaParameter)]
+ [@Unnamed = false()]
+]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule ref="category/java/codestyle.xml/ShortMethodName">
+        <properties>
+            <property name="minimum" value="3"/>
+        </properties>
+    </rule>
+
+    <rule ref="category/java/codestyle.xml/ShortClassName">
+        <properties>
+            <property name="minimum" value="4"/>
+        </properties>
+    </rule>
+
+    <!-- The opposite failure: a name so long it is encoding the logic. -->
+    <rule ref="category/java/codestyle.xml/LongVariable">
+        <properties>
+            <property name="minimum" value="32"/>
+        </properties>
+    </rule>
+
+    <!-- PMD's default testClassPattern doesn't recognize the `*IT` suffix, but
+         docs/testing.md requires exactly that suffix for Failsafe to discover
+         integration tests at all (see ModLoaderIT, ModSchemaValidationIT) -
+         renaming away from it would silently stop those tests running under
+         `mvn verify`. Extends, rather than replaces, PMD's default regex. -->
+    <rule ref="category/java/codestyle.xml/ClassNamingConventions">
+        <properties>
+            <property name="testClassPattern"
+                      value="^Test.*$|^[A-Z][a-zA-Z0-9]*Test(s|Case)?$|^[A-Z][a-zA-Z0-9]*IT$"/>
+        </properties>
+    </rule>
+    <rule ref="category/java/codestyle.xml/MethodNamingConventions"/>
+    <rule ref="category/java/codestyle.xml/FormalParameterNamingConventions"/>
+    <rule ref="category/java/codestyle.xml/LocalVariableNamingConventions"/>
+    <!-- `private static final Logger logger` is the slf4j convention the whole
+         repo already follows; PMD's constant pattern would rename it to LOGGER
+         in every new file. Excluded by name rather than by loosening the
+         constant pattern, so `Player.symbol` and friends are still flagged. -->
+    <!-- staticFieldPattern matches constantPattern: WidgetTheme's fields are
+         `public static Color` (not `final`) so applyTheme() can repopulate
+         them from a mod-loaded theme, but they are conceptually fixed named
+         color slots (each name mirrors a theme JSON key 1:1) - PMD's default
+         camelCase staticFieldPattern would rename e.g. NORMAL_TEXT to
+         normalText, breaking that 1:1 mapping for no benefit. -->
+    <rule ref="category/java/codestyle.xml/FieldNamingConventions">
+        <properties>
+            <property name="constantPattern" value="[A-Z][A-Z_0-9]*|logger|log"/>
+            <property name="staticFieldPattern" value="[A-Z][A-Z_0-9]*"/>
+        </properties>
+    </rule>
+    <!-- GenericsNaming is deliberately absent: PMD 7.17 reports it as
+         scheduled for removal in PMD 8. -->
+
+    <!-- Names that lie: isX() not returning boolean, getX() returning void,
+         setX() returning a value. The mechanical half of "intent-revealing". -->
+    <rule ref="category/java/codestyle.xml/LinguisticNaming"/>
+
+    <!-- CUSTOM: disemvowelled and truncated names. PMD has no built-in rule
+         for this. The list is deliberately a closed deny-list of forms seen
+         in real Java rather than a heuristic, because a heuristic here
+         (e.g. "no vowels") flags legitimate domain terms like `npc` or `hp`.
+         Matched case-sensitively as a whole name or as a camelCase segment. -->
+    <rule name="VeilAbbreviatedName"
+          language="java"
+          message="Abbreviated name ''{0}'' does not reveal intent - spell the word out"
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+        <description>
+Clean Code, N1 (use intention-revealing names) and N4 (avoid encodings).
+A reader should not have to expand an abbreviation to know what a name holds.
+Domain shorthand the game itself uses (hp, npc, xp, ui) is deliberately absent
+from the deny-list; add to it rather than widening it into a heuristic.
+        </description>
+        <priority>3</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+//VariableId[
+  matches(@Name, '^(tmp|temp|val|vals|num|nums|str|obj|objs|mgr|ctx|cfg|attr|attrs|arr|lst|cnt|idx|elem|elems|res|ret|rslt|calc|conv|proc|init|curr|prev|nxt|len|msg|src|dst|dest|pos|coord|coords|param|params|arg|args|info|data|util|utils|impl|fn|func|cb|evt|err|ex2|flag|flags|opt|opts|prop|props|req|resp|svc|repo|ptr|buf|acc|agg)$')
+  or matches(@Name, '^(tmp|temp|val|num|str|obj|mgr|ctx|cfg|attr|arr|lst|cnt|idx|elem|res|ret|calc|conv|proc|curr|prev|len|msg|src|dst|dest|pos|param|arg|info|util|impl|evt|err|opt|prop|req|resp|svc|repo|ptr|buf)[A-Z]')
+]
+]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- ============================================================
+         4. Duplication
+         Block-level duplication is CPD's job, run separately by
+         check-clean.sh at a tighter token threshold than the repo-wide
+         gate. Literal duplication is caught here.
+         ============================================================ -->
+
+    <!-- The same string literal 4+ times is a named constant waiting to
+         happen. Also covers "magic strings" from section 8. -->
+    <rule ref="category/java/errorprone.xml/AvoidDuplicateLiterals">
+        <properties>
+            <property name="maxDuplicateLiterals" value="4"/>
+            <property name="minimumLength" value="3"/>
+        </properties>
+    </rule>
+
+    <!-- ============================================================
+         5. Comments as a smell
+         "What" vs "why" is judgment and lives in the checklist. These are
+         the mechanically detectable comment smells.
+         ============================================================ -->
+
+    <rule ref="category/java/documentation.xml/UncommentedEmptyMethodBody"/>
+    <rule ref="category/java/documentation.xml/UncommentedEmptyConstructor"/>
+
+    <!-- A comment this long is usually explaining code that should have
+         been decomposed instead. Clean Code C1-C3. -->
+    <rule ref="category/java/documentation.xml/CommentSize">
+        <properties>
+            <property name="maxLines" value="12"/>
+            <property name="maxLineLength" value="100"/>
+        </properties>
+    </rule>
+
+    <!-- ============================================================
+         6. Test quality
+         Routed to src/test only by check-clean.sh (see TEST_ONLY_RULES
+         there). Running these against main code produces nonsense.
+         ============================================================ -->
+
+    <rule ref="category/java/bestpractices.xml/UnitTestShouldIncludeAssert"/>
+    <rule ref="category/java/bestpractices.xml/UnitTestShouldUseTestAnnotation"/>
+    <rule ref="category/java/bestpractices.xml/SimplifiableTestAssertion"/>
+    <rule ref="category/java/errorprone.xml/DetachedTestCase"/>
+    <rule ref="category/java/errorprone.xml/UnnecessaryBooleanAssertion"/>
+
+    <!-- One assert per test is the ideal; 3 is the enforced ceiling. The gap
+         is deliberate - a strict 1 flags every legitimate "assert the object
+         AND that it was persisted" pair and trains people to suppress the
+         rule. The checklist asks for one CONCEPT per test, which is the
+         actual Clean Code rule (F.I.R.S.T. / one reason to fail). -->
+    <rule ref="category/java/bestpractices.xml/UnitTestContainsTooManyAsserts">
+        <properties>
+            <property name="maximumAsserts" value="3"/>
+        </properties>
+    </rule>
+
+    <!-- CUSTOM: no control flow in a test method. A test containing an if or
+         a loop has more than one path, so a green run no longer tells you
+         which path ran. PMD has no built-in rule for this.
+
+         Widened for #215 (jqwik dependency, #200) to also match jqwik's
+         @Property: a property branches on generated input by construction
+         (e.g. `return a == b`), which is exactly where control-flow-in-tests
+         creeps in, so the same reasoning applies. -->
+    <rule name="VeilNoLogicInTests"
+          language="java"
+          message="Test method contains control flow - a test must have exactly one path"
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+        <description>
+Clean Code (Clean Tests) and F.I.R.S.T. A conditional or loop inside a test
+means the assertions that run depend on the data, so a pass does not identify
+which behaviour was verified. Use a parameterised test, or split the test.
+        </description>
+        <priority>3</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+//MethodDeclaration[
+  pmd-java:hasAnnotation('org.junit.jupiter.api.Test')
+  or pmd-java:hasAnnotation('net.jqwik.api.Property')
+][
+  .//IfStatement or .//ForStatement or .//ForeachStatement
+  or .//WhileStatement or .//DoStatement or .//SwitchStatement
+  or .//SwitchExpression or .//ConditionalExpression
+]
+]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- ============================================================
+         7. Dead code and unused paths
+         ============================================================ -->
+
+    <rule ref="category/java/bestpractices.xml/UnusedPrivateField"/>
+    <rule ref="category/java/bestpractices.xml/UnusedPrivateMethod"/>
+    <rule ref="category/java/bestpractices.xml/UnusedLocalVariable"/>
+    <rule ref="category/java/bestpractices.xml/UnusedFormalParameter"/>
+    <rule ref="category/java/bestpractices.xml/UnusedAssignment"/>
+    <rule ref="category/java/codestyle.xml/UnnecessaryImport"/>
+    <rule ref="category/java/errorprone.xml/UnconditionalIfStatement"/>
+
+    <!-- A field only ever used inside one method is a local variable that
+         escaped - dead state at class level. -->
+    <rule ref="category/java/design.xml/SingularField"/>
+
+    <!-- ============================================================
+         8. Error handling and magic values
+         ============================================================ -->
+
+    <!-- allowCommentedBlocks=false: "// nothing to do here" is exactly the
+         swallowed exception this is meant to catch. -->
+    <rule ref="category/java/errorprone.xml/EmptyCatchBlock">
+        <properties>
+            <property name="allowCommentedBlocks" value="false"/>
+            <property name="allowExceptionNameRegex" value="^$"/>
+        </properties>
+    </rule>
+
+    <!-- AvoidCatchingThrowable and AvoidCatchingNPE are deprecated since PMD
+         7.18.0, both subsumed by AvoidCatchingGenericException (#215, C0):
+         its default typesThatShouldNotBeCaught (NullPointerException,
+         Exception, RuntimeException, Throwable, Error) is a strict superset
+         of what the two deprecated rules caught, so nothing is lost by
+         deleting them. AvoidCatchingGenericException itself moved from
+         category/java/design.xml to category/java/errorprone.xml in PMD 7. -->
+    <rule ref="category/java/errorprone.xml/AvoidCatchingGenericException"/>
+    <rule ref="category/java/design.xml/AvoidThrowingRawExceptionTypes"/>
+    <rule ref="category/java/design.xml/AvoidThrowingNullPointerException"/>
+    <!-- AvoidLosingExceptionInformation is deliberately absent: scheduled for
+         removal in PMD 8, and PreserveStackTrace above covers the same smell. -->
+    <rule ref="category/java/errorprone.xml/ReturnFromFinallyBlock"/>
+    <rule ref="category/java/errorprone.xml/DoNotThrowExceptionInFinally"/>
+    <rule ref="category/java/bestpractices.xml/PreserveStackTrace"/>
+    <rule ref="category/java/bestpractices.xml/AvoidPrintStackTrace"/>
+
+    <!-- The repo logs through slf4j; a stray println is an unloggable,
+         untestable side channel. -->
+    <rule ref="category/java/bestpractices.xml/SystemPrintln"/>
+
+    <!-- Magic numbers in a branch condition specifically. -->
+    <rule ref="category/java/errorprone.xml/AvoidLiteralsInIfCondition">
+        <properties>
+            <property name="ignoreMagicNumbers" value="-1,0,1"/>
+        </properties>
+    </rule>
+
+    <!-- CUSTOM: general magic numbers. PMD has no equivalent of Checkstyle's
+         MagicNumber rule, and adding Checkstyle for one rule is not worth a
+         second static-analysis toolchain in the build.
+
+         Exempt: 0/1/2 and their long/float forms (loop and arithmetic
+         identities), anything initialising a `static final` field (that IS
+         the named constant), annotation values, and switch labels. -->
+    <rule name="VeilMagicNumber"
+          language="java"
+          message="Magic number {0} - extract it to a named `static final` constant"
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+        <description>
+Clean Code, G25 (replace magic numbers with named constants). A bare numeric
+literal in an expression forces the reader to infer its meaning from context.
+        </description>
+        <priority>3</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+//NumericLiteral
+ [@Base = 10]
+ [not(@Image = ('0','1','2','0L','1L','2L','0l','1l','2l',
+                '0.0','1.0','2.0','0f','1f','2f','0F','1F','2F',
+                '0.0f','1.0f','0.0d','1.0d','0d','1d'))]
+ [not(ancestor::FieldDeclaration[1][pmd-java:modifiers() = 'final'])]
+ [not(ancestor::EnumConstant)]
+ [not(ancestor::Annotation)]
+ [not(ancestor::SwitchLabel)]
+ [not(ancestor::VariableDeclarator[1][@Name = 'serialVersionUID'])]
+]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- ============================================================
+         11. Full PMD 7 catalogue (#215)
+         196 native PMD rules verdicted ADD by the full-catalogue audit in
+         issue #215, landed at PMD defaults (Phase 1/2 per the intent doc -
+         no threshold is derived from this codebase's current violation
+         count). Grouped by PMD category in the issue's own order for
+         traceability. Every violation these produce against existing code
+         is recorded in impacts.md, not fixed here.
+
+         4 rules the issue's audit named do not exist in any released PMD
+         version (only on PMD's unreleased main branch as of this change):
+         OnDemandImport, TypeNameMismatch, CStyleArrayDeclaration,
+         LongLiteralEndingWithLowercaseL. Add them once PMD ships a stable
+         release containing them - tracked in impacts.md.
+         ============================================================ -->
+
+    <!-- Best Practices (34) -->
+    <rule ref="category/java/bestpractices.xml/AbstractClassWithoutAbstractMethod"/>
+    <rule ref="category/java/bestpractices.xml/ArrayIsStoredDirectly"/>
+    <rule ref="category/java/bestpractices.xml/AssertStatementInTest"/>
+    <rule ref="category/java/bestpractices.xml/AvoidReassigningCatchVariables"/>
+    <rule ref="category/java/bestpractices.xml/AvoidReassigningLoopVariables"/>
+    <rule ref="category/java/bestpractices.xml/AvoidReassigningParameters"/>
+    <rule ref="category/java/bestpractices.xml/AvoidStringBufferField"/>
+    <rule ref="category/java/bestpractices.xml/ConstantsInInterface"/>
+    <rule ref="category/java/bestpractices.xml/DefaultLabelNotLastInSwitch"/>
+    <rule ref="category/java/bestpractices.xml/DoubleBraceInitialization"/>
+    <rule ref="category/java/bestpractices.xml/EnumComparison"/>
+    <rule ref="category/java/bestpractices.xml/ForLoopCanBeForeach"/>
+    <rule ref="category/java/bestpractices.xml/ForLoopVariableCount"/>
+    <rule ref="category/java/bestpractices.xml/JUnitJupiterTestShouldBePackagePrivate"/>
+    <rule ref="category/java/bestpractices.xml/LabeledStatement"/>
+    <rule ref="category/java/bestpractices.xml/LiteralsFirstInComparisons"/>
+    <rule ref="category/java/bestpractices.xml/LooseCoupling"/>
+    <rule ref="category/java/bestpractices.xml/MethodReturnsInternalArray"/>
+    <rule ref="category/java/bestpractices.xml/OneDeclarationPerLine"/>
+    <rule ref="category/java/bestpractices.xml/PrimitiveWrapperInstantiation"/>
+    <rule ref="category/java/bestpractices.xml/RelianceOnDefaultCharset"/>
+    <rule ref="category/java/bestpractices.xml/ReplaceEnumerationWithIterator"/>
+    <rule ref="category/java/bestpractices.xml/ReplaceHashtableWithMap"/>
+    <rule ref="category/java/bestpractices.xml/ReplaceVectorWithList"/>
+    <rule ref="category/java/bestpractices.xml/UnitTestShouldUseAfterAnnotation"/>
+    <rule ref="category/java/bestpractices.xml/UnitTestShouldUseBeforeAnnotation"/>
+    <rule ref="category/java/bestpractices.xml/UnnecessaryVarargsArrayCreation"/>
+    <rule ref="category/java/bestpractices.xml/UnnecessaryWarningSuppression"/>
+    <rule ref="category/java/bestpractices.xml/UnusedLabel"/>
+    <rule ref="category/java/bestpractices.xml/UseCollectionIsEmpty"/>
+    <rule ref="category/java/bestpractices.xml/UseEnumCollections"/>
+    <rule ref="category/java/bestpractices.xml/UseStandardCharsets"/>
+    <rule ref="category/java/bestpractices.xml/UseTryWithResources"/>
+    <rule ref="category/java/bestpractices.xml/WhileLoopWithLiteralBoolean"/>
+    <!-- OnDemandImport: not in any released PMD version yet, see note above -->
+    <!-- TypeNameMismatch: not in any released PMD version yet, see note above -->
+
+    <!-- Code Style (35) -->
+    <rule ref="category/java/codestyle.xml/AvoidDollarSigns"/>
+    <rule ref="category/java/codestyle.xml/AvoidUsingNativeCode"/>
+    <rule ref="category/java/codestyle.xml/ConfusingTernary"/>
+    <rule ref="category/java/codestyle.xml/ControlStatementBraces"/>
+    <rule ref="category/java/codestyle.xml/EmptyControlStatement"/>
+    <rule ref="category/java/codestyle.xml/EmptyMethodInAbstractClassShouldBeAbstract"/>
+    <rule ref="category/java/codestyle.xml/ExtendsObject"/>
+    <rule ref="category/java/codestyle.xml/FieldDeclarationsShouldBeAtStartOfClass"/>
+    <rule ref="category/java/codestyle.xml/FinalParameterInAbstractMethod"/>
+    <rule ref="category/java/codestyle.xml/ForLoopShouldBeWhileLoop"/>
+    <rule ref="category/java/codestyle.xml/IdenticalCatchBranches"/>
+    <rule ref="category/java/codestyle.xml/LambdaCanBeMethodReference"/>
+    <rule ref="category/java/codestyle.xml/ModifierOrder"/>
+    <rule ref="category/java/codestyle.xml/NoPackage"/>
+    <rule ref="category/java/codestyle.xml/PackageCase"/>
+    <rule ref="category/java/codestyle.xml/PrematureDeclaration"/>
+    <rule ref="category/java/codestyle.xml/TooManyStaticImports"/>
+    <rule ref="category/java/codestyle.xml/TypeParameterNamingConventions"/>
+    <rule ref="category/java/codestyle.xml/UnnecessaryAnnotationValueElement"/>
+    <rule ref="category/java/codestyle.xml/UnnecessaryBlock"/>
+    <rule ref="category/java/codestyle.xml/UnnecessaryBoxing"/>
+    <rule ref="category/java/codestyle.xml/UnnecessaryCast"/>
+    <rule ref="category/java/codestyle.xml/UnnecessaryConstructor"/>
+    <rule ref="category/java/codestyle.xml/UnnecessaryFullyQualifiedName"/>
+    <rule ref="category/java/codestyle.xml/UnnecessaryInterfaceDeclaration"/>
+    <rule ref="category/java/codestyle.xml/UnnecessaryModifier"/>
+    <rule ref="category/java/codestyle.xml/UnnecessaryReturn"/>
+    <rule ref="category/java/codestyle.xml/UnnecessarySemicolon"/>
+    <rule ref="category/java/codestyle.xml/UseDiamondOperator"/>
+    <rule ref="category/java/codestyle.xml/UseExplicitTypes"/>
+    <rule ref="category/java/codestyle.xml/UselessQualifiedThis"/>
+    <rule ref="category/java/codestyle.xml/UseShortArrayInitializer"/>
+    <rule ref="category/java/codestyle.xml/UseUnderscoresInNumericLiterals"/>
+    <rule ref="category/java/codestyle.xml/VariableCanBeInlined"/>
+    <rule ref="category/java/codestyle.xml/VariableDeclarationUsageDistance"/>
+    <!-- CStyleArrayDeclaration: not in any released PMD version yet, see note above -->
+
+    <!-- Design (22) -->
+    <rule ref="category/java/design.xml/AbstractClassWithoutAnyMethod"/>
+    <rule ref="category/java/design.xml/AvoidRethrowingException"/>
+    <rule ref="category/java/design.xml/AvoidThrowingNewInstanceOfSameException"/>
+    <rule ref="category/java/design.xml/AvoidUncheckedExceptionsInSignatures"/>
+    <rule ref="category/java/design.xml/ClassWithOnlyPrivateConstructorsShouldBeFinal"/>
+    <rule ref="category/java/design.xml/CollapsibleIfStatements"/>
+    <rule ref="category/java/design.xml/DoNotExtendJavaLangError"/>
+    <rule ref="category/java/design.xml/ExceptionAsFlowControl"/>
+    <rule ref="category/java/design.xml/ExcessiveImports"/>
+    <rule ref="category/java/design.xml/FinalFieldCouldBeStatic"/>
+    <rule ref="category/java/design.xml/ImmutableField"/>
+    <rule ref="category/java/design.xml/InstantiableUtilityClass"/>
+    <rule ref="category/java/design.xml/LogicInversion"/>
+    <rule ref="category/java/design.xml/ProtectedMemberInFinalClass"/>
+    <rule ref="category/java/design.xml/PublicMemberInNonPublicType"/>
+    <rule ref="category/java/design.xml/SignatureDeclareThrowsException"/>
+    <rule ref="category/java/design.xml/SimplifiedTernary"/>
+    <rule ref="category/java/design.xml/SimplifyBooleanExpressions"/>
+    <rule ref="category/java/design.xml/SimplifyBooleanReturns"/>
+    <rule ref="category/java/design.xml/SimplifyConditional"/>
+    <rule ref="category/java/design.xml/SwitchDensity"/>
+    <rule ref="category/java/design.xml/UselessOverridingMethod"/>
+
+    <!-- Documentation (1) -->
+    <rule ref="category/java/documentation.xml/DanglingJavadoc"/>
+
+    <!-- Error Prone (70) -->
+    <rule ref="category/java/errorprone.xml/AssertEqualsArgumentOrder"/>
+    <rule ref="category/java/errorprone.xml/AssignmentInOperand"/>
+    <rule ref="category/java/errorprone.xml/AssignmentToNonFinalStatic"/>
+    <rule ref="category/java/errorprone.xml/AvoidAccessibilityAlteration"/>
+    <rule ref="category/java/errorprone.xml/AvoidAssertAsIdentifier"/>
+    <rule ref="category/java/errorprone.xml/AvoidBranchingStatementAsLastInLoop"/>
+    <rule ref="category/java/errorprone.xml/AvoidCallingFinalize"/>
+    <rule ref="category/java/errorprone.xml/AvoidDecimalLiteralsInBigDecimalConstructor"/>
+    <rule ref="category/java/errorprone.xml/AvoidEnumAsIdentifier"/>
+    <rule ref="category/java/errorprone.xml/AvoidFieldNameMatchingTypeName"/>
+    <rule ref="category/java/errorprone.xml/AvoidInstanceofChecksInCatchClause"/>
+    <rule ref="category/java/errorprone.xml/AvoidMultipleUnaryOperators"/>
+    <rule ref="category/java/errorprone.xml/AvoidUsingOctalValues"/>
+    <rule ref="category/java/errorprone.xml/BrokenNullCheck"/>
+    <rule ref="category/java/errorprone.xml/ClassCastExceptionWithToArray"/>
+    <rule ref="category/java/errorprone.xml/CloneMethodMustBePublic"/>
+    <rule ref="category/java/errorprone.xml/CloneMethodMustImplementCloneable"/>
+    <rule ref="category/java/errorprone.xml/CloneMethodReturnTypeMustMatchClassName"/>
+    <rule ref="category/java/errorprone.xml/CloseResource"/>
+    <rule ref="category/java/errorprone.xml/CollectionTypeMismatch"/>
+    <rule ref="category/java/errorprone.xml/CompareObjectsWithEquals"/>
+    <rule ref="category/java/errorprone.xml/ComparisonWithNaN"/>
+    <rule ref="category/java/errorprone.xml/ConfusingArgumentToVarargsMethod"/>
+    <rule ref="category/java/errorprone.xml/ConstructorCallsOverridableMethod"/>
+    <rule ref="category/java/errorprone.xml/DoNotCallGarbageCollectionExplicitly"/>
+    <rule ref="category/java/errorprone.xml/DoNotExtendJavaLangThrowable"/>
+    <rule ref="category/java/errorprone.xml/DontUseFloatTypeForLoopIndices"/>
+    <rule ref="category/java/errorprone.xml/EmptyFinalizer"/>
+    <rule ref="category/java/errorprone.xml/EqualsNull"/>
+    <rule ref="category/java/errorprone.xml/FinalizeDoesNotCallSuperFinalize"/>
+    <rule ref="category/java/errorprone.xml/FinalizeOnlyCallsSuperFinalize"/>
+    <rule ref="category/java/errorprone.xml/FinalizeOverloaded"/>
+    <rule ref="category/java/errorprone.xml/FinalizeShouldBeProtected"/>
+    <rule ref="category/java/errorprone.xml/IdempotentOperations"/>
+    <rule ref="category/java/errorprone.xml/IdenticalConditionalBranches"/>
+    <rule ref="category/java/errorprone.xml/ImplicitSwitchFallThrough"/>
+    <rule ref="category/java/errorprone.xml/InstantiationToGetClass"/>
+    <rule ref="category/java/errorprone.xml/InvalidLogMessageFormat"/>
+    <rule ref="category/java/errorprone.xml/JumbledIncrementer"/>
+    <rule ref="category/java/errorprone.xml/JUnitJupiterTestNoPrivateModifier"/>
+    <rule ref="category/java/errorprone.xml/MethodWithSameNameAsEnclosingClass"/>
+    <rule ref="category/java/errorprone.xml/MisplacedNullCheck"/>
+    <rule ref="category/java/errorprone.xml/MissingStaticMethodInNonInstantiatableClass"/>
+    <rule ref="category/java/errorprone.xml/MoreThanOneLogger"/>
+    <rule ref="category/java/errorprone.xml/NonCaseLabelInSwitch"/>
+    <rule ref="category/java/errorprone.xml/NonStaticInitializer"/>
+    <rule ref="category/java/errorprone.xml/NullAssignment"/>
+    <rule ref="category/java/errorprone.xml/OverrideBothEqualsAndHashcode"/>
+    <rule ref="category/java/errorprone.xml/OverrideBothEqualsAndHashCodeOnComparable"/>
+    <rule ref="category/java/errorprone.xml/ProperCloneImplementation"/>
+    <rule ref="category/java/errorprone.xml/ProperLogger"/>
+    <rule ref="category/java/errorprone.xml/ReplaceJavaUtilCalendar"/>
+    <rule ref="category/java/errorprone.xml/ReplaceJavaUtilDate"/>
+    <rule ref="category/java/errorprone.xml/ReturnEmptyCollectionRatherThanNull"/>
+    <rule ref="category/java/errorprone.xml/SimpleDateFormatNeedsLocale"/>
+    <rule ref="category/java/errorprone.xml/SingleMethodSingleton"/>
+    <rule ref="category/java/errorprone.xml/SingletonClassReturningNewInstance"/>
+    <rule ref="category/java/errorprone.xml/StringBufferInstantiationWithChar"/>
+    <rule ref="category/java/errorprone.xml/SuspiciousEqualsMethodName"/>
+    <rule ref="category/java/errorprone.xml/SuspiciousHashcodeMethodName"/>
+    <rule ref="category/java/errorprone.xml/SuspiciousOctalEscape"/>
+    <rule ref="category/java/errorprone.xml/TestClassWithoutTestCases"/>
+    <rule ref="category/java/errorprone.xml/UnnecessaryCaseChange"/>
+    <rule ref="category/java/errorprone.xml/UnnecessaryConversionTemporary"/>
+    <rule ref="category/java/errorprone.xml/UnsupportedJdkApiUsage"/>
+    <rule ref="category/java/errorprone.xml/UnusedNullCheckInEquals"/>
+    <rule ref="category/java/errorprone.xml/UnusedReturnValue"/>
+    <rule ref="category/java/errorprone.xml/UseCorrectExceptionLogging"/>
+    <rule ref="category/java/errorprone.xml/UseEqualsToCompareStrings"/>
+    <rule ref="category/java/errorprone.xml/WrongTestAnnotation"/>
+    <!-- LongLiteralEndingWithLowercaseL: not in any released PMD version yet, see note above -->
+
+    <!-- Multithreading (7) -->
+    <rule ref="category/java/multithreading.xml/AvoidThreadGroup"/>
+    <rule ref="category/java/multithreading.xml/DontCallThreadRun"/>
+    <rule ref="category/java/multithreading.xml/DoubleCheckedLocking"/>
+    <rule ref="category/java/multithreading.xml/NonThreadSafeSingleton"/>
+    <rule ref="category/java/multithreading.xml/OverridingThreadRun"/>
+    <rule ref="category/java/multithreading.xml/UnsynchronizedStaticFormatter"/>
+    <rule ref="category/java/multithreading.xml/UseNotifyAllInsteadOfNotify"/>
+
+    <!-- Performance (23) -->
+    <rule ref="category/java/performance.xml/AddEmptyString"/>
+    <rule ref="category/java/performance.xml/AppendCharacterWithChar"/>
+    <rule ref="category/java/performance.xml/AvoidArrayLoops"/>
+    <rule ref="category/java/performance.xml/AvoidCalendarDateCreation"/>
+    <rule ref="category/java/performance.xml/AvoidFileStream"/>
+    <rule ref="category/java/performance.xml/AvoidInstantiatingObjectsInLoops"/>
+    <rule ref="category/java/performance.xml/BigIntegerInstantiation"/>
+    <rule ref="category/java/performance.xml/ConsecutiveAppendsShouldReuse"/>
+    <rule ref="category/java/performance.xml/ConsecutiveLiteralAppends"/>
+    <rule ref="category/java/performance.xml/InefficientEmptyStringCheck"/>
+    <rule ref="category/java/performance.xml/InefficientStringBuffering"/>
+    <rule ref="category/java/performance.xml/InsufficientStringBufferDeclaration"/>
+    <rule ref="category/java/performance.xml/OptimizableToArrayCall"/>
+    <rule ref="category/java/performance.xml/RedundantFieldInitializer"/>
+    <rule ref="category/java/performance.xml/StringInstantiation"/>
+    <rule ref="category/java/performance.xml/StringToString"/>
+    <rule ref="category/java/performance.xml/TooFewBranchesForSwitch"/>
+    <rule ref="category/java/performance.xml/UseArrayListInsteadOfVector"/>
+    <rule ref="category/java/performance.xml/UseArraysAsList"/>
+    <rule ref="category/java/performance.xml/UseIndexOfChar"/>
+    <rule ref="category/java/performance.xml/UselessStringValueOf"/>
+    <rule ref="category/java/performance.xml/UseStringBufferForStringAppends"/>
+    <rule ref="category/java/performance.xml/UseStringBufferLength"/>
+
+    <!-- Rules the issue's audit flagged CONFLICT against existing code,
+         resolved ADD by the human on 2026-09-12 (intent doc Clarifications) -
+         the conflicts they surface are impacts.md findings, not exclusions. -->
+    <!-- Previously excluded to accommodate WidgetTheme's mutable public static Color slots; now included per #215's governing principle. See impacts.md. -->
+    <rule ref="category/java/design.xml/MutableStaticState"/>
+    <!-- Previously excluded; will flag pure entity/config holders with no behaviour. Now included per #215's governing principle. See impacts.md. -->
+    <rule ref="category/java/design.xml/DataClass"/>
+    <!-- UseLocaleWithCaseConversions: conflicts with the StringCaseLocaleUsage
+         Error Prone check's existing WARN demotion ("ASCII content types") - that
+         demotion is itself reversed by this issue (see the Error Prone section
+         below), so the conflict is resolved, not merely accommodated. -->
+    <rule ref="category/java/errorprone.xml/UseLocaleWithCaseConversions"/>
+    <!-- LawOfDemeter: measured at 73 violations across 21 files (11 in
+         src/main, mostly Swing panels; 10 in src/test, mostly Cucumber step
+         definitions) before being added - see intent doc Clarification C2.
+         All 73 are impacts.md findings. -->
+    <rule ref="category/java/design.xml/LawOfDemeter"/>
+
+
+    <!-- ============================================================
+         12. Vendored jPinpoint rules (#215)
+         19 rules from PMD-jPinpoint-rules (https://github.com/jborgers/PMD-jPinpoint-rules,
+         Apache License 2.0, copyright jborgers/Rabobank), copied as plain
+         XPathRule definitions - no new Maven dependency, since none of
+         jPinpoint's own Java rule classes are used. Cover equals/hashCode
+         consistency, regex recompilation, per-call allocation, and
+         suppression hygiene that neither PMD's native catalogue nor this
+         file's custom rules already check.
+         ============================================================ -->
+
+    <!-- Vendored from jPinpoint (PMD-jPinpoint-rules, Apache License 2.0),
+         rule 'AvoidRecompilingPatterns' in its category/java/common.xml -->
+    <rule name="AvoidRecompilingPatterns"
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+          language="java"
+          message="Pattern.compile is used in a method. Compiling a regex pattern can be expensive, make it a static final field."
+          externalInfoUrl="https://github.com/jborgers/PMD-jPinpoint-rules/blob/pmd7/docs/JavaCodePerformance.md#ireu02">
+        <description>A regular expression is compiled on every invocation. Problem: this can be expensive, depending on the length of the regular expression.&#13;
+            Solution: Usually a pattern is a literal, not dynamic and can be compiled only once. Assign it to a private static field. java.util.Pattern objects are thread-safe so they can be shared among threads.
+            (jpinpoint-rules)</description>
+        <priority>2</priority>
+        <properties>
+            <property name="tags" value="cpu,jpinpoint-rule,performance,sustainability-medium" type="String" description="classification"/>
+            <property name="xpath">
+                <value><![CDATA[
+//MethodDeclaration//MethodCall[pmd-java:matchesSig('java.util.regex.Pattern#compile(java.lang.String)')
+and not(.//VariableAccess[@Name = ancestor::MethodDeclaration//FormalParameter/VariableId/@Name])]
+	]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Vendored from jPinpoint (PMD-jPinpoint-rules, Apache License 2.0),
+         rule 'AvoidImplicitlyRecompilingRegex' in its category/java/common.xml -->
+    <rule name="AvoidImplicitlyRecompilingRegex" class="net.sourceforge.pmd.lang.rule.xpath.XPathRule" language="java" message="String regex method, Pattern.matches or FileSystem.getPathMatcher is used.
+	   Implicitly compiles a regex pattern, can be expensive."
+          externalInfoUrl="https://github.com/jborgers/PMD-jPinpoint-rules/blob/pmd7/docs/JavaCodePerformance.md#ireu01">
+        <description>A regular expression is compiled implicitly on every invocation. Problem: this can be expensive, depending on the length of the regular expression.&#13;
+            Solution: Compile the regex pattern only once and assign it to a private static final Pattern field. java.util.Pattern objects are thread-safe, so they can be shared among threads.
+            (jpinpoint-rules)</description>
+        <priority>2</priority>
+        <properties>
+            <property name="tags" value="cpu,jpinpoint-rule,performance,sustainability-medium" type="String" description="classification"/>
+            <property name="xpath">
+                <value><![CDATA[
+(:- method calls for non-short regex literals and used fields defined with non-short regex literal, or not defined as field -:)
+//MethodDeclaration//MethodCall[pmd-java:matchesSig('java.lang.String#replaceAll(java.lang.String,java.lang.String)')
+    or pmd-java:matchesSig('java.lang.String#replaceFirst(java.lang.String,java.lang.String)')
+    or pmd-java:matchesSig('java.util.regex.Pattern#matches(java.lang.String,java.lang.CharSequence)')
+    or pmd-java:matchesSig('java.lang.String#split(java.lang.String)')
+    or pmd-java:matchesSig('java.lang.String#matches(java.lang.String)')
+    or pmd-java:matchesSig('java.nio.file.FileSystem#getPathMatcher(java.lang.String)')
+]
+/ArgumentList/*[1][(self::StringLiteral and string-length(@Image) > 5 and
+(matches(@Image, '[\.\$\|\(\)\[\]\{\}\^\?\*\+\\]+')))
+or
+self::VariableAccess and @Name=ancestor::ClassBody[1]/FieldDeclaration/VariableDeclarator[StringLiteral[string-length(@Image) > 5 and
+(matches(@Image, '[\.\$\|\(\)\[\]\{\}\^\?\*\+\\]+'))] or not(StringLiteral)]/VariableId/@Name]
+]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Vendored from jPinpoint (PMD-jPinpoint-rules, Apache License 2.0),
+         rule 'AvoidReStreamingEnumValues' in its category/java/common.xml -->
+    <rule name="AvoidReStreamingEnumValues"
+          language="java"
+          message="Avoid re-streaming enum values to find a value by a field."
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+
+          externalInfoUrl="https://github.com/jborgers/PMD-jPinpoint-rules/blob/pmd7/docs/JavaCodePerformance.md#iuoc07">
+        <description>Problem: the time to find element is O(n); n = the number of enum values. This identical processing is executed for every call. Considered problematic when n > 3.
+            Solution: use a static field-to-enum-value Map. Access time is O(1), provided the hashCode is well-defined.
+            For one String field, usually toString returns that field. Implement a fromString method to provide the reverse conversion by using the map.
+        </description>
+        <priority>3</priority>
+        <properties>
+            <property name="tags" value="cpu,jpinpoint-rule,performance,sustainability-medium" type="String" description="classification"/>
+            <property name="xpath">
+                <value><![CDATA[
+(//EnumDeclaration/EnumBody[count(EnumConstant) > 3]|ClassDeclaration)//MethodDeclaration/Block
+    //MethodCall[pmd-java:matchesSig('java.util.stream.Stream#findFirst()') or pmd-java:matchesSig('java.util.stream.Stream#findAny()')]
+    [.//MethodCall[pmd-java:matchesSig('java.util.stream.Stream#of(_)') or pmd-java:matchesSig('java.util.Arrays#stream(_)')]
+    [ArgumentList/MethodCall[pmd-java:matchesSig('_#values()')][pmd-java:typeIs('java.lang.Enum[]')]]]
+                ]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Vendored from jPinpoint (PMD-jPinpoint-rules, Apache License 2.0),
+         rule 'InitializeComparatorOnlyOnce' in its category/java/common.xml -->
+    <rule name="InitializeComparatorOnlyOnce"
+          language="java"
+          message="Avoid creating Comparator instances repeatedly. Initialize them as static final fields instead."
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+          externalInfoUrl="https://github.com/jborgers/PMD-jPinpoint-rules/blob/pmd7/docs/JavaCodePerformance.md#ue03">
+        <description>Problem: Creating Comparator instances repeatedly in methods like compareTo or sort calls is inefficient.&#13;
+            Solution: Initialize the Comparator once as a static final field and reuse.
+        </description>
+        <priority>2</priority>
+        <properties>
+            <property name="tags" value="jpinpoint-rule,performance,sustainability-medium,cpu" type="String" description="classification"/>
+            <property name="xpath">
+                <value><![CDATA[
+//MethodCall[
+    (pmd-java:matchesSig('java.util.Comparator#comparing(_*)')
+      or pmd-java:matchesSig('java.util.Comparator#comparingInt(_)')
+      or pmd-java:matchesSig('java.util.Comparator#comparingDouble(_)')
+      or pmd-java:matchesSig('java.util.Comparator#comparingLong(_)')
+      or pmd-java:matchesSig('java.util.Comparator#nullsFirst(_)')
+      or pmd-java:matchesSig('java.util.Comparator#nullsLast(_)')
+      or pmd-java:matchesSig('java.util.Comparator#reversed()')
+    )
+    (: not chained: AST is backwards with first call last element :)
+    and not(MethodCall[pmd-java:typeIs('java.util.Comparator')])
+    (: not used as argument to another Comparator method :)
+    and not(parent::ArgumentList/parent::MethodCall[
+        pmd-java:typeIs('java.util.Comparator')
+    ])
+    (: used in non-static-final way :)
+    and not(ancestor::FieldDeclaration[pmd-java:modifiers() = ('final') and pmd-java:modifiers() = ('static')])
+]
+]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Vendored from jPinpoint (PMD-jPinpoint-rules, Apache License 2.0),
+         rule 'MissingFieldInEquals' in its category/java/common.xml -->
+    <rule name="MissingFieldInEquals"
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+          language="java"
+          message="Field simply assigned to is missing in equals method."
+          externalInfoUrl="https://github.com/jborgers/PMD-jPinpoint-rules/blob/pmd7/docs/JavaCodeQuality.md#ieah04">
+        <description>Problem: If a field which can be assigned separately (independent of other fields) is missing in the equals method, then changing the field in one object has no effect on the equality with another object.
+            However, if a field of one of two equal objects is changed, the expectation is that they are no longer equal.&#13;
+            Solution: include the missing field in the equals and hashCode method. (jpinpoint-rules)</description>
+        <priority>3</priority>
+        <properties>
+            <property name="tags" value="jpinpoint-rule,suspicious" type="String" description="classification"/>
+            <property name="xpath">
+                <value><![CDATA[
+ //FieldDeclaration[@Static=false()]//VariableId[
+    (: names used as left hand side in simple assignments in methods or constructor matching fields :)
+    (@Name = ancestor::ClassBody[1]/(MethodDeclaration|ConstructorDeclaration)/Block//AssignmentExpression[not(InfixExpression or ConstructorCall or MethodCall or FieldAccess/TypeExpression)]
+        /(VariableAccess|FieldAccess)[1]/@Name)
+     and
+    (: with an equals method defined at that level with 1 argument and not having a throw statement :)
+     ancestor::ClassBody[1]/MethodDeclaration[@Name='equals' and FormalParameters/@Size=1 and not (Block/ThrowStatement)]
+    (: where names used in equals method matching fields are non-equal to :)
+    and not(@Name = ancestor::ClassBody[1]/MethodDeclaration
+    [@Name='equals' and FormalParameters/@Size=1]/Block//(VariableAccess|FieldAccess)/@Name)
+]
+			]]>
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Vendored from jPinpoint (PMD-jPinpoint-rules, Apache License 2.0),
+         rule 'MissingFieldInHashCode' in its category/java/common.xml -->
+    <rule name="MissingFieldInHashCode"
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+          language="java"
+          message="Equals uses a field which is missing in hashCode."
+          externalInfoUrl="https://github.com/jborgers/PMD-jPinpoint-rules/blob/pmd7/docs/JavaCodeQuality.md#ieah03">
+        <description>Problem: Two unequal objects can have the same hashCode and end up in the same bucket of a Map. This may result in bad performance, O(n) lookup instead of O(1).&#13;
+            Solution: Use the same fields in hashCode as are used in equals. (jpinpoint-rules)</description>
+        <priority>2</priority>
+        <properties>
+            <property name="tags" value="jpinpoint-rule,performance" type="String" description="classification"/>
+            <property name="xpath">
+                <value><![CDATA[
+//FieldDeclaration/VariableDeclarator[
+(@Name = ancestor::ClassBody[1]//MethodDeclaration[@Name='equals' and FormalParameters/@Size = 1]/Block//(FieldAccess|VariableAccess)/@Name) >
+(@Name = ancestor::ClassBody[1]//MethodDeclaration[@Name='hashCode' and FormalParameters/@Size = 0]/Block//(FieldAccess|VariableAccess)/@Name)
+]/VariableId
+			]]>
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Vendored from jPinpoint (PMD-jPinpoint-rules, Apache License 2.0),
+         rule 'FieldOfHashCodeMissingInEquals' in its category/java/common.xml -->
+    <rule name="FieldOfHashCodeMissingInEquals"
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+          language="java"
+          message="Equals does not use all fields used by hashCode."
+          externalInfoUrl="https://github.com/jborgers/PMD-jPinpoint-rules/blob/pmd7/docs/JavaCodeQuality.md#ieah03">
+        <description>Problem: Equal objects may have different hashCodes and end-up in different buckets of a Map/Set. Strange things can happen like adding an object to a Set and not being able to find it back.&#13;
+            Solution: When objects are equal, hashCode needs to be equal, too. Use the same fields in equals and hashCode. (jpinpoint-rules)</description>
+        <priority>1</priority>
+        <properties>
+            <property name="tags" value="correctness,jpinpoint-rule" type="String" description="classification"/>
+            <property name="xpath">
+                <value><![CDATA[
+//FieldDeclaration/VariableDeclarator[
+((@Name = ancestor::ClassBody[1]//MethodDeclaration[@Name='equals' and FormalParameters/@Size = 1]/Block//(FieldAccess|VariableAccess)/@Name) <
+(@Name = ancestor::ClassBody[1]//MethodDeclaration[@Name='hashCode' and FormalParameters/@Size = 0]/Block//(FieldAccess|VariableAccess)/@Name)
+(: and the field is not used to assign a value to in the hashCode(), typically a hash variable to cache the calculated hashcode :)
+and not(@Name = ancestor::ClassBody[1]//MethodDeclaration[@Name='hashCode' and FormalParameters/@Size = 0]/Block//AssignmentExpression[@Operator='=']/(FieldAccess|VariableAccess)/@Name))
+]
+|
+//FieldDeclaration/VariableDeclarator[
+(@Name = ancestor::ClassBody[1]//MethodDeclaration[@Name='equals' and FormalParameters/@Size = 1]/Block//MethodCall[@MethodName='toLowerCase']/(FieldAccess|VariableAccess)/@Name) >
+(@Name = ancestor::ClassBody[1]//MethodDeclaration[@Name='hashCode' and FormalParameters/@Size = 0]/Block//MethodCall[@MethodName='toLowerCase']/(FieldAccess|VariableAccess)/@Name)
+]
+|
+//FieldDeclaration/VariableDeclarator[
+(@Name = ancestor::ClassBody[1]//MethodDeclaration[@Name='equals' and FormalParameters/@Size = 1]/Block//MethodCall[@MethodName='toUpperCase']/(FieldAccess|VariableAccess)/@Name) >
+(@Name = ancestor::ClassBody[1]//MethodDeclaration[@Name='hashCode' and FormalParameters/@Size = 0]/Block//MethodCall[@MethodName='toUpperCase']/(FieldAccess|VariableAccess)/@Name)
+]
+			]]>
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Vendored from jPinpoint (PMD-jPinpoint-rules, Apache License 2.0),
+         rule 'EqualsOperationInconsistentWithHashCode' in its category/java/common.xml -->
+    <rule name="EqualsOperationInconsistentWithHashCode"
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+          language="java"
+          message="Equals uses a conversion inconsistent with hashCode."
+          externalInfoUrl="https://github.com/jborgers/PMD-jPinpoint-rules/blob/pmd7/docs/JavaCodeQuality.md#ieah03">
+        <description>Problem: Equal objects may have different hashCodes and end-up in different buckets of a Map/Set. Strange things can happen like adding an object to a Set and not being able to find it back.
+            Solution: When objects are equal, hashCode needs to be equal, too. Use the same fields in equals and hashCode and use identical conversions like toUpperCase() in both when needed. Don't use equalsIgnoreCase. (jpinpoint-rules)
+        </description>
+        <priority>1</priority>
+        <properties>
+            <property name="tags" value="correctness,jpinpoint-rule" type="String" description="classification"/>
+            <property name="xpath">
+                <value><![CDATA[
+(: the number of toLowerCase on a field used in equals should not be larger than that of hashCode :)
+//FieldDeclaration//VariableId[
+(@Name = ancestor::ClassBody[1]//MethodDeclaration[@Name='equals' and (FormalParameters/@Size = 1)]/Block//MethodCall[pmd-java:matchesSig('java.lang.String#toLowerCase()')]//VariableAccess/@Name) >
+(@Name = ancestor::ClassBody[1]//MethodDeclaration[@Name='hashCode' and (FormalParameters/@Size = 0)]/Block//MethodCall[pmd-java:matchesSig('java.lang.String#toLowerCase()')]//VariableAccess/@Name)
+]
+(: go to violating toLowerCase in equals :)
+/ancestor::ClassBody[1]//MethodDeclaration[@Name='equals']/Block//MethodCall[pmd-java:matchesSig('java.lang.String#toLowerCase()')]
+,
+(: the number of toUpperCase on a field used in equals should not be larger than that of hashCode :)
+//FieldDeclaration//VariableId[
+(@Name = ancestor::ClassBody[1]//MethodDeclaration[@Name='equals' and (FormalParameters/@Size = 1)]/Block//MethodCall[pmd-java:matchesSig('java.lang.String#toUpperCase()')]//VariableAccess/@Name) >
+(@Name = ancestor::ClassBody[1]//MethodDeclaration[@Name='hashCode' and (FormalParameters/@Size = 0)]/Block//MethodCall[pmd-java:matchesSig('java.lang.String#toUpperCase()')]//VariableAccess/@Name)
+]
+(: go to violating toUpperCase in equals :)
+/ancestor::ClassBody[1]//MethodDeclaration[@Name='equals']/Block//MethodCall[pmd-java:matchesSig('java.lang.String#toUpperCase()')]
+,
+(: equalsIgnoreCase on field, in equals, not allowed :)
+//MethodDeclaration[@Name='equals' and (FormalParameters/@Size = 1)]/Block//MethodCall[pmd-java:matchesSig('java.lang.String#equalsIgnoreCase(java.lang.String)')]
+			]]>
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Vendored from jPinpoint (PMD-jPinpoint-rules, Apache License 2.0),
+         rule 'HashCodeOnlyCallsSuper' in its category/java/common.xml -->
+    <rule name="HashCodeOnlyCallsSuper"
+          language="java"
+          message="hashCode only calls super."
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+
+          externalInfoUrl="https://github.com/jborgers/PMD-jPinpoint-rules/blob/pmd7/docs/JavaCodePerformance.md#isio03">
+        <description>Problem: when equals is implemented, hashCode needs to be implemented, too; and if objects are equal, hashCode needs to be equal, too. If hashCode only calls super.hashCode, it is effectively not implemented.
+            Strange things can happen, for instance, if super.hashCode calls Object.hashCode, it is unique for each object and when used in Set or as key in Map, equal objects can duplicate in Set, and keys not found in Map.
+            Solution: implement hashCode properly, consistent with equals. Meet the equals and hashCode contracts. If objects are equal, hashCode needs to be equal, too. See Effective Java.
+        </description>
+        <priority>1</priority>
+        <properties>
+            <property name="tags" value="correctness,jpinpoint-rule" type="String" description="classification"/>
+            <property name="xpath">
+                <value><![CDATA[
+//MethodDeclaration[@Name='equals' and FormalParameters/@Size=1 and @Static=false() and ModifierList/@ExplicitModifiers='public']
+/Block[not(not(.//FieldAccess) and count(descendant::MethodCall)=1 and .//MethodCall[pmd-java:matchesSig('java.lang.Object#equals(_)')]/SuperExpression)]
+/ancestor::ClassBody[1]//MethodDeclaration[@Name='hashCode' and FormalParameters/@Size=0 and @Static=false() and ModifierList/@ExplicitModifiers='public']
+/Block[count(descendant::MethodCall)=1][.//MethodCall[pmd-java:matchesSig('java.lang.Object#hashCode()')]/SuperExpression]
+                ]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Vendored from jPinpoint (PMD-jPinpoint-rules, Apache License 2.0),
+         rule 'ImplementEqualsHashCodeOnValueObjects' in its category/java/common.xml -->
+    <rule name="ImplementEqualsHashCodeOnValueObjects"
+          message="Equals and/or hashCode is missing for a value object."
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+          language="java"
+          externalInfoUrl="https://github.com/jborgers/PMD-jPinpoint-rules/blob/pmd7/docs/JavaCodeQuality.md#incorrect-equals-and-hashcode">
+        <description>
+            Problem: If equals and hashCode are not defined, they don't meet the programmer's expectations and the requirements for use with the collections API. It may result in unexpected, undesired behavior.&#13;
+            Solution: Add proper equals and hashCode methods that meet the equals-hashCode contract to all objects which might anyhow be put in a Map, Set or other collection. Or use Lombok @EqualsAndHashCode, @Value or @Data. Also holds for inner classes.
+            If the object should never be checked for equality or used in a collection, also add those methods and let them throw UnsupportedOperationException to fail fast.
+            @Xml... , @Entity, Throwable and Executor and some other objects are ignored because they are assumed to be not used as value objects.
+            (jpinpoint-rules)</description>
+        <priority>3</priority>
+        <properties>
+            <property name="tags" value="jpinpoint-rule,unpredictable" type="String" description="classification"/>
+            <property name="xpath">
+                <value>
+                    <![CDATA[
+(:- top level class :)
+//ClassDeclaration
+(: exclusions, the following annotations do implement equals and hashCode -:)
+[not(pmd-java:hasAnnotation('lombok.Data') or pmd-java:hasAnnotation('lombok.Value')or pmd-java:hasAnnotation('lombok.EqualsAndHashCode')
+(: exclusions, the following annotations assume a non-value object -:)
+    or pmd-java:hasAnnotation('javax.ejb.Singleton') or pmd-java:hasAnnotation('jakarta.ejb.Singleton')
+    or pmd-java:hasAnnotation('javax.ejb.Stateless') or pmd-java:hasAnnotation('jakarta.enterprise.context.ApplicationScoped')
+    or pmd-java:hasAnnotation('org.springframework.stereotype.Component') or pmd-java:hasAnnotation('org.springframework.stereotype.Controller')
+    or pmd-java:hasAnnotation('org.springframework.stereotype.Service') or pmd-java:hasAnnotation('org.springframework.stereotype.Repository')
+    or pmd-java:hasAnnotation('org.springframework.context.annotation.Configuration')
+    or pmd-java:hasAnnotation('org.springframework.web.bind.annotation.RestController') or pmd-java:hasAnnotation('org.springframework.web.bind.annotation.ControllerAdvice')
+    or pmd-java:hasAnnotation('org.springframework.ws.server.endpoint.annotation.Endpoint')
+    or pmd-java:hasAnnotation('javax.persistence.Entity') or pmd-java:hasAnnotation('jakarta.persistence.Entity')
+    or pmd-java:hasAnnotation('javax.persistence.Embeddable') or pmd-java:hasAnnotation('jakarta.persistence.Embeddable')
+    or pmd-java:hasAnnotation('javax.persistence.MappedSuperclass') or pmd-java:hasAnnotation('jakarta.persistence.MappedSuperclass')
+    (: JAXB annotations: @XmlType, @XmlRootElement, @XmlAccessorType, @XmlAccessorOrder :)
+    or ModifierList/Annotation[starts-with(@SimpleName, 'Xml')]
+)]
+[@Interface=false() and @Abstract=false() and not(
+    (: excluded types, assumed non-value objects :)
+    pmd-java:typeIs('java.util.concurrent.Executor')
+    or pmd-java:typeIs('java.lang.Throwable')
+    or pmd-java:typeIs('javax.ws.rs.ext.ContextResolver')
+    or pmd-java:typeIs('javax.ws.rs.client.ClientRequestFilter')
+)]
+/ClassBody[FieldDeclaration[@Static=false() and (not (pmd-java:hasAnnotation('javax.xml.bind.annotation.XmlElement')))
+    and
+    (: a getter with result type of a field :)
+    (ancestor::ClassBody[1]/MethodDeclaration
+       [(@Visibility='public' or ../../@Nested=true()) and @Static=false() and (starts-with(@Name, 'get') and string-length(@Name) > 3 or starts-with(@Name, 'is') and string-length(@Name) > 2)]
+       [ClassType/@SimpleName=ancestor::ClassBody[1]/FieldDeclaration[@Static=false()]/ClassType/@SimpleName]
+    )
+    (: and class has no equals nor hashCode method :)
+    and (not (ancestor::ClassBody[1]/MethodDeclaration[(@Visibility='public' or ../../@Nested=true()) and @Static=false() and (@Name='equals' and .//FormalParameters[@Size=1]) or (@Name='hashCode' and .//FormalParameters[@Size=0])]))
+    (: and class has a toString and #fields <= 1+#getters :)
+    and ((ancestor::ClassBody[1]//MethodDeclaration[(@Visibility='public' or ../../@Nested=true()) and @Static=false() and @Name='toString']
+            and count(ancestor::ClassBody[1]/FieldDeclaration[@Static=false()]) <=
+                (1 + count(ancestor::ClassBody[1]/MethodDeclaration[(@Visibility='public' or ../../@Nested=true()) and @Static=false() and (starts-with(@Name, 'get') and string-length(@Name) > 3 or starts-with(@Name, 'is') and string-length(@Name) > 2)]))
+            or ancestor::ClassDeclaration[1][ends-with(upper-case(@SimpleName), 'DTO')])
+        (: or #fields == #getters :)
+        or count(ancestor::ClassBody[1]/FieldDeclaration[@Static=false()]) = count(ancestor::ClassBody[1]/MethodDeclaration[(@Visibility='public' or ../../@Nested=true()) and @Static=false() and (starts-with(@Name, 'get') and string-length(@Name) > 3 or starts-with(@Name, 'is') and string-length(@Name) > 2)])
+        )
+] (:-up to class -:)
+]/..
+]]>
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Vendored from jPinpoint (PMD-jPinpoint-rules, Apache License 2.0),
+         rule 'NonComparableMapKeys' in its category/java/common.xml -->
+    <rule name="NonComparableMapKeys"
+          language="java"
+          message="Map keys should implement Comparable in order to make access fast."
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+
+          externalInfoUrl="https://github.com/jborgers/PMD-jPinpoint-rules/blob/pmd7/docs/JavaCodePerformance.md#iuoc08">
+        <description>Problem: If multiple entries end up in the same HashMap bucket, they are stored as LinkedList, and with more than 7 as a red black tree.
+            The list access time is O(n) and tree access time is only O(log n) which is much faster for large n. This tree implementation utilizes the compareTo from the Comparable interface.
+            If this is not implemented, access will be slow.
+            Solution: Implement Comparable for your Map keys. Do not use classes for the keys which don't implement Comparable, like Thread, Class and Object. At least not for Maps which can grow large.
+            Note that equals and hashCode must be implemented properly for the keys, and compareTo must be compatible with equals.
+        </description>
+        <priority>3</priority>
+        <properties>
+            <property name="tags" value="cpu,jpinpoint-rule,performance,sustainability-low" type="String" description="classification"/>
+            <property name="xpath">
+                <value><![CDATA[
+(: check key type in declaration :)
+//VariableDeclarator/../ClassType[pmd-java:typeIs('java.util.Map') and not(..//ConstructorCall[pmd-java:matchesSig('java.util.TreeMap#new(java.util.Comparator)')])]
+(: first type argument does not implement Comparable :)
+/TypeArguments/ClassType[1][not(pmd-java:typeIs('java.lang.Comparable'))
+    (: and can be resolved :)
+    and pmd-java:typeIs('java.lang.Object')]
+,
+(: for when key type is missing in declaration (old style), check Map.put :)
+//MethodCall[pmd-java:matchesSig('java.util.Map#put(_,_)') and not(
+                (: if Map is TreeMap constructed with a Comparator, it is also fine :)
+                ./VariableAccess/@Name = ancestor::ClassBody[1]/FieldDeclaration[
+                    .//ConstructorCall[pmd-java:matchesSig('java.util.TreeMap#new(java.util.Comparator)')]
+                ]/VariableDeclarator/VariableId/@Name)
+             ]
+(: first arg does not implement Comparable :)
+/ArgumentList/*[1][not(pmd-java:typeIs('java.lang.Comparable'))
+    (: and can be resolved :)
+    and pmd-java:typeIs('java.lang.Object')]
+[not(pmd-java:typeIs('byte'))][not(pmd-java:typeIs('short'))]
+[not(pmd-java:typeIs('int'))][not(pmd-java:typeIs('long'))]
+[not(pmd-java:typeIs('float'))][not(pmd-java:typeIs('double'))]
+[not(pmd-java:typeIs('boolean'))][not(pmd-java:typeIs('char'))]
+                ]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Vendored from jPinpoint (PMD-jPinpoint-rules, Apache License 2.0),
+         rule 'NonComparableSetElements' in its category/java/common.xml -->
+    <rule name="NonComparableSetElements"
+          language="java"
+          message="Set elements should implement Comparable in order to make access by element fast."
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+          externalInfoUrl="https://github.com/jborgers/PMD-jPinpoint-rules/blob/pmd7/docs/JavaCodePerformance.md#iuoc09">
+        <description>Problem: A `Set` is commonly implemented with a `Map`. If multiple entries end up in the same `HashMap` bucket, they are stored as `LinkedList`, and with more than 7 as a red-black tree.
+            The list access time is `O(n)` and tree access time is only `O(log n)` which is much faster for large `n`. This tree implementation utilizes the `compareTo` from the `Comparable` interface.
+            If this is not implemented, access by element will be slow. Iterating through the elements does not suffer from this slow access because no lookup by key in the map is involved.
+            Access methods by element which are affected: `contains[All]`, `retainAll`, `remove[All]`.
+            Solution: Implement `Comparable` for your `Set` elements to ensure optimal performance. Or use a `Set` with a `Comparator` in the constructor (for instance, `TreeSet` or `ConcurrentSkipListSet`).
+            When using Sets with non-Comparable types like `Thread`, `Class`, or `Object`, avoid large Sets especially for element access operations.
+            If you must use such types, apply `@SuppressWarnings` with a clear explanation only when the `Set` is guaranteed to stay small (under 7 elements per bucket) with minimal growth risk.
+            Remember that small Sets can grow unexpectedly over time.
+            Note: `equals` and `hashCode` must be implemented properly for the elements, and `compareTo` must be compatible with `equals`.
+        </description>
+        <priority>3</priority>
+        <properties>
+            <property name="tags" value="cpu,jpinpoint-rule,performance,sustainability-low" type="String" description="classification"/>
+            <property name="xpath">
+                <value><![CDATA[
+(: declared variable used in Set by-element access :)
+//VariableId[@Name = ancestor::ClassBody//MethodCall[@MethodName = ('contains','containsAll','remove','removeAll','retainAll')]/VariableAccess/@Name]
+    (: for 3 ways defined as a Set :)
+    [(ancestor::FieldDeclaration|ancestor::LocalVariableDeclaration)/ClassType[pmd-java:typeIs('java.util.Set')
+                                                                                (: not when Set constructed with Comparator :)
+                                                                                 and not(..//ConstructorCall[pmd-java:matchesSig('java.util.TreeSet#new(java.util.Comparator)')
+                                                                                                             or pmd-java:matchesSig('java.util.concurrent.ConcurrentSkipListSet#new(java.util.Comparator)')
+                                                                                                            ]
+                                                                                      )
+                                                                              ]
+    (: element type does not implement Comparable :)
+     /TypeArguments/ClassType[not(pmd-java:typeIs('java.lang.Comparable'))
+    (: and can be resolved :)
+    and pmd-java:typeIs('java.lang.Object')]
+]/../..
+               ]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Vendored from jPinpoint (PMD-jPinpoint-rules, Apache License 2.0),
+         rule 'AvoidExposingMutableRecordState' in its category/java/common.xml -->
+    <rule name="AvoidExposingMutableRecordState"
+          language="java"
+          message="Avoid exposing mutable state of the record. Use copyOf in the (compact) constructor."
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+
+          externalInfoUrl="https://github.com/jborgers/PMD-jPinpoint-rules/blob/pmd7/docs/JavaCodePerformance.md#voedos06">
+        <description>Problem: Internal state can be modified from outside the record, through the implicit accessor method or by the caller of the constructor. Risk of thread-unsafety.
+            Solution: Use the record compact constructor to defensively copy the (possibly) mutable object such as a List, Set or Map, e.g. with List.copyOf(). Make sure
+            to avoid NullPointerExceptions for null values in List.copyOf() methods. Beware that contained objects in collections can itself be mutable.
+        </description>
+        <priority>3</priority>
+        <properties>
+            <property name="tags" value="jpinpoint-rule,multi-threading" type="String" description="classification"/>
+            <property name="xpath">
+                <value><![CDATA[
+//RecordDeclaration//RecordComponent/ClassType[(pmd-java:typeIs('java.util.Collection') or pmd-java:typeIs('java.util.Map'))
+    and not(../VariableId/@Name = ancestor::RecordDeclaration/RecordBody/(CompactConstructorDeclaration|ConstructorDeclaration)
+        //AssignmentExpression[(VariableAccess|FieldAccess)/@Name = .//MethodCall[contains(lower-case(@MethodName), 'copyof')]
+            /ArgumentList//(VariableAccess|FieldAccess)/@Name]/(VariableAccess|FieldAccess)/@Name)
+]/..
+]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Vendored from jPinpoint (PMD-jPinpoint-rules, Apache License 2.0),
+         rule 'AvoidMutableLists' in its category/java/common.xml -->
+    <rule name="AvoidMutableLists"
+          language="java"
+          message="List is not modified after object construction, make it immutable or unmodifiable"
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+
+          externalInfoUrl="https://github.com/jborgers/PMD-jPinpoint-rules/blob/pmd7/docs/JavaCodePerformance.md#pml01">
+        <description>Problem: A list which is unnecessarily mutable may accidentally be added to and cause a memory leak. &#13;
+            Solution: For the list which is not actually modified, make it impossible to modify after object construction/initialization: use Java 9 List.of, Java 11 List.copyOf, Collections.unmodifiableList or Guava ImmutableList.
+        </description>
+        <priority>3</priority>
+        <properties>
+            <property name="tags" value="jpinpoint-rule,pitfall" type="String" description="classification"/>
+            <property name="xpath">
+                <value><![CDATA[
+//ClassDeclaration[not(ModifierList/Annotation
+    [pmd-java:typeIs('lombok.Getter') or pmd-java:typeIs('lombok.Setter') or pmd-java:typeIs('lombok.Value') or
+     pmd-java:typeIs('lombok.Data')])]
+(: a field of type List :)
+//FieldDeclaration[//VariableId[pmd-java:typeIs('java.util.List')]]
+(: not for field with @Getter and @Setter, it is accessed outside of the class :)
+[not(ModifierList/Annotation[pmd-java:typeIs('lombok.Getter') or pmd-java:typeIs('lombok.Setter')])]
+(: exclude ConfigurationProperties classes :)
+[count(ancestor::ClassDeclaration/ModifierList/Annotation[@SimpleName='ConfigurationProperties']) = 0]
+(: exclude when JPA annotated :)
+[count(ModifierList/Annotation[@SimpleName=('OneToMany', 'ManyToMany')]) = 0]
+//VariableId[
+    (: with no method defined at that level that uses the field with a modify operation (case field.modOp) :)
+    not(@Name = ancestor::ClassBody/MethodDeclaration/Block//MethodCall[
+        starts-with(@MethodName, 'add') or starts-with(@MethodName, 'remove') or
+        @MethodName = ('set', 'clear', 'replaceAll', 'retainAll')
+    ]/(VariableAccess|FieldAccess)/@Name)
+]
+[   (: field is initialized with List constructor :)
+    ../ConstructorCall[pmd-java:typeIs('java.util.List')]
+    or
+    (: or static block / constructor has field initialized with List allocation :)
+    ancestor::ClassBody/(Initializer|ConstructorDeclaration)//AssignmentExpression[ConstructorCall[pmd-java:typeIs('java.util.List')]]/(VariableAccess|FieldAccess)[1]/@Name = @Name
+    or
+    (: or constructor has a simple assignment to the field, param or literal: no arguments :)
+    ancestor::ClassBody/ConstructorDeclaration/Block//AssignmentExpression[(VariableAccess|FieldAccess)[2][pmd-java:typeIs('java.util.List')]]/(VariableAccess|FieldAccess)[1]/@Name = @Name
+]
+]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Vendored from jPinpoint (PMD-jPinpoint-rules, Apache License 2.0),
+         rule 'LimitNestingInLambdas' in its category/java/common_std.xml -->
+    <rule name="LimitNestingInLambdas"
+          language="java"
+          message="Avoid deep nesting of lambdas in lambda expressions."
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+          externalInfoUrl="https://github.com/jborgers/PMD-jPinpoint-rules/blob/pmd7/docs/JavaCodeQuality.md#isr05">
+        <description>Problem: lambda expressions with deep nesting (lambda's in lambda's) are hard to understand and maintain.
+            Solution: extract the lambda expression code block(s) into one or more well-named separate method(s).
+            Note: A violation when the depth of lambda-with-code-block nesting exceeds (by default) 1,
+            or the depth of lambda-single-expression in lambda nesting exceeds (by default) 4.
+        </description>
+        <priority>3</priority>
+        <properties>
+            <property name="tags" value="brain-overload,jpinpoint-rule,replaces-sonar-rule" type="String" description="classification"/>
+            <property name="param-block-max" value="1" type="String" description="Maximum allowed depth of lambda-with-code-block nesting"/>
+            <property name="param-single-max" value="4" type="String" description="Maximum allowed depth of lambda-single-expression nesting"/>
+            <property name="xpath">
+                <value><![CDATA[
+//LambdaExpression[Block][count(ancestor::LambdaExpression/Block) > number($param-block-max)]
+|
+//LambdaExpression[*[@Expression=true()]][count(ancestor::LambdaExpression) > number($param-single-max)]
+                ]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Vendored from jPinpoint (PMD-jPinpoint-rules, Apache License 2.0),
+         rule 'LimitStatementsInLambdas' in its category/java/common_std.xml -->
+    <rule name="LimitStatementsInLambdas"
+          language="java"
+          message="Avoid many statements in lambda expressions."
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+          externalInfoUrl="https://github.com/jborgers/PMD-jPinpoint-rules/blob/pmd7/docs/JavaCodeQuality.md#isr03">
+        <description>Problem: lambda expressions with many statements are hard to understand and maintain.
+            Solution: extract the lambda expression code block into one or more well-named separate method(s).
+        </description>
+        <priority>3</priority>
+        <properties>
+            <property name="tags" value="brain-overload,jpinpoint-rule,replaces-sonar-rule" type="String" description="classification"/>
+            <property name="param-max" value="5" type="String" description="Maximum number of allowed non-setter statements"/>
+            <property name="xpath">
+                <value><![CDATA[
+(: number of statements should be limited, setters are ignored. Chained methods are one statement :)
+//LambdaExpression/Block[count(.//*[pmd-java:nodeIs('Statement')]) - count(.//EmptyStatement) - count(.//Block) - count(.//ExpressionStatement/MethodCall[starts-with(@MethodName,'set')]) > number($param-max)]
+                ]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Vendored from jPinpoint (PMD-jPinpoint-rules, Apache License 2.0),
+         rule 'UnresolvedType' in its category/java/common_std.xml -->
+    <rule name="UnresolvedType"
+          language="java"
+          message="A type cannot be resolved. Make sure all sources are compiled and annotations processed."
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+          externalInfoUrl="https://github.com/jborgers/PMD-jPinpoint-rules/blob/pmd7/docs/JavaCodeQuality.md#M04">
+        <description>Problem: When analyzing code, PMD could not resolve a used type (class, annotation or other type). Several rules make use of type information and assume it is available. If not, those rules typically fail to work correctly and will for instance show false positives.
+            Solution: Make sure all types can be resolved: compile all source code, process all annotations (like lombok), compile generated code, make all dependencies available on the classpath, etc. Note: this rule is still somewhat experimental and may show false positives.
+        </description>
+        <priority>5</priority>
+        <properties>
+            <property name="tags" value="confusing,jpinpoint-rule" type="String" description="classification"/>
+            <property name="xpath">
+                <value><![CDATA[
+(: variable access for unknown variable type :)
+(//VariableAccess
+[not(pmd-java:typeIs('java.lang.Object'))]
+[not(pmd-java:typeIs('byte'))][not(pmd-java:typeIs('short'))]
+[not(pmd-java:typeIs('int'))][not(pmd-java:typeIs('long'))]
+[not(pmd-java:typeIs('float'))][not(pmd-java:typeIs('double'))]
+[not(pmd-java:typeIs('boolean'))][not(pmd-java:typeIs('char'))]
+(: pmd seems not (always) able to resolve type of lambda params :)
+[not(@Name = ancestor::LambdaExpression//LambdaParameter/VariableId/@Name)]
+(: pmd seems not able to resolve record fields :)
+[not(@Name = ancestor::RecordDeclaration/RecordBody/FieldDeclaration/VariableDeclarator/VariableId/@Name)]
+|
+(: the unresolved/ambiguous type names, except @Slf4j which pmd cannot resolve :)
+//AmbiguousName)
+[not(@Name='log' and
+    ((ancestor::ClassDeclaration|ancestor::EnumDeclaration|ancestor::RecordDeclaration)/ModifierList/Annotation[pmd-java:typeIs('lombok.extern.slf4j.Slf4j')]))]
+
+                ]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Vendored from jPinpoint (PMD-jPinpoint-rules, Apache License 2.0),
+         rule 'UsingSuppressWarnings' in its category/java/common.xml -->
+    <rule name="UsingSuppressWarnings"
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+          language="java"
+          message="Using SuppressWarnings."
+          externalInfoUrl="https://github.com/jborgers/PMD-jPinpoint-rules/tree/pmd7/docs/JavaCodeQuality.md#M02">
+        <description>Problem: The suppressed rule detects problems, suppressing the detected violations without full knowledge can lead to the problems the rule is trying to prevent. &#13;
+            Solution: Only suppress violations (warnings) when you have complete understanding of the rule, and you are sure it does not apply.
+            When suppressing warnings, document your reasoning and report false positives to the rule maintainers to help improve rule accuracy.
+            Note: This rule is just informational to track use of SuppressWarnings, to be able to double-check if suppression is correct. It often doesn't need a fix. (jpinpoint-rules)</description>
+        <priority>5</priority>
+        <properties>
+            <property name="tags" value="jpinpoint-rule,suspicious" type="String" description="classification"/>
+            <property name="ruleIdMatches" type="String" value=".*"
+                      description="Regex for inclusion of rules"/>
+            <property name="ruleIdNotMatches" type="String" value="^$"
+                      description="Regex for exclusion of rules"/>
+            <property name="xpath">
+                <value><![CDATA[
+//Annotation[@SimpleName=("SuppressWarnings","SuppressFBWarnings")]//StringLiteral[(matches(@Image, $ruleIdMatches)) and not (matches(@Image, $ruleIdNotMatches))]
+			]]>
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Vendored from jPinpoint (PMD-jPinpoint-rules, Apache License 2.0),
+         rule 'UsingSuppressWarningsHighRisk' in its category/java/common.xml -->
+    <rule name="UsingSuppressWarningsHighRisk"
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+          language="java"
+          message="Using SuppressWarnings for a rule that is meant to prevent high risk problems."
+          externalInfoUrl="https://github.com/jborgers/PMD-jPinpoint-rules/tree/pmd7/docs/JavaCodeQuality.md#M03">
+        <description>Problem: The suppressed rule detects high risk problems, suppressing the detected violations without full knowledge can lead to incidents like customer data mix-up, corrupt data, server crashes or very bad performance. &#13;
+            Solution: Only suppress violations (warnings) when you have complete understanding of the rule, and you are sure it does not apply.
+            When suppressing warnings, document your reasoning and report false positives to the rule maintainers to help improve rule accuracy.
+            Note: This rule is to track use of SuppressWarnings for high risk rule violations, to be able to double-check if suppression is correct. It doesn't necessarily need a fix.
+            (jpinpoint-rules)</description>
+        <priority>4</priority>
+        <properties>
+            <property name="tags" value="data-mix-up,jpinpoint-rule,suspicious" type="String" description="classification"/>
+            <property name="ruleIdMatches" type="String" value="AvoidUserDataInSharedObjects|AvoidUnguardedMutableFieldsInSharedObjects|AvoidUnguardedAssignmentToNonFinalFieldsInSharedObjects|AvoidMutableStaticFields|[^\w]ALL[^\w]|[^\w]all[^\w]|PMD[^\.]|pmd[^:]"
+                      description="Regex for inclusion of high risk rules"/>
+            <property name="ruleIdNotMatches" type="String" value="^$"
+                      description="Regex for exclusion of high risk rules"/>
+            <property name="xpath">
+                <value><![CDATA[
+//Annotation[@SimpleName=("SuppressWarnings","SuppressFBWarnings")]//StringLiteral[(matches(@Image, $ruleIdMatches)) and not (matches(@Image, $ruleIdNotMatches))]
+			]]>
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+</ruleset>
