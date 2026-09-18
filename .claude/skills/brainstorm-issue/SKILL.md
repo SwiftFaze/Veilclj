@@ -29,7 +29,7 @@ Use the `grilling` skill (not free-form prose, and not a flat
 - **What's in scope for a first version** versus what should be split
   into a separate follow-up issue. Recommend the smallest coherent slice
   that doesn't depend on anything unbuilt.
-- **Priority** for each issue being filed — P0/P1/P2 (the VEIL project
+- **Priority** for each issue being filed — P0/P1/P2 (the VEILCLJ project
   board's `Priority` field). Recommend **P2** by default: this skill
   exists for ideas the user wants to think out loud about "for later,"
   not urgent work, so P2 is the sane default unless the brainstorm itself
@@ -112,7 +112,7 @@ issue(s) to the project board:
 
 1. List open milestones:
    ```
-   gh api repos/SwiftFaze/Veil/milestones --jq '.[] | "\(.number)\t\(.title)\t\(.description)"'
+   gh api repos/SwiftFaze/Veilclj/milestones --jq '.[] | "\(.number)\t\(.title)\t\(.description)"'
    ```
 2. Judge whether the issue's theme genuinely fits one of them (e.g. a new
    settings-screen widget idea fits an existing "Terminal UI component
@@ -132,29 +132,29 @@ issue(s) to the project board:
    suggest `/brainstorm-milestone` instead of creating a single-issue
    milestone here. Otherwise:
    ```
-   gh api repos/SwiftFaze/Veil/milestones -f title="<n>. <Title>" -f state="open" -f description="<theme>"
+   gh api repos/SwiftFaze/Veilclj/milestones -f title="<n>. <Title>" -f state="open" -f description="<theme>"
    ```
 5. Assign the issue(s):
    ```
-   gh issue edit <number> --repo SwiftFaze/Veil --milestone "<milestone title>"
+   gh issue edit <number> --repo SwiftFaze/Veilclj --milestone "<milestone title>"
    ```
    If the brainstorm split into primary + follow-up, both usually share
    the same milestone unless the follow-up is genuinely a different arc.
 
 ## Step 5 — Add to the project board and set priority
 
-Every issue created this way goes on the VEIL project board — this is a
+Every issue created this way goes on the VEILCLJ project board — this is a
 standing repo convention, not optional:
 
 ```
-gh project item-add 2 --owner SwiftFaze --url <issue-url>
+gh project item-add 3 --owner SwiftFaze --url <issue-url>
 ```
 
 Then set the `Priority` field to whatever was settled in Step 2 (exact
 option names are `P0`, `P1`, `P2`):
 
 ```
-gh project item-edit 2 --owner SwiftFaze --url <issue-url> --field "Priority" --value "<P0|P1|P2>"
+gh project item-edit 3 --owner SwiftFaze --url <issue-url> --field "Priority" --value "<P0|P1|P2>"
 ```
 
 Do both for each issue created in Step 3 — the primary and any follow-up,

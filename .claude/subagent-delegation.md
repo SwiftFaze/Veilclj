@@ -35,7 +35,7 @@ command it claims passed, read the actual diff. Confidence and detail in a
 report are not evidence.
 
 This rule is unconditional because a near-maximal defensive prompt didn't
-prevent it: on issue #136 (fullscreen/windowed toggle), a Step 4 handoff with
+prevent it: on the Java Veil project (SwiftFaze/Veil#136, fullscreen/windowed toggle), a Step 4 handoff with
 full file contents, exact line numbers, literal code to paste, an explicit
 "don't explore" instruction and a required verification checklist still produced
 an agent that explored anyway, burned the budget, and self-reported done when it
@@ -57,17 +57,16 @@ the agent worked in a worktree, run it there. Details: `docs/clean-code-gate.md`
 Specific checks:
 
 - **A passing metric isn't evidence unless its scope is confirmed.** A mutation
-  score can be genuinely green while measuring the wrong code — e.g. computed
-  before `pom.xml`'s `targetClasses` was updated to include the new classes.
+  score can be genuinely green while measuring the wrong code — e.g. a
+  clj-mutate run pointed at a file other than the one the change touched.
   Confirm what a reported number actually covers.
 - **A mandatory step can't be silently skipped, downgraded, or rationalized
   away.** An agent that can't complete one should stop and report the blocker,
   not proceed with a caveat or substitute a weaker check. A report mentioning a
   skipped mandatory step is a first-class finding, not a footnote.
-- **A green acceptance suite doesn't prove keyboard/focus behavior.** If the
-  feature involves focus crossing a window or component boundary, confirm at
-  least one scenario exercises real input, not just the `ActionMap` shortcut —
-  see `docs/testing-acceptance.md`.
+- **A green acceptance suite doesn't prove on-screen behavior.** Acceptance
+  steps drive the pure game state, never the Quil window, so rendering and
+  input wiring are only proven by the human playtest (`CLAUDE.md`).
 
 ## Escalation when verification finds a real problem
 

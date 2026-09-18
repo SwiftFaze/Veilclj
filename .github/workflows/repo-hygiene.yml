@@ -49,7 +49,7 @@ jobs:
           echo "merge - and only if the reference is present. See CLAUDE.md."
           exit 1
 
-  # Was: CLAUDE.md "Never hand-edit pom.xml's <version> or CHANGELOG.md".
+  # Was: CLAUDE.md "Never hand-edit version.txt or CHANGELOG.md".
   # Release Please derives both from Conventional Commits; a manual edit puts the
   # repo and the release tooling out of step.
   no-manual-release-edits:
@@ -77,40 +77,11 @@ jobs:
             status=1
           fi
 
-          # The project version sits at 4-space indentation; plugin and dependency
-          # <version> tags are nested far deeper, so this matches only the former.
-          if git diff "$base"...HEAD -- pom.xml | grep -qE '^[+-]    <version>'; then
-            echo "::error file=pom.xml::pom.xml's project <version> is set by Release Please - do not hand-edit it (docs/release.md)."
+          # --diff-filter=M: creating version.txt (project bootstrap) is not an edit.
+          if ! git diff --quiet --diff-filter=M "$base"...HEAD -- version.txt; then
+            echo "::error file=version.txt::version.txt is set by Release Please - do not hand-edit it (docs/release.md)."
             status=1
           fi
 
           [ "$status" -eq 0 ] && echo "No manual release edits found."
           exit $status
-
-  # Was: docs/testing.md documenting the coverage/mutation-testing ratchet in
-  # prose only (issue #196). Prose is not enforcement against the actor these
-  # gates exist to constrain - see .claude/tools/check-quality-gates.sh.
-  quality-gate-ratchet:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Check for weakened coverage/mutation gates
-        env:
-          HEAD_REF: ${{ github.head_ref }}
-          BASE_REF: ${{ github.base_ref }}
-        run: bash .claude/tools/check-quality-gates.sh
-
-  # Not a rule that was ever prose: jqwik 1.10.0+ prints a fixed message aimed at
-  # coding agents on every engine run (docs/testing-property-based.md). The text
-  # is inert and the dependency is test-scope, so we keep the library - but a
-  # release artifact that carries a payload aimed at automated consumers is worth
-  # watching, and this fails the moment that payload is not what was audited.
-  jqwik-canary:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Check jqwik's agent-directed output is unchanged
-        run: bash .claude/tools/check-jqwik-canary.sh

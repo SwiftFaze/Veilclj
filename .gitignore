@@ -8,3 +8,14 @@
 
 # Runtime-written game settings
 /settings.json
+
+# Clojure / build output
+.cpcache/
+target/
+.nrepl-port
+.lsp/
+.clj-kondo/.cache/
+
+# Intent docs are scratch; only the template is tracked
+/specs/intent/*
+!/specs/intent/TEMPLATE.md
