@@ -41,9 +41,13 @@
   ;; --- Uncle Bob's quality tools ---------------------------------------------
   scrap {:doc  "SCRAP: speclj structure errors + spec quality advice (default: spec/)"
          :task (apply clojure "-M:scrap" (or (seq *command-line-args*) ["spec"]))}
+  ;; Coverage runs here, not via crap4clj's --coverage-command: crap4clj
+  ;; launches that through `sh -c`, which PowerShell doesn't have.
   crap  {:doc      "crap4clj: CRAP score per function -> .metrics/crap.edn"
          :requires ([crap4clj.core :as crap])
-         :task     (apply crap/-main "--coverage-command" "bb cov" *command-line-args*)}
+         :task     (do (babashka.fs/delete-tree "target/coverage")
+                       (clojure "-M:cov")
+                       (apply crap/-main "--use-existing-coverage" *command-line-args*))}
   crap-gate
   {:doc      "Fail if any function in .metrics/crap.edn exceeds quality-gates.edn"
    :requires ([veil-tools.crap-gate :as gate])
