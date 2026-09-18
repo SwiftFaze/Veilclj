@@ -1,14 +1,10 @@
-;; uml-viewer policy (https://github.com/unclebob/uml-viewer#policy).
-;; The diagram is generated from the namespace tree: `bb uml-ir`, then `bb uml`.
-;; :levels mirrors dependency-checker.edn so the viewer paints violations red.
-{:title        "Veil"
- :src          "src"
- :prefix       "veil"
- :lang         :clojure
- :out          "target/uml/veil.edn"
- :hierarchical true
- :foreign      [quil]
- :order        [main ui game]
- :levels       [[game]
-                [ui]
-                [main]]}
+{:hierarchical true,
+ :src "src",
+ :title "Veil",
+ :prefix "veil",
+ :lang :clojure,
+ :proposals [],
+ :levels [[game] [ui] [main]],
+ :out "target/uml/veil.edn",
+ :order [main ui game],
+ :foreign [quil]}
