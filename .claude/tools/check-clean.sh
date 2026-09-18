@@ -11,20 +11,21 @@
 # that gap by construction: there is nothing the orchestrator can reject the
 # work for that the subagent could not have seen first.
 #
-# SCOPE: by default this judges only the lines your change ADDED, measured
-# against the merge-base with develop, including uncommitted AND untracked
-# work - a brand-new namespace is untracked until `git add`, and missing it
-# would be the exact silent pass this tool exists to prevent. You are
-# accountable for the lines you wrote, not the file you happened to open.
+# SCOPE: the tool gates (specs, structure, acceptance, CRAP, layers) judge the
+# WHOLE repo - it started clean, so any red is yours. The text-smell check
+# judges only the lines your change ADDED vs the merge-base with develop,
+# including uncommitted AND untracked work (a brand-new namespace is untracked
+# until `git add`, and missing it would be the silent pass this tool exists
+# to prevent).
 #
 # Usage:
 #   check-clean.sh                 the gate - added lines only
-#   check-clean.sh --fast          skip the spec run (inner loop only, NOT the gate)
+#   check-clean.sh --fast          skip the JVM-heavy sections (inner loop only, NOT the gate)
 #   check-clean.sh --all           whole repo, ignore the diff (baselining)
 #   check-clean.sh --base <ref>    compare against <ref> instead of develop
 #
 # Exit: 0 = mechanical checks pass (judgment checklist still owed)
-#       1 = blocking violations, or a spec failure
+#       1 = blocking violations, or a spec/acceptance failure
 #       2 = the script could not run the checks (bad ref, bb missing)
 #
 # Rule reference, thresholds, and the judgment checklist: docs/clean-code-gate.md
@@ -33,12 +34,12 @@ set -uo pipefail
 cd "$(dirname "$0")/../.." || exit 2
 
 BASE_REF="develop"
-RUN_SPECS=1
+FULL=1
 SCOPE="lines"
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --fast)  RUN_SPECS=0 ;;
+    --fast)  FULL=0 ;;
     --all)   SCOPE="all" ;;
     --base)  shift; BASE_REF="${1:-}" ;;
     -h|--help) sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
@@ -53,10 +54,31 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
 blocking=0
+advisory=0
 sections_failed=""
 CLJ_GLOBS=('*.clj' '*.cljc' '*.bb')
 
 hr() { printf '%s\n' "------------------------------------------------------------"; }
+
+strip_ansi() { sed 's/\x1b\[[0-9;]*m//g'; }
+
+# gate LABEL LOG TAIL_FILTER CMD...: run a bb task; its exit code is the verdict.
+gate() {
+  local label="$1" log="target/clean-code/$2.log" filter="$3"; shift 3
+  if "$@" > "$log" 2>&1; then
+    echo "  PASS  $label"
+  else
+    echo "  FAIL  $label:"
+    strip_ansi < "$log" | grep -vE '^(Downloading|Cloning|Checking out)' \
+      | grep -E "$filter" | tail -25 | sed 's/^/    /'
+    echo
+    echo "    Full log: $log"
+    blocking=$((blocking + 1))
+    sections_failed="$sections_failed $2"
+  fi
+}
+
+skipped() { echo "  SKIPPED (--fast). Not the gate - you may not report done on it."; }
 
 # ---------------------------------------------------------------------------
 # Scope: every added line, as file|line|text
@@ -116,9 +138,7 @@ hr
 mkdir -p target/clean-code
 SPEC_LOG="target/clean-code/spec.log"
 
-if [ "$RUN_SPECS" -eq 0 ]; then
-  echo "  SKIPPED (--fast). This is an inner-loop shortcut, not the gate."
-  echo "  You may not report a task finished on a --fast run."
+if [ "$FULL" -eq 0 ]; then skipped
 elif bb spec > "$SPEC_LOG" 2>&1; then
   echo "  PASS  $(grep -E 'examples?, ' "$SPEC_LOG" | tail -1 | sed 's/\x1b\[[0-9;]*m//g')"
 else
@@ -131,11 +151,85 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 2. Textual smells no analyzer has a rule for
+# 2. Spec structure (SCRAP) - structure errors block; its advice is reported
 # ---------------------------------------------------------------------------
 
 hr
-echo "2. Commented-out code, deferred work, suppressions"
+echo "2. Spec structure (bb scrap)"
+hr
+if [ "$FULL" -eq 0 ]; then skipped
+elif bb scrap spec --json > target/clean-code/scrap.json 2> target/clean-code/scrap.log; then
+  echo "  PASS  no speclj structure errors"
+else
+  # The text report omits structure errors; the JSON report has them.
+  echo "  FAIL  speclj structure errors (speclj itself ignores these silently):"
+  bb -e '(doseq [r (:reports (cheshire.core/parse-string (slurp "target/clean-code/scrap.json") true))
+                 e (cond-> (vec (:structure-errors r)) (:parse-error r) (conj (:parse-error r)))]
+           (println (str "    " (:path r) ": " e)))'
+  blocking=$((blocking + 1)); sections_failed="$sections_failed scrap"
+fi
+
+# ---------------------------------------------------------------------------
+# 3. Acceptance tests (APS pipeline over specs/features/)
+# ---------------------------------------------------------------------------
+
+hr
+echo "3. Acceptance tests (bb acceptance)"
+hr
+if [ "$FULL" -eq 0 ]; then skipped
+else gate "every feature scenario passes" acceptance 'FAIL|expected|actual|unsupported|Ran|failures|rror' bb acceptance
+fi
+
+# ---------------------------------------------------------------------------
+# 4. CRAP score (crap4clj + quality-gates.edn :crap-max)
+# ---------------------------------------------------------------------------
+
+hr
+echo "4. CRAP score per function (bb crap, bb crap-gate)"
+hr
+if [ "$FULL" -eq 0 ]; then skipped
+elif ! bb crap > target/clean-code/crap.log 2>&1; then
+  echo "  FAIL  crap4clj could not run - see target/clean-code/crap.log"
+  blocking=$((blocking + 1)); sections_failed="$sections_failed crap"
+elif ! bb crap-gate; then
+  blocking=$((blocking + 1)); sections_failed="$sections_failed crap"
+fi
+
+# ---------------------------------------------------------------------------
+# 5. Layer direction (dependency-checker.edn)
+# ---------------------------------------------------------------------------
+
+hr
+echo "5. Layer direction veil.main -> ui -> game (bb layers)"
+hr
+gate "no boundary violations or cycles" layers 'Violation|violation|Cycle|->' bb layers --no-color
+
+# ---------------------------------------------------------------------------
+# 6. Duplication (dry4clj) - ADVISORY: fuzzy, so each hit needs a disposition
+# ---------------------------------------------------------------------------
+
+hr
+echo "6. Duplicate-code candidates (bb dry) - advisory"
+hr
+if [ "$FULL" -eq 0 ]; then skipped
+else
+  bb dry 2>/dev/null | grep -A2 '^DUPLICATE' > "$WORK/dry.txt" || true
+  dups=$(grep -c '^DUPLICATE' "$WORK/dry.txt" || true)
+  if [ "$dups" -gt 0 ]; then
+    echo "  ADVISORY  $dups candidate(s) - fix, or say in one line why each is fine:"
+    sed 's/^/    /' "$WORK/dry.txt"
+    advisory=$((advisory + dups))
+  else
+    echo "  PASS  no duplicate candidates"
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# 7. Textual smells no analyzer has a rule for
+# ---------------------------------------------------------------------------
+
+hr
+echo "7. Commented-out code, deferred work, suppressions (added lines)"
 hr
 
 text_fail=0
@@ -201,6 +295,10 @@ fi
 echo "RESULT: MECHANICAL CHECKS PASS"
 hr
 echo
+if [ "$advisory" -gt 0 ]; then
+  echo "$advisory advisory finding(s) above still need a disposition."
+  echo
+fi
 cat <<'EOF'
 The machine has checked what it can. These rules cannot be automated and are
 still owed - answer every line, in the completion report, with PASS or FAIL and

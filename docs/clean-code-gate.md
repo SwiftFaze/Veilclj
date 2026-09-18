@@ -5,22 +5,31 @@ bash .claude/tools/check-clean.sh
 ```
 
 One command, run identically by the implementing agent before it reports done
-and by the orchestrator verifying that report. It judges only the lines your
-change added versus `develop` (plus untracked files), so existing debt is never
-attributed to whoever touched the file next.
+and by the orchestrator verifying that report, and by CI on every PR. It
+orchestrates Uncle Bob's tools (`docs/testing.md`) and adds what none of them
+covers: the CRAP ceiling, the text-smell checks, which findings block versus
+advise, and the judgment checklist.
+
+The tool gates judge the whole repo (it started clean, so any red is yours);
+the text-smell check judges only the lines your change added versus `develop`.
 
 ## Sections
 
 | # | Check | Blocks? |
 |---|---|---|
 | 1 | `bb spec` passes | yes |
-| 2 | No commented-out forms (`;; (…)`, `#_(…)`), no TODO/FIXME/XXX/HACK, no new `clj-kondo/ignore` | yes |
+| 2 | `bb scrap`: no speclj structure errors (e.g. `it` inside `it`) | yes |
+| 3 | `bb acceptance`: every feature scenario passes | yes |
+| 4 | `bb crap` + `bb crap-gate`: every function CRAP ≤ `quality-gates.edn` `:crap-max` | yes |
+| 5 | `bb layers`: no layer violations or cycles | yes |
+| 6 | `bb dry`: duplicate-code candidates | advisory |
+| 7 | Added lines: no commented-out forms (`;; (…)`, `#_(…)`), TODO/FIXME/XXX/HACK, or `clj-kondo/ignore` | yes |
 
-More sections (speclj structure, CRAP score, dependency direction) are added as
-the Uncle Bob tooling lands - see `testing.md`.
+An **advisory** finding doesn't fail the gate, but each one needs a disposition
+in the completion report: fix it, or one line on why it's correct as written.
 
-`--fast` skips section 1 for the inner loop. A `--fast` run never counts as
-passing the gate.
+`--fast` skips the JVM-heavy sections (1-4, 6) for the inner loop. A `--fast`
+run never counts as passing the gate. A full run takes about 30 seconds.
 
 ## Judgment checklist
 

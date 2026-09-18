@@ -3,22 +3,47 @@
  :deps {org.clojure/clojure {:mvn/version "1.12.6"}
         quil/quil           {:mvn/version "4.3.1563"}}
 
+ ;; Every alias here has a matching `bb` task in bb.edn - call those, not clj.
  :aliases
- {;; clj -M:run  (or: bb play)
-  :run   {:main-opts ["-m" "veil.main"]}
+ {:run   {:main-opts ["-m" "veil.main"]}
 
-  ;; clj -M:spec  (or: bb spec)
   :spec  {:extra-paths ["spec"]
           :extra-deps  {speclj/speclj {:mvn/version "3.13.0"}}
           :main-opts   ["-m" "speclj.main" "-c" "spec"]}
 
-  ;; clj -M:cov  (or: bb cov) -> target/coverage/
+  ;; Same spec population as the mutation workers (clj-mutate requires it),
+  ;; hence the ~no-mutate tag. -> target/coverage/ (HTML + lcov.info)
   :cov   {:extra-paths ["spec"]
           :extra-deps  {speclj/speclj       {:mvn/version "3.13.0"}
                         cloverage/cloverage {:mvn/version "1.2.4"}}
-          :main-opts   ["-m" "speclj.cloverage" "--"
-                        "-p" "src" "-s" "spec" "--lcov"]}
+          :main-opts   ["-m" "speclj.cloverage" "-c" "--tag" "~no-mutate" "spec"
+                        "--" "-p" "src" "-s" "spec" "--lcov"]}
 
-  ;; clj -T:build uber  (or: bb uber)
+  ;; Acceptance pipeline runtime: generated entry points + step handlers.
+  :acceptance {:extra-paths ["acceptance" "build/acceptance/generated"]
+               :extra-deps  {org.clojure/data.json {:mvn/version "2.5.1"}}}
+
+  ;; SCRAP: speclj structure errors (blocking) + spec quality advice.
+  :scrap {:extra-deps {io.github.unclebob/scrap
+                       {:git/url "https://github.com/unclebob/scrap"
+                        :git/sha "f793b28906d3c60e30b128e1ec08df6269a72b13"}}
+          :main-opts  ["-m" "scrap.core"]}
+
+  ;; dry4clj: fuzzy structural duplicate detection.
+  :dry   {:extra-deps {io.github.unclebob/dry4clj
+                       {:git/url "https://github.com/unclebob/dry4clj"
+                        :git/sha "5994ef2bcaaae8d12bcd0afb4f091ae09083228c"}}
+          :main-opts  ["-m" "dry4clj.core"]}
+
+  ;; uml-viewer: generate the diagram IR from docs/uml/veil.policy.edn, then view it.
+  :uml-ir {:extra-deps {io.github.unclebob/uml-viewer
+                        {:git/url "https://github.com/unclebob/uml-viewer"
+                         :git/sha "12abff74e51433fc90306d2be553844a0fa18230"}}
+           :main-opts  ["-m" "uml-viewer.main.ir-generator" "docs/uml/veil.policy.edn"]}
+  :uml    {:extra-deps {io.github.unclebob/uml-viewer
+                        {:git/url "https://github.com/unclebob/uml-viewer"
+                         :git/sha "12abff74e51433fc90306d2be553844a0fa18230"}}
+           :main-opts  ["-m" "uml-viewer.main.uml-viewer" "target/uml/veil.edn"]}
+
   :build {:deps       {io.github.clojure/tools.build {:mvn/version "0.10.14"}}
           :ns-default build}}}

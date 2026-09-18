@@ -79,7 +79,7 @@ suite — cheap enough to be worth real evidence, scoped enough not to burn the
 session you just started:
 
 ```
-bb spec   # until the acceptance pipeline lands; then see docs/testing.md
+bb acceptance
 ```
 
 Skip even that if the tree is clean, the box is checked, and `git log` shows a

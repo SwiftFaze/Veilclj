@@ -54,13 +54,14 @@ gets built. Pay the approval latency only where being wrong is expensive.
       that drawing reads, not the pixels. Say explicitly in the report which
       screens changed so the human playtest (`CLAUDE.md` Step 4.5) covers them.
 5. **Acceptance tests** (Haiku 4.5, same agent as Step 4) — wire the `.feature`
-   file into the acceptance pipeline so it's executable, not documentation.
+   file into the acceptance pipeline (`bb acceptance`) so it's executable, not
+   documentation: add step handlers under `acceptance/veil/acceptance/steps/`.
    Steps drive the pure game state (`veil.game`), never the Quil window.
-   Pipeline commands: `docs/testing.md`.
-6. **Mutation testing** (tooling, no model) — run clj-mutate against each
-   changed source namespace. This is the check on the unit specs, since they
-   aren't reviewed. Confirm the run targeted the files the change actually
-   touched before trusting the score.
+6. **Mutation testing** (tooling, no model) — `bb mutate <file>` on each
+   changed `veil.game`/`veil.ui` source file, and `bb acceptance-mutate` when a
+   `.feature` changed. This is the check on the specs, since they aren't
+   reviewed. Survivors get a spec (or a sharper example), not a shrug. Confirm
+   the run targeted the files the change actually touched.
 7. **Documentation** (Haiku 4.5, same agent as Steps 4-5) — part of done, not
    cleanup:
     - New domain concept, non-obvious design decision, or a deviation from an
@@ -74,17 +75,15 @@ gets built. Pay the approval latency only where being wrong is expensive.
 
 ## Constraints
 
-Enforced mechanically, so don't re-derive them by eye:
+Enforced mechanically by `check-clean.sh` and CI, so don't re-derive them by
+eye (details: `docs/testing.md`):
 
-- Specs pass, and no commented-out code / deferred-work markers / new
-  suppressions in added lines — `check-clean.sh`.
-
-Landing with the Uncle Bob tooling milestone, and enforced from then on:
-
-- CRAP score ≤ 8 per function (crap4clj) — complexity is only tolerable when
-  it is covered.
-- Layer direction (dependency-checker, `dependency-checker.edn`).
-- Well-formed specs (speclj-structure-check).
+- Specs and acceptance tests pass; specs are well-formed (SCRAP).
+- CRAP score ≤ 8 per function (`quality-gates.edn`) — complexity is only
+  tolerable when it is covered.
+- Layer direction `veil.main → veil.ui → veil.game` (`dependency-checker.edn`).
+- No commented-out code, deferred-work markers or suppressions in added lines.
+- Loosening any of the above fails the `quality-gate-ratchet` CI job.
 
 If a change can't meet a limit, stop and propose a decomposition rather than
 disabling the check. These thresholds are a deliberate dial for agent-authored

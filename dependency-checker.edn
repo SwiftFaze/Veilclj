@@ -1,0 +1,8 @@
+;; Layer direction for dependency-checker (docs/architecture.md).
+;; Components are the second namespace segment: veil.main -> :main,
+;; veil.ui.* -> :ui, veil.game.* -> :game. Dependencies point downward only.
+{:allowed-dependencies {:main [:ui :game]
+                        :ui   [:game]
+                        :game []}
+ :fail-on-violations true
+ :fail-on-cycles     true}

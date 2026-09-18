@@ -85,3 +85,25 @@ jobs:
 
           [ "$status" -eq 0 ] && echo "No manual release edits found."
           exit $status
+
+  # Was: check-quality-gates.sh ratcheting pom.xml's JaCoCo/PIT floors. Loosening
+  # quality-gates.edn or dependency-checker.edn must fail loudly so a human
+  # approves it explicitly (tools/veil_tools/gate_ratchet.clj).
+  quality-gate-ratchet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: DeLaGuardo/setup-clojure@13.7.0
+        with:
+          bb: 1.13.223
+      - name: Check for weakened quality gates
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          case "$HEAD_REF" in
+            release-please--branches--*|develop)
+              echo "Exempt branch '$HEAD_REF' - skipping."; exit 0 ;;
+          esac
+          bb gate-ratchet "origin/${{ github.base_ref }}"

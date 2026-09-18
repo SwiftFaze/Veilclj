@@ -1,19 +1,80 @@
 ;; The canonical command surface. Babashka's built-in `clojure` launcher runs
 ;; the deps.edn aliases identically from Git Bash, PowerShell and Linux CI, so
 ;; docs, scripts and workflows call `bb <task>` rather than a shell-specific
-;; `clj` wrapper.
-{:tasks
- {play  {:doc  "Launch the game"
+;; `clj` wrapper. Uncle Bob's bb-native tools run in-process here (fast
+;; startup); the JVM-only ones go through a deps.edn alias.
+{:paths ["tools"]
+
+ :deps {io.github.unclebob/crap4clj
+        {:git/url "https://github.com/unclebob/crap4clj"
+         :git/sha "e90be2e7aa02c2ec5d6544e9cecddc6b73ad3e4d"}
+        io.github.unclebob/clj-mutate
+        {:git/url "https://github.com/unclebob/clj-mutate"
+         :git/sha "911e707bf50b5d9999640b84b780cc6b3247f0fb"}
+        io.github.unclebob/dependency-checker
+        {:git/url "https://github.com/unclebob/dependency-checker"
+         :git/sha "61097ea222a377b781f003712bc54a73bb8a2d4d"}
+        io.github.unclebob/deintroverter4clj
+        {:git/url "https://github.com/unclebob/deintroverter4clj"
+         :git/sha "439066bd20bf745c2b5a5864c4f42f571f435f64"}}
+
+ :tasks
+ {;; --- build & run ---------------------------------------------------------
+  play  {:doc  "Launch the game"
          :task (apply clojure "-M:run" *command-line-args*)}
-
-  spec  {:doc  "Run the speclj unit specs (extra args go to speclj)"
-         :task (apply clojure "-M:spec" *command-line-args*)}
-
-  cov   {:doc  "Run specs under Cloverage -> target/coverage/"
-         :task (clojure "-M:cov")}
-
   uber  {:doc  "Build the runnable jar -> target/veil-<version>.jar"
          :task (clojure "-T:build" "uber")}
+  clean {:doc  "Delete target/ and build/"
+         :task (do (clojure "-T:build" "clean")
+                   (babashka.fs/delete-tree "build"))}
 
-  clean {:doc  "Delete target/"
-         :task (clojure "-T:build" "clean")}}}
+  ;; --- tests -----------------------------------------------------------------
+  spec  {:doc  "Run the speclj unit specs (extra args go to speclj, e.g. -a)"
+         :task (apply clojure "-M:spec" *command-line-args*)}
+  cov   {:doc  "Run specs under Cloverage -> target/coverage/"
+         :task (clojure "-M:cov")}
+  acceptance
+  {:doc      "Run every specs/features/*.feature through the APS pipeline"
+   :requires ([veil-tools.acceptance :as acceptance])
+   :task     (System/exit (acceptance/run-all))}
+
+  ;; --- Uncle Bob's quality tools ---------------------------------------------
+  scrap {:doc  "SCRAP: speclj structure errors + spec quality advice (default: spec/)"
+         :task (apply clojure "-M:scrap" (or (seq *command-line-args*) ["spec"]))}
+  crap  {:doc      "crap4clj: CRAP score per function -> .metrics/crap.edn"
+         :requires ([crap4clj.core :as crap])
+         :task     (apply crap/-main "--coverage-command" "bb cov" *command-line-args*)}
+  crap-gate
+  {:doc      "Fail if any function in .metrics/crap.edn exceeds quality-gates.edn"
+   :requires ([veil-tools.crap-gate :as gate])
+   :task     (System/exit (gate/check))}
+  layers {:doc      "dependency-checker: enforce veil.main -> ui -> game"
+          :requires ([dependency-checker.core :as dc])
+          :task     (apply dc/-main "dependency-checker.edn" *command-line-args*)}
+  dry   {:doc  "dry4clj: fuzzy duplicate-code candidates (default: src spec)"
+         :task (apply clojure "-M:dry" (or (seq *command-line-args*) ["src" "spec"]))}
+  mutate {:doc      "clj-mutate one source file: bb mutate src/veil/x.clj [opts]"
+          :requires ([clj-mutate.core :as mutate])
+          :task     (apply mutate/-main
+                           (concat *command-line-args*
+                                   ["--test-roots" "spec"
+                                    "--test-command" "bb spec --tag ~no-mutate"
+                                    "--coverage-command" "bb cov"]))}
+  acceptance-mutate
+  {:doc      "APS acceptance mutation: do the features notice changed examples?"
+   :requires ([veil-tools.acceptance :as acceptance])
+   :task     (System/exit (apply acceptance/mutate *command-line-args*))}
+  gate-ratchet
+  {:doc      "Fail if a quality gate was loosened vs a base ref (default origin/develop)"
+   :requires ([veil-tools.gate-ratchet :as ratchet])
+   :task     (System/exit (ratchet/check (or (first *command-line-args*) "origin/develop")))}
+
+  ;; --- manual inspection (never gates) ---------------------------------------
+  introvert {:doc      "deintroverter: find specs whose assertions don't touch src"
+             :requires ([deintroverter.core :as intro])
+             :task     (apply intro/-main (or (seq *command-line-args*) ["spec"]))}
+  uml-ir {:doc  "Regenerate the UML IR -> target/uml/veil.edn"
+          :task (do (babashka.fs/create-dirs "target/uml")
+                    (clojure "-M:uml-ir"))}
+  uml    {:doc  "Open the live UML viewer (run bb uml-ir and bb crap first)"
+          :task (clojure "-M:uml")}}}

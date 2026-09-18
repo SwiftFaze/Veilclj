@@ -1,0 +1,76 @@
+name: Mutation testing
+
+# Workflow Step 6 (.claude/workflow.md) is the check on the unit specs, which
+# are not human-reviewed by design. Weekly rather than per-PR because every
+# mutant re-runs the specs in a fresh JVM - minutes, not seconds - and weekly
+# still surfaces a weak spec while the author's context is fresh.
+#
+# Two kinds of mutation:
+#   - clj-mutate: mutates src/ code under veil.game and veil.ui; a surviving
+#     mutant is a behaviour no spec pins down. veil.main is out of scope: it is
+#     the Quil shell, which specs never execute by design (docs/testing.md).
+#   - APS acceptance mutation: mutates example values in specs/features/; a
+#     survivor is an example the acceptance steps never actually check.
+#
+# The job fails when anything survives, so a red weekly run is the signal.
+# Reports are uploaded either way.
+
+on:
+  schedule:
+    # Mondays 06:00 UTC. Scheduled runs use the default branch.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  mutation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: DeLaGuardo/setup-clojure@13.7.0
+        with:
+          bb: 1.13.223
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.gitlibs
+            ~/.deps.clj
+            .cache/aps
+          key: clj-${{ runner.os }}-${{ hashFiles('deps.edn', 'bb.edn', 'tools/veil_tools/aps.clj') }}
+          restore-keys: clj-${{ runner.os }}-
+
+      - name: clj-mutate (src/veil/game, src/veil/ui)
+        run: |
+          status=0
+          files=$(find src/veil/game src/veil/ui -name '*.clj' 2>/dev/null | sort)
+          if [ -z "$files" ]; then echo "No game/ui namespaces yet."; exit 0; fi
+          for f in $files; do
+            echo "::group::$f"
+            bb mutate "$f" --mutate-all --max-workers 2 || status=1
+            echo "::endgroup::"
+          done
+          exit $status
+
+      - name: Acceptance mutation (specs/features)
+        if: always()
+        run: bb acceptance-mutate --workers 2
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-reports
+          path: |
+            .metrics/mutate/
+            build/acceptance-mutation/
+          retention-days: 30

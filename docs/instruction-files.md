@@ -31,7 +31,9 @@ Record of prose rules replaced by a check, so they aren't re-added as prose:
 | "Always put `Closes #N` in the PR body" | `repo-hygiene.yml` `pr-body-closes-issue` |
 | "Never hand-edit the version or changelog" | `repo-hygiene.yml` `no-manual-release-edits` |
 | "Keep instruction files short" | `check-instruction-budget.sh` |
-| "No commented-out code / TODOs" | `check-clean.sh` section 2 |
+| "No commented-out code / TODOs" | `check-clean.sh` section 7 |
+| "Engine code must not depend on the UI" | `dependency-checker.edn` + `check-clean.sh` section 5 |
+| "Don't quietly loosen a quality gate" | `repo-hygiene.yml` `quality-gate-ratchet` |
 
 ## Monthly re-audit
 

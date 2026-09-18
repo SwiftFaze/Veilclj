@@ -51,9 +51,12 @@ Re-audit monthly — checklist in `docs/instruction-files.md`.
 Always go through `bb` tasks (`bb.edn`), never a raw `clj`/`clojure` call.
 
 - `bb play` — run the game. `bb spec` — unit specs (`bb spec -a` autotest).
-- `bb cov` — specs under Cloverage → `target/coverage/`.
-- `bb uber` → `target/veil-<version>.jar` (runnable jar). `bb clean`.
-- `bb tasks` lists everything. Test-layer detail: `docs/testing.md`.
+- `bb acceptance` — `specs/features/*.feature` via Uncle Bob's APS pipeline.
+- `bash .claude/tools/check-clean.sh` — the full gate (specs, SCRAP,
+  acceptance, CRAP, layers, duplication, text smells).
+- `bb mutate <file>`, `bb acceptance-mutate` — mutation testing (Step 6).
+- `bb uber` → `target/veil-<version>.jar`. `bb tasks` lists everything;
+  every tool is described in `docs/testing.md`.
 
 ## Docs
 
