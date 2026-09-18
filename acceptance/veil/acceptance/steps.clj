@@ -2,10 +2,11 @@
   "Step dispatch. Handlers live in one namespace per concept under
   veil.acceptance.steps.*; add a new concept's handlers to `step-handlers`."
   (:require [veil.acceptance.step-support :refer [fail]]
-            [veil.acceptance.steps.window :as window]))
+            [veil.acceptance.steps.window :as window]
+            [veil.acceptance.steps.menu :as menu]))
 
 (def step-handlers
-  (concat window/handlers))
+  (concat window/handlers menu/handlers))
 
 (defn handle-step [world text]
   (if-let [[handler match] (some (fn [[pattern handler]]
