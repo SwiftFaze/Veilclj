@@ -75,7 +75,8 @@ jobs:
             --head "release-please--branches--develop" --base develop \
             --state open --json number --jq '.[0].number')
           if [ -n "$pr_number" ]; then
-            gh pr merge "$pr_number" --repo "${{ github.repository }}" --auto --merge \
+            # --squash: the develop ruleset allows only squash merges.
+            gh pr merge "$pr_number" --repo "${{ github.repository }}" --auto --squash \
               || echo "Auto-merge request failed or was already set on PR #$pr_number — not fatal, skipping."
           else
             echo "No open release PR found for develop; nothing to auto-merge."
