@@ -4,7 +4,7 @@
  :prefix "veil",
  :lang :clojure,
  :proposals [],
- :levels [[game] [ui] [main]],
+ :levels [[game mods] [ui] [main]],
  :out "target/uml/veil.edn",
- :order [main ui game],
+ :order [main ui game mods],
  :foreign [quil]}
