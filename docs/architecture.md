@@ -40,3 +40,43 @@ dependency-checker (`dependency-checker.edn`, `bb layers`), and the UML viewer
 - Game state: the fun-mode state map, nowhere else. No atoms in `veil.game`.
 - Settings persisted between runs (`settings.json` in the working directory)
   are runtime output and are git-ignored.
+
+## Screens and menu
+
+The game has three screens: `:main-menu`, `:map`, and `:options`. Each screen
+consumes a subset of game inputs.
+
+```
+:main-menu
+  :up/:down    - navigate menu (wrapping)
+  :confirm     - select menu item, transition to :map/:options, or set :over?
+  :back        - ignored
+  
+:map
+  :back        - return to :main-menu, keeping menu selection
+  other inputs - ignored
+  
+:options
+  :back        - return to :main-menu, keeping menu selection
+  other inputs - ignored
+```
+
+The menu has three items: `"New Game"`, `"Options"`, `"Quit"`. The `:selected`
+field (0-based index) tracks which is active, with wrapping at both ends.
+
+## Input translation: pure vs. Quil
+
+`veil.ui.input/event->input` is a pure function that translates Quil key events
+(`{:key kw :raw-key char :key-code int}`) to game inputs
+(`:up`, `:down`, `:confirm`, `:back`, or `nil`). It has no dependency on Quil,
+so specs and acceptance steps can use it directly without opening a window.
+
+`veil.ui.draw` is the only Quil-touching UI namespace. `event->input` is kept
+pure (no Quil required) so game input logic can be tested in isolation.
+
+## The Esc/Processing gotcha
+
+Processing calls `exit()` if its `key` field == 27 (ESC char) after `keyPressed`
+returns. To make Esc mean `:back` (not quit), `veil.main/key-pressed` wrapper
+zeros that field when a raw Escape is detected. This prevents the unintended
+exit and allows menu and screen navigation to handle Esc as :back input.

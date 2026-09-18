@@ -25,3 +25,7 @@ target/
 build/
 .cache/
 .metrics/crap.edn
+
+# uml-viewer agent mailbox, clj-kondo LSP cache
+.uml-viewer/
+.clj-kondo/imports/
