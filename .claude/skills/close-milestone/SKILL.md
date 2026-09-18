@@ -1,6 +1,6 @@
 ---
 name: close-milestone
-description: Close a finished VEIL milestone and promote it to release — verifies every issue in the milestone is closed and no PR is still awaiting merge into develop, closes the milestone, then opens/merges the develop-into-master promotion PR that triggers the real release build (Release Please + cross-platform installers). Use when the user says a milestone is done and should ship, not for filing or auditing milestones (that's brainstorm-milestone/audit-planning).
+description: Close a finished VEILCLJ milestone and promote it to release — verifies every issue in the milestone is closed and no PR is still awaiting merge into develop, closes the milestone, then opens/merges the develop-into-master promotion PR that triggers the real release build (Release Please + cross-platform installers). Use when the user says a milestone is done and should ship, not for filing or auditing milestones (that's brainstorm-milestone/audit-planning).
 ---
 
 Closing counterpart to `brainstorm-milestone` (which files milestones) and
@@ -14,7 +14,7 @@ milestones and ask which one — this is a standalone, self-contained pick
 with nothing else riding on it, so use `AskUserQuestion`, not `grilling`:
 
 ```
-gh api repos/SwiftFaze/Veil/milestones --jq '.[] | select(.state=="open") | {number, title, open_issues, closed_issues}'
+gh api repos/SwiftFaze/Veilclj/milestones --jq '.[] | select(.state=="open") | {number, title, open_issues, closed_issues}'
 ```
 
 **Known CI gap to watch for (Step 6):** the `branch-name` job in
@@ -37,14 +37,14 @@ guessing which milestone was meant.
 ## Step 2 — Verify every issue in the milestone is closed
 
 ```
-gh api repos/SwiftFaze/Veil/milestones/<n> --jq '{open_issues, closed_issues}'
+gh api repos/SwiftFaze/Veilclj/milestones/<n> --jq '{open_issues, closed_issues}'
 ```
 
 If `open_issues` is 0, continue. Otherwise list the offending issues and
 stop — do not close a milestone with open work still tracked under it:
 
 ```
-gh issue list --repo SwiftFaze/Veil --milestone "<n>. <title>" --state open --json number,title,url
+gh issue list --repo SwiftFaze/Veilclj --milestone "<n>. <title>" --state open --json number,title,url
 ```
 
 Report each one's number/title/url and tell the user to close or re-milestone
@@ -59,7 +59,7 @@ Any open PR targeting `develop` is unfinished work that hasn't reached
 now would ship without it and make it awkward to land after the fact.
 
 ```
-gh pr list --repo SwiftFaze/Veil --base develop --state open --json number,title,headRefName,url,isDraft
+gh pr list --repo SwiftFaze/Veilclj --base develop --state open --json number,title,headRefName,url,isDraft
 ```
 
 If any come back (draft or ready-for-review, doesn't matter), list them and
@@ -80,7 +80,7 @@ triggering Release Please + the installer build. Proceed?" Recommend
 ## Step 5 — Close the milestone
 
 ```
-gh api repos/SwiftFaze/Veil/milestones/<n> -X PATCH -f state=closed
+gh api repos/SwiftFaze/Veilclj/milestones/<n> -X PATCH -f state=closed
 ```
 
 ## Step 6 — Promote develop into master
@@ -99,7 +99,7 @@ this run, and stop here (don't open an empty PR).
 Otherwise check there isn't already a stale promotion attempt open:
 
 ```
-gh pr list --repo SwiftFaze/Veil --base master --state open --json number,title,headRefName,url
+gh pr list --repo SwiftFaze/Veilclj --base master --state open --json number,title,headRefName,url
 ```
 
 If one exists, stop and point the user at it instead of opening a duplicate.
@@ -109,7 +109,7 @@ milestone in what triggers the build (see the note below on why this is the
 practical ceiling for that ask):
 
 ```
-gh pr create --repo SwiftFaze/Veil --base master --head develop \
+gh pr create --repo SwiftFaze/Veilclj --base master --head develop \
   --title "chore: promote milestone <n>. <title> to release" \
   --body "Promotes develop into master, closing out milestone #<n> — \"<title>\" (<closed_issues> issues). Triggers Release Please's stable release + cross-platform installer build on merge.
 
@@ -121,7 +121,7 @@ Then merge it the same way Release Please's own release PR merges itself
 them —
 
 ```
-gh pr merge <number> --repo SwiftFaze/Veil --merge --auto
+gh pr merge <number> --repo SwiftFaze/Veilclj --merge --auto
 ```
 
 **If this fails or the PR shows the `branch-name` check red:** this is the
@@ -146,7 +146,7 @@ Poll for the resulting release, a handful of times a couple minutes apart
 (the build takes a few minutes — build-and-test, then the installer matrix):
 
 ```
-gh release list --repo SwiftFaze/Veil --limit 1 --json tagName,publishedAt,url
+gh release list --repo SwiftFaze/Veilclj --limit 1 --json tagName,publishedAt,url
 ```
 
 If a new stable tag (`vX.Y.Z`, no `-beta.` suffix) appears whose
@@ -154,7 +154,7 @@ If a new stable tag (`vX.Y.Z`, no `-beta.` suffix) appears whose
 existing description (don't overwrite it):
 
 ```
-gh api repos/SwiftFaze/Veil/milestones/<n> -X PATCH -f description="<existing description>
+gh api repos/SwiftFaze/Veilclj/milestones/<n> -X PATCH -f description="<existing description>
 
 Shipped in <tagName> — <release url>"
 ```

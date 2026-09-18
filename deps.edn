@@ -1,0 +1,24 @@
+{:paths ["src"]
+
+ :deps {org.clojure/clojure {:mvn/version "1.12.6"}
+        quil/quil           {:mvn/version "4.3.1563"}}
+
+ :aliases
+ {;; clj -M:run  (or: bb play)
+  :run   {:main-opts ["-m" "veil.main"]}
+
+  ;; clj -M:spec  (or: bb spec)
+  :spec  {:extra-paths ["spec"]
+          :extra-deps  {speclj/speclj {:mvn/version "3.13.0"}}
+          :main-opts   ["-m" "speclj.main" "-c" "spec"]}
+
+  ;; clj -M:cov  (or: bb cov) -> target/coverage/
+  :cov   {:extra-paths ["spec"]
+          :extra-deps  {speclj/speclj       {:mvn/version "3.13.0"}
+                        cloverage/cloverage {:mvn/version "1.2.4"}}
+          :main-opts   ["-m" "speclj.cloverage" "--"
+                        "-p" "src" "-s" "spec" "--lcov"]}
+
+  ;; clj -T:build uber  (or: bb uber)
+  :build {:deps       {io.github.clojure/tools.build {:mvn/version "0.10.14"}}
+          :ns-default build}}}

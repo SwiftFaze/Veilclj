@@ -58,17 +58,25 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          # 21, not 17: Error Prone 2.50.0's plugin class is compiled to bytecode
-          # major 65 (Java 21) and cannot even be loaded on a JDK 17 host - it
-          # crashes inside ClassLoader.defineClass during javac's plugin
-          # ServiceLoader lookup, before any of its own code runs (issue #199).
-          # This does NOT change what bytecode the project itself compiles to -
-          # pom.xml's maven.compiler.source/target stay 17 - only which JDK runs
-          # Maven/javac, same reasoning already applied to SpotBugs (see its
-          # pom.xml comment: "Maven runs on the machine's JDK, which may be newer
-          # than the project's Java 17 compile target").
           java-version: '21'
-          cache: maven
 
-      - name: Build and test (unit + acceptance + integration)
-        run: mvn -B verify
+      # bb is the project's command surface (bb.edn); its built-in `clojure`
+      # launcher resolves deps.edn, so no separate Clojure CLI install is needed.
+      - uses: DeLaGuardo/setup-clojure@13.7.0
+        with:
+          bb: 1.13.223
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.gitlibs
+            ~/.deps.clj
+          key: clj-${{ runner.os }}-${{ hashFiles('deps.edn', 'bb.edn') }}
+          restore-keys: clj-${{ runner.os }}-
+
+      - name: Unit specs
+        run: bb spec
+
+      - name: Runnable jar builds
+        run: bb uber

@@ -1,0 +1,19 @@
+;; The canonical command surface. Babashka's built-in `clojure` launcher runs
+;; the deps.edn aliases identically from Git Bash, PowerShell and Linux CI, so
+;; docs, scripts and workflows call `bb <task>` rather than a shell-specific
+;; `clj` wrapper.
+{:tasks
+ {play  {:doc  "Launch the game"
+         :task (apply clojure "-M:run" *command-line-args*)}
+
+  spec  {:doc  "Run the speclj unit specs (extra args go to speclj)"
+         :task (apply clojure "-M:spec" *command-line-args*)}
+
+  cov   {:doc  "Run specs under Cloverage -> target/coverage/"
+         :task (clojure "-M:cov")}
+
+  uber  {:doc  "Build the runnable jar -> target/veil-<version>.jar"
+         :task (clojure "-T:build" "uber")}
+
+  clean {:doc  "Delete target/"
+         :task (clojure "-T:build" "clean")}}}

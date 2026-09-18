@@ -67,7 +67,7 @@ numbered sequentially by when they were opened, not by priority.
 
 1. Find the next number:
    ```
-   gh api repos/SwiftFaze/Veil/milestones --jq '.[].title'
+   gh api repos/SwiftFaze/Veilclj/milestones --jq '.[].title'
    ```
    Take the highest existing leading ordinal and add 1.
 2. Write the description in the same intent-doc shape `brainstorm-issue`
@@ -103,7 +103,7 @@ numbered sequentially by when they were opened, not by priority.
 3. Create it (pipe the body in rather than inlining it, since it's
    multi-line):
    ```
-   gh api repos/SwiftFaze/Veil/milestones -f title="<n>. <Title>" -f state="open" -f description="$(cat <<'EOF'
+   gh api repos/SwiftFaze/Veilclj/milestones -f title="<n>. <Title>" -f state="open" -f description="$(cat <<'EOF'
    ...
    EOF
    )"
@@ -139,8 +139,8 @@ Use the same body shape as `brainstorm-issue`:
 ```
 
 Every issue after the first in the chain should name what it depends on
-explicitly in its own body (mirroring how e.g. #27/#28 and #35/#36 do it
-in this repo) — a `## Problem` opening with "Depends on #<n> — can't be
+explicitly in its own body (mirroring how e.g. SwiftFaze/Veil#27/#28 do it
+in the Java Veil repo) — a `## Problem` opening with "Depends on #<n> — can't be
 spec'd/built against real code until that lands," or an `**Out of scope
 (tracked in #<n>):**` line pointing forward from an earlier issue to a
 later one. This is how the build order stays visible on the issues
@@ -159,7 +159,7 @@ EOF
 Then assign it to the milestone from Step 3:
 
 ```
-gh issue edit <number> --repo SwiftFaze/Veil --milestone "<n>. <Title>"
+gh issue edit <number> --repo SwiftFaze/Veilclj --milestone "<n>. <Title>"
 ```
 
 ## Step 5 — Add each to the project board and set priority
@@ -167,8 +167,8 @@ gh issue edit <number> --repo SwiftFaze/Veil --milestone "<n>. <Title>"
 Same as `brainstorm-issue` Step 4, for every issue created in Step 4:
 
 ```
-gh project item-add 2 --owner SwiftFaze --url <issue-url>
-gh project item-edit 2 --owner SwiftFaze --url <issue-url> --field "Priority" --value "<P0|P1|P2>"
+gh project item-add 3 --owner SwiftFaze --url <issue-url>
+gh project item-edit 3 --owner SwiftFaze --url <issue-url> --field "Priority" --value "<P0|P1|P2>"
 ```
 
 ## Step 6 — Report back

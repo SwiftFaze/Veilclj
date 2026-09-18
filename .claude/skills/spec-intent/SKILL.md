@@ -66,19 +66,19 @@ separate linking step needed.
 
 ## Step 4 — Move the tracker item to In progress
 
-The issue must be on the VEIL project board (project number 2, owner
+The issue must be on the VEILCLJ project board (project number 3, owner
 `SwiftFaze`) before its status can be set. Add it if it isn't already
 there (ignore an "already exists" error from this call — it just means it
 was already added, e.g. by `brainstorm-issue`):
 
 ```
-gh project item-add 2 --owner SwiftFaze --url <issue-url>
+gh project item-add 3 --owner SwiftFaze --url <issue-url>
 ```
 
 Then set its status:
 
 ```
-gh project item-edit 2 --owner SwiftFaze --url <issue-url> --field "Status" --value "In progress"
+gh project item-edit 3 --owner SwiftFaze --url <issue-url> --field "Status" --value "In progress"
 ```
 
 (Exact option name is `In progress`, lowercase p — match it exactly.)

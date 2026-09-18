@@ -1,11 +1,11 @@
 ---
 name: audit-planning
-description: Audit — and, with confirmation, correct — the VEIL GitHub project board and its milestones. Checks milestone naming/numbering convention and descriptions, that every open issue is labeled, sits in the milestone that actually fits it (not just any milestone), has a real description, and has a Priority set, and that milestone/issue ordering reflects actual build dependencies (a core restructure before the systems built on it). Also finds issues scattered across different milestones that share one theme and proposes consolidating them so they land in the same pass. Use for a periodic health-check or cleanup of the project board itself — not for filing new issues (that's brainstorm-issue/brainstorm-milestone).
+description: Audit — and, with confirmation, correct — the VEILCLJ GitHub project board and its milestones. Checks milestone naming/numbering convention and descriptions, that every open issue is labeled, sits in the milestone that actually fits it (not just any milestone), has a real description, and has a Priority set, and that milestone/issue ordering reflects actual build dependencies (a core restructure before the systems built on it). Also finds issues scattered across different milestones that share one theme and proposes consolidating them so they land in the same pass. Use for a periodic health-check or cleanup of the project board itself — not for filing new issues (that's brainstorm-issue/brainstorm-milestone).
 ---
 
 This is the maintenance counterpart to `brainstorm-issue`/`brainstorm-milestone`:
 those skills file new issues and milestones correctly; this skill checks that
-what has already accumulated on the VEIL project board (project number 2,
+what has already accumulated on the VEILCLJ project board (project number 3,
 owner `SwiftFaze`) and in the repo's milestones still holds together. Never
 file new issues or milestones here except as a corrective action the user
 explicitly approved (e.g. creating a consolidation milestone in Step 6).
@@ -23,10 +23,10 @@ raw dump in context after that. Pull everything in one pass, no repeated
 `gh` calls per issue:
 
 ```
-gh api repos/SwiftFaze/Veil/milestones --jq '.[] | {number, title, description, state}'
-gh issue list --repo SwiftFaze/Veil --state all --json number,title,body,labels,milestone,state,url --limit 500
-gh project item-list 2 --owner SwiftFaze --format json --limit 500
-gh project field-list 2 --owner SwiftFaze --format json
+gh api repos/SwiftFaze/Veilclj/milestones --jq '.[] | {number, title, description, state}'
+gh issue list --repo SwiftFaze/Veilclj --state all --json number,title,body,labels,milestone,state,url --limit 500
+gh project item-list 3 --owner SwiftFaze --format json --limit 500
+gh project field-list 3 --owner SwiftFaze --format json
 ```
 
 Join the issue list and project item list by issue `number`/`url` — the
@@ -151,8 +151,8 @@ each one, step through them one at a time with the same tool.
 Apply approved fixes:
 
 ```
-gh issue edit <n> --repo SwiftFaze/Veil --add-label "<label>"
-gh project item-edit 2 --owner SwiftFaze --url <issue-url> --field "Priority" --value "<P0|P1|P2>"
+gh issue edit <n> --repo SwiftFaze/Veilclj --add-label "<label>"
+gh project item-edit 3 --owner SwiftFaze --url <issue-url> --field "Priority" --value "<P0|P1|P2>"
 ```
 
 ## Step 5 — Resolve milestone assignment and fit, one call at a time
@@ -167,7 +167,7 @@ judgment genuinely varies issue to issue.
 Apply approved moves:
 
 ```
-gh issue edit <n> --repo SwiftFaze/Veil --milestone "<milestone title>"
+gh issue edit <n> --repo SwiftFaze/Veilclj --milestone "<milestone title>"
 ```
 
 ## Step 6 — Resolve clusters and ordering problems
@@ -180,7 +180,7 @@ milestone should be created the way `brainstorm-milestone` Step 3 does
 just because the issues already exist. Then move each clustered issue:
 
 ```
-gh issue edit <n> --repo SwiftFaze/Veil --milestone "<target milestone title>"
+gh issue edit <n> --repo SwiftFaze/Veilclj --milestone "<target milestone title>"
 ```
 
 **Ordering problems (Step 2g):** never auto-fix a numbering/renumbering
@@ -194,7 +194,7 @@ title) alongside the proposed renumbering, and only rename after the user
 explicitly confirms, one milestone at a time:
 
 ```
-gh api repos/SwiftFaze/Veil/milestones/<number> -X PATCH -f title="<new-title>"
+gh api repos/SwiftFaze/Veilclj/milestones/<number> -X PATCH -f title="<new-title>"
 ```
 
 Then fix every textual reference you listed, in the same pass, so nothing

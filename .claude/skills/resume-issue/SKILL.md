@@ -17,9 +17,9 @@ Run these together; they're independent:
 
 ```
 gh issue view <n> --json number,title,body,url,state,labels
-gh issue develop --list <n> --repo SwiftFaze/Veil
+gh issue develop --list <n> --repo SwiftFaze/Veilclj
 grep -rl "issues/<n>)" specs/intent/
-gh pr list --repo SwiftFaze/Veil --state all --search "<n>" --json number,state,headRefName,body
+gh pr list --repo SwiftFaze/Veilclj --state all --search "<n>" --json number,state,headRefName,body
 ```
 
 - **Intent doc:** the `grep` hit. Intent docs carry
@@ -68,10 +68,10 @@ git log --oneline develop..HEAD
 | Intent drafted           | the doc exists and its sections aren't still TEMPLATE placeholders       |
 | Spec drafted             | `specs/features/<slug>.feature` exists with real scenarios, not a stub   |
 | Approved by human        | trust the box — high-risk path only; unverifiable from disk             |
-| Implemented              | diff/working tree touches `src/main/java/**`                            |
+| Implemented              | diff/working tree touches `src/**`                                      |
 | Manually playtested      | trust the box, plus any playtest note in the PR body; **never infer it** |
 | Acceptance tests passing  | see below — the one probe worth spending on                            |
-| Mutation testing passed  | trust the box; `target/pit-reports/` is gitignored and may be stale     |
+| Mutation testing passed  | trust the box; mutation output is gitignored and may be stale           |
 | Documentation updated    | diff touches `docs/` (or the doc states explicitly that nothing changed) |
 
 For **acceptance tests**, run the feature's own scenarios rather than the whole
@@ -79,7 +79,7 @@ suite — cheap enough to be worth real evidence, scoped enough not to burn the
 session you just started:
 
 ```
-mvn test -Dcucumber.filter.name="<a scenario name from the .feature>"
+bb spec   # until the acceptance pipeline lands; then see docs/testing.md
 ```
 
 Skip even that if the tree is clean, the box is checked, and `git log` shows a
@@ -113,7 +113,7 @@ Two things to get right on a resume specifically:
 
 - **Don't redo finished steps.** A verified-complete step is done; re-running
   implementation over existing work is how a resumed session loses it.
-- **Stop at human-only gates.** The Step 4.5 playtest (`mvn compile exec:java`)
+- **Stop at human-only gates.** The Step 4.5 playtest (`bb play`)
   and the high-risk Step 3 approval are the user's, not yours. Reaching one is
   a successful resume: report it and stop.
 

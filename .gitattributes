@@ -1,0 +1,4 @@
+# LF everywhere: CI runs the .sh gates on Linux, and a CRLF script fails there.
+* text=auto eol=lf
+*.jar binary
+*.png binary

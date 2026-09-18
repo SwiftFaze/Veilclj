@@ -112,32 +112,25 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          # jpackage's --app-content flag (bundles mods/ alongside the
-          # executable) needs JDK 18+ (JDK-8274346); the project itself
-          # still targets bytecode 17 (pom.xml's maven.compiler.source/
-          # target), so this only bumps the JDK used to build/package.
           java-version: '21'
-          cache: maven
+
+      - uses: DeLaGuardo/setup-clojure@13.7.0
+        with:
+          bb: 1.13.223
 
       - name: Install Linux packaging tools
         if: matrix.os == 'ubuntu-latest'
         run: sudo apt-get update && sudo apt-get install -y fakeroot
 
-      - name: Build shaded jar
+      - name: Build runnable jar
         shell: bash
-        run: mvn -B -DskipTests package
+        run: bb uber
 
       - name: Stage jpackage input
         shell: bash
         run: |
           mkdir -p target/jpackage-input
-          cp target/Veil-*-app.jar target/jpackage-input/
-          # mods/ is NOT staged here: jpackage places --input content inside
-          # an app/ subfolder, but ModLoader resolves mods/ relative to the
-          # running game's working directory, which is the top-level install
-          # directory (verified against a local jpackage app-image build —
-          # app/mods/ is invisible from there). It's bundled at the top
-          # level instead via --app-content in the "Build installer" step.
+          cp target/veil-*.jar target/jpackage-input/
 
       - name: Determine version
         shell: bash
@@ -149,7 +142,7 @@ jobs:
           if [ -n "$TAG_NAME" ]; then
             full_version="${TAG_NAME#v}"
           else
-            full_version=$(grep -m1 '<version>' pom.xml | sed -E 's/.*<version>(.*)<\/version>.*/\1/')
+            full_version=$(tr -d '[:space:]' < version.txt)
           fi
           echo "FULL_VERSION=$full_version" >> "$GITHUB_ENV"
           # jpackage's Windows/macOS installers require a clean numeric
@@ -193,8 +186,7 @@ jobs:
             --app-version "$jpackage_version" \
             --vendor SwiftFaze \
             --main-jar "$jar_name" \
-            --main-class com.swiftfaze.veil.Main \
-            --app-content mods \
+            --main-class veil.main \
             "${extra_args[@]}"
 
       - name: Normalize installer filename

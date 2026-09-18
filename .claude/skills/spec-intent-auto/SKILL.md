@@ -39,7 +39,7 @@ If `state` is `CLOSED`, tell the user and confirm before continuing.
 
 Follow `spec-intent`'s Steps 2-5 exactly: derive the slug, pick the
 branch prefix from labels, check for a branch-name collision, create and
-link the branch off `develop`, add the issue to the VEIL project board
+link the branch off `develop`, add the issue to the VEILCLJ project board
 (project 2, owner `SwiftFaze`) and move it to `In progress`, and derive
 `specs/intent/<slug>.md` from the issue body.
 
@@ -98,24 +98,18 @@ scanning the repo.
 
 Per the "Context handoff rule," this is one continuous handoff spanning
 Steps 4, 5, and 7 of the normal pipeline — implementation, wiring the
-`.feature` file to Cucumber, and the documentation update — not three
+`.feature` file to the acceptance pipeline, and the documentation update — not three
 separate delegations. Include in the prompt:
 
-- The complexity budget (root `CLAUDE.md`'s Constraints section).
+- The complexity budget (`.claude/workflow.md`'s Constraints section).
 - The `uncle-bob-craft` self-check to apply while writing (not a separate
   review pass).
-- The PMD fix-loop requirement (`mvn verify`, fix every violation, rerun
-  until clean) before reporting done.
-- The `ModuleDependencyTest` (ArchUnit) module-boundary rule.
-- The duplicate-step-definition check from workflow.md's Step 5 (the
-  `grep`/`sed`/`sort`/`uniq -d` one-liner) if this touches shared step
-  definitions, plus the "run `mvn clean test` twice" requirement in that
-  case.
-- Visual verification (`docs/ui-verification.md`) if the change touches
-  Swing rendering, layout, sizing, or text content.
-- The documentation requirements from workflow.md's Step 7, including the
-  wiki (`docs/wiki.md`) if this changes player-facing class stats,
-  attributes, or combat formulas.
+- The Clean Code gate: `bash .claude/tools/check-clean.sh` at exit 0,
+  with every judgment-checklist line answered with evidence, before
+  reporting done.
+- The layer direction in `docs/architecture.md` (`veil.game` never
+  requires Quil, `veil.ui` or `veil.main`).
+- The documentation requirements from workflow.md's Step 7.
 
 **Skip repo CLAUDE.md's Step 4.5 mid-pipeline playtest entirely — do not
 have the agent or yourself pause for it here.** That's the one step this
@@ -126,18 +120,15 @@ below), not here.
 
 Per "Verifying what comes back" in `.claude/subagent-delegation.md`: do not
 relay the Haiku agent's "done" report as fact. Independently open the
-files it claims to have changed, and re-run `mvn verify` yourself. If it's
+files it claims to have changed, and re-run `bash .claude/tools/check-clean.sh` yourself. If it's
 wrong, follow the escalation path in that file (corrective follow-up
 first, `/fork` only after a second same-class failure).
 
-Once `mvn verify` is genuinely clean, run mutation testing yourself
-(Step 6 of the normal pipeline, tooling only):
+Once the gate is genuinely clean, run mutation testing yourself
+(Step 6 of the normal pipeline, tooling only) on each changed source
+namespace - command in `docs/testing.md`.
 
-```
-mvn org.pitest:pitest-maven:mutationCoverage
-```
-
-Skim the report in `target/pit-reports/`. This is a self-check, not
+Skim the surviving mutants. This is a self-check, not
 something to relay unexamined — if coverage on the changed code looks
 weak, that's worth fixing before the playtest, not after.
 
@@ -148,11 +139,11 @@ in one message:
 
 - Branch name and what issue/slug it covers.
 - A short summary of what was implemented (not a full diff dump).
-- Confirmation that `mvn verify` is green (build, tests, PMD, CPD, JaCoCo,
-  ArchUnit) and mutation testing has been skimmed.
+- Confirmation that `check-clean.sh` is green (specs, Clean Code
+  checks, judgment checklist) and mutation testing has been skimmed.
 - Any `A (auto-decided):` entries from Step 2, so the human can see what
   was decided without them, not just what was asked.
-- Explicit instructions for the playtest: `mvn compile exec:java`, and
+- Explicit instructions for the playtest: `bb play`, and
   what specifically to try given what changed.
 - That you're waiting for either "looks good" or a bug report before
   going further — nothing is committed or pushed yet.

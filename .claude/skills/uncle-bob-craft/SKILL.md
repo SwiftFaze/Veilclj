@@ -14,7 +14,7 @@ This skill aggregates principles from Uncle Bob's body of work for **reviewing**
 
 - **Code review**: Apply Dependency Rule, boundaries, SOLID in context, and smell heuristics; suggest concrete refactors. Pairs with the built-in `/code-review` skill — use this one for the architecture/design lens, `/code-review` for correctness and simplification findings.
 - **Refactoring**: Decide what to extract, where to draw boundaries, and whether a design pattern is justified.
-- **Architecture discussion**: Check layer boundaries, dependency direction, and separation of concerns — see `docs/architecture.md` for this repo's actual layering (entry point/window assembly, `GamePanel` render loop, `WorldScene`/`Tile` world model, `DrawableAsciiEntity` contracts).
+- **Architecture discussion**: Check layer boundaries, dependency direction, and separation of concerns — see `docs/architecture.md` for this repo's actual layering (`veil.main` entry point → `veil.ui` Quil drawing → `veil.game` pure rules; functional core, imperative shell).
 - **Design patterns**: Assess correct use vs cargo-cult or overuse before introducing a pattern.
 - **Estimation and professionalism**: Apply Clean Coder ideas (saying no, sustainable pace, three-point estimates).
 - **Agile practices**: Reference Clean Agile (Iron Cross, TDD, refactoring, pair programming) when discussing process.
