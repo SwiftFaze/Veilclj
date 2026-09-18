@@ -54,6 +54,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # check-clean.sh diffs against the PR base for its added-lines checks.
+          fetch-depth: 0
 
       - uses: actions/setup-java@v4
         with:
@@ -72,11 +75,25 @@ jobs:
             ~/.m2/repository
             ~/.gitlibs
             ~/.deps.clj
-          key: clj-${{ runner.os }}-${{ hashFiles('deps.edn', 'bb.edn') }}
+            .cache/aps
+          key: clj-${{ runner.os }}-${{ hashFiles('deps.edn', 'bb.edn', 'tools/veil_tools/aps.clj') }}
           restore-keys: clj-${{ runner.os }}-
 
-      - name: Unit specs
-        run: bb spec
+      # PRs: the full Clean Code gate - specs, spec structure, acceptance, CRAP,
+      # layers, duplication (advisory) and text smells on the PR's added lines.
+      - name: Clean Code gate
+        if: github.event_name == 'pull_request'
+        run: bash .claude/tools/check-clean.sh --base "origin/${{ github.base_ref }}"
+
+      # Pushes (post-merge): the same tool gates, whole repo, no diff needed.
+      - name: Specs, acceptance, CRAP and layers
+        if: github.event_name == 'push'
+        run: |
+          bb spec
+          bb scrap
+          bb acceptance
+          bb crap && bb crap-gate
+          bb layers --no-color
 
       - name: Runnable jar builds
         run: bb uber

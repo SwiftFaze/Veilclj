@@ -31,8 +31,9 @@ Dependencies point one way, downward. Nothing may depend on a layer above it.
 | Game | `veil.game.*` | rules: screens, menus, world, entities | **no** |
 
 `veil.game` must stay free of Quil and I/O; it is where the specs, CRAP score
-and mutation testing concentrate. This direction is mechanically enforced by
-dependency-checker once it lands (tracked on the board; see `testing.md`).
+and mutation testing concentrate. The direction is enforced by
+dependency-checker (`dependency-checker.edn`, `bb layers`), and the UML viewer
+(`bb uml`) draws any violating edge red.
 
 ## Where state lives
 

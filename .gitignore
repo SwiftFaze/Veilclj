@@ -19,3 +19,9 @@ target/
 # Intent docs are scratch; only the template is tracked
 /specs/intent/*
 !/specs/intent/TEMPLATE.md
+
+# Quality tooling output. .metrics/mutate/ IS committed: clj-mutate's
+# differential runs need the previous snapshot.
+build/
+.cache/
+.metrics/crap.edn
