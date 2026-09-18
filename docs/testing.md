@@ -105,4 +105,6 @@ justified weakening is still possible, but a human must approve it explicitly.
 - `bb uml-ir` then `bb uml` - live UML of the namespace tree from
   `docs/uml/veil.policy.edn`, with `.metrics/` (CRAP, mutation) overlaid. Run
   `bb crap` first for the overlay. `:levels` there mirrors the layer rules, so
-  violations draw red.
+  violations draw red. The viewer's **Regen** button needs a Grok companion
+  in tmux, so it doesn't work here; instead leave the viewer open and rerun
+  `bb uml-ir` - it reloads the diagram when the file changes (or press `R`).
