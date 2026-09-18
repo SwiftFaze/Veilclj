@@ -1,7 +1,8 @@
 {:paths ["src"]
 
- :deps {org.clojure/clojure {:mvn/version "1.12.6"}
-        quil/quil           {:mvn/version "4.3.1563"}}
+ :deps {org.clojure/clojure      {:mvn/version "1.12.6"}
+        quil/quil                {:mvn/version "4.3.1563"}
+        org.clojure/data.json    {:mvn/version "2.5.1"}}
 
  ;; Every alias here has a matching `bb` task in bb.edn - call those, not clj.
  :aliases
@@ -20,8 +21,7 @@
                         "--" "-p" "src" "-s" "spec" "--lcov"]}
 
   ;; Acceptance pipeline runtime: generated entry points + step handlers.
-  :acceptance {:extra-paths ["acceptance" "build/acceptance/generated"]
-               :extra-deps  {org.clojure/data.json {:mvn/version "2.5.1"}}}
+  :acceptance {:extra-paths ["acceptance" "build/acceptance/generated"]}
 
   ;; SCRAP: speclj structure errors (blocking) + spec quality advice.
   :scrap {:extra-deps {io.github.unclebob/scrap

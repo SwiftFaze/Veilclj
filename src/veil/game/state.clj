@@ -1,5 +1,5 @@
 (ns veil.game.state
-  "Global game state: screens, menu, player, game over flag."
+  "Global game state: screens, menu, player, game over flag, mods registry."
   (:require [veil.game.menu :as menu]))
 
 (defn initial
@@ -77,3 +77,13 @@
       :map (handle-map state input)
       :options (handle-options state input)
       state)))
+
+(defn with-mods
+  "Associate a mod registry with the game state."
+  [state registry]
+  (assoc state :mods registry))
+
+(defn mods
+  "Get the mod registry from the game state."
+  [state]
+  (:mods state))

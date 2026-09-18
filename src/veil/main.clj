@@ -6,17 +6,19 @@
             [quil.applet :as qa]
             [veil.game.state :as state]
             [veil.ui.draw :as draw]
-            [veil.ui.input :as input])
+            [veil.ui.input :as input]
+            [veil.mods.disk :as disk]
+            [veil.mods.loader :as loader])
   (:gen-class))
 
 (def window
   {:title "Veil"
    :size  [960 600]})
 
-(defn- setup []
+(defn- setup [registry]
   (q/frame-rate 30)
   (q/text-font (q/create-font "Monospaced" 32))
-  (state/initial))
+  (state/with-mods (state/initial) registry))
 
 (defn- prevent-processing-exit
   "Processing calls exit() if its key field == 27 (ESC). To make Esc mean 'back'
@@ -38,12 +40,18 @@
   (state/handle-input state (input/event->input event)))
 
 (defn -main [& _args]
-  (q/sketch
-    :title      (:title window)
-    :size       (:size window)
-    :setup      setup
-    :draw       draw/draw!
-    :update     update-state
-    :key-pressed key-pressed
-    :features   [:exit-on-close]
-    :middleware [m/fun-mode]))
+  (let [load-result (loader/load-mods (disk/read-mods-dir "mods") [])]
+    (if (contains? load-result :errors)
+      (do
+        (binding [*out* *err*]
+          (println (loader/error-report (:errors load-result))))
+        (System/exit 1))
+      (q/sketch
+        :title      (:title window)
+        :size       (:size window)
+        :setup      #(setup (:registry load-result))
+        :draw       draw/draw!
+        :update     update-state
+        :key-pressed key-pressed
+        :features   [:exit-on-close]
+        :middleware [m/fun-mode]))))

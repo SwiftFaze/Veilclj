@@ -139,3 +139,12 @@
   (it "ignores unknown input"
     (let [s (state/initial)]
       (should= s (state/handle-input s :unknown)))))
+
+(describe "with-mods"
+  (it "keeps the mod registry in the state"
+    (let [registry {:load-order ["core"] :content {}}]
+      (should= registry (state/mods (state/with-mods (state/initial) registry))))))
+
+(describe "mods"
+  (it "is nil before a registry is attached"
+    (should-be-nil (state/mods (state/initial)))))
