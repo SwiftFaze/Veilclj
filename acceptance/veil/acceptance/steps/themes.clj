@@ -2,7 +2,6 @@
   "Acceptance steps for the themes feature."
   (:require [clojure.data.json :as json]
             [clojure.string :as str]
-            [clojure.java.io :as io]
             [veil.acceptance.step-support :refer [ok check fail]]
             [veil.game.theme :as theme]
             [veil.game.state :as state]
@@ -14,20 +13,12 @@
 (defn- color-obj [r g b]
   {:r r :g g :b b})
 
-(defn- ensure-mod-folder [mod]
-  (let [themes-dir (str mod "/themes")]
-    (io/make-parents (str themes-dir "/dummy"))
-    (when-not (str/ends-with? (str (io/file themes-dir)) "/themes")
-      ; ensure directory exists
-      (.mkdirs (io/file themes-dir)))))
-
 (defn- get-content-types []
   (into fixtures/content-types [themes/content-type]))
 
 (def handlers
   [[#"mod \"([^\"]+)\" has a theme \"([^\"]+)\" with every required color"
     (fn [world [_ mod id]]
-      (ensure-mod-folder mod)
       (let [theme-name (second (str/split id #":"))
             colors {:SELECTED_HIGHLIGHT (color-obj 1 2 3)
                     :SELECTED_TEXT (color-obj 4 5 6)
@@ -50,7 +41,6 @@
 
    [#"mod \"([^\"]+)\" has a theme \"([^\"]+)\" with every required color except \"([^\"]+)\""
     (fn [world [_ mod id missing-key]]
-      (ensure-mod-folder mod)
       (let [theme-name (second (str/split id #":"))
             all-keys [:SELECTED_HIGHLIGHT :SELECTED_TEXT :NORMAL_TEXT :DIMMED_TEXT :BACKGROUND
                       :INVALID_HIGHLIGHT :VALID_HIGHLIGHT :TABLE_HEADER_BACKGROUND :BORDER
@@ -65,7 +55,6 @@
 
    [#"mod \"([^\"]+)\" has a theme \"([^\"]+)\" with every required color that overrides \"([^\"]+)\""
     (fn [world [_ mod id overrides]]
-      (ensure-mod-folder mod)
       (let [theme-name (second (str/split id #":"))
             colors {:SELECTED_HIGHLIGHT (color-obj 1 2 3)
                     :SELECTED_TEXT (color-obj 4 5 6)
@@ -88,7 +77,6 @@
 
    [#"mod \"([^\"]+)\" has the theme file \"([^\"]+)\" ported from Java Veil"
     (fn [world [_ mod path]]
-      (ensure-mod-folder mod)
       (let [java-veil-path (str "C:/Users/Rob/IdeaProjects/Veil/mods/" path)
             content (slurp java-veil-path)]
         (swap! world assoc-in [:files path] content)
@@ -97,7 +85,6 @@
 
    [#"mod \"([^\"]+)\" has the theme file \"([^\"]+)\" containing (.+)"
     (fn [world [_ mod path content]]
-      (ensure-mod-folder mod)
       (swap! world assoc-in [:files path] content)
       (try
         (swap! world assoc :current-theme {:mod mod :path path :data (json/read-str content :key-fn keyword)})
