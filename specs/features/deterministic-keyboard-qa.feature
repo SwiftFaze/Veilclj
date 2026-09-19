@@ -8,7 +8,9 @@ Feature: Deterministic keyboard QA run
     keys reach the game, the events the game reports for the existing screens,
     the shape, version line and tick numbering of the log, the launch flags (--keys,
     --log), and checking a log against a procedure's expected entries
-    (matching, order, seen/missing report, exit status).
+    (matching, order, seen/missing report, exit status), and running every
+    procedure with `bb qa --all` (which files count, the summary line, the
+    overall exit status).
   Supersedes: nothing.
   Out of scope: seeded randomness (--seed; the game draws no random numbers
     yet), pixel or screenshot comparison, mouse input, and how any screen is
@@ -212,6 +214,38 @@ Feature: Deterministic keyboard QA run
     When the QA slug is "no-such-feature"
     Then the QA run is rejected with "no QA procedure for no-such-feature (expected specs/qa/no-such-feature.edn)"
     And the QA run exits with status 1
+
+  Scenario Outline: --all runs every procedure file, sorted by slug
+    When the procedure files are "<files>"
+    Then the slugs to run are "<slugs>"
+
+    Examples:
+      | files                                     | slugs        |
+      | main-menu.edn                             | main-menu    |
+      | zeta.edn / alpha.edn                      | alpha zeta   |
+      | main-menu.edn / notes.md / main-menu.keys | main-menu    |
+
+  Scenario Outline: The overall result is the worst individual result
+    When the procedures finish with "<results>"
+    Then the summary reads "<summary>"
+    And the QA run exits with status <status>
+
+    Examples:
+      | results          | summary                            | status |
+      | main-menu:0      | QA all: 1 passed, 0 failed         | 0      |
+      | a:0 / b:0        | QA all: 2 passed, 0 failed         | 0      |
+      | a:0 / b:1        | QA all: 1 passed, 1 failed (b)     | 1      |
+      | a:1 / b:1        | QA all: 0 passed, 2 failed (a, b)  | 1      |
+
+  Scenario Outline: --all with no procedure files is rejected
+    When the procedure files are "<files>"
+    Then the QA run is rejected with "no QA procedures in specs/qa"
+    And the QA run exits with status 1
+
+    Examples:
+      | files                       |
+      |                             |
+      | notes.md / main-menu.keys   |
 
 # Non-goals:
 #   - Seeded randomness (--seed). The game draws no random numbers yet; the flag
