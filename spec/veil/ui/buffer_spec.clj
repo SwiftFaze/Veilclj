@@ -84,6 +84,15 @@
       (should= "          " (buffer/row-text b 1))
       (should= "          " (buffer/row-text b 2))))
 
+  (it "sets the background of exactly the cells in the rectangle"
+    (let [b (buffer/blank 10 5)
+          b (buffer/fill-rect b 2 1 3 2 :SELECTED_HIGHLIGHT)]
+      (should= (assoc buffer/blank-cell :bg :SELECTED_HIGHLIGHT) (buffer/cell b 2 1))
+      (should= :SELECTED_HIGHLIGHT (:bg (buffer/cell b 4 2)))
+      (should= :BACKGROUND (:bg (buffer/cell b 5 1)))
+      (should= :BACKGROUND (:bg (buffer/cell b 2 3)))
+      (should= :BACKGROUND (:bg (buffer/cell b 1 1)))))
+
   (it "replaces glyphs that were in the rectangle"
     (let [b (buffer/blank 10 1)
           b (buffer/write-text b 0 0 "abcdef" :NORMAL_TEXT :BACKGROUND)

@@ -5,29 +5,15 @@
             [veil.game.state :as state]))
 
 (defn- test-state
-  "A game state with the default theme."
+  "A game state whose theme has just the colors these specs draw with."
   []
   (state/starting
     {:load-order ["core"] :content {}}
     {"core:default" {:BACKGROUND [5 5 5]
-                     :NORMAL_TEXT [255 255 255]
-                     :SELECTED_HIGHLIGHT [192 192 192]
-                     :SELECTED_TEXT [0 0 0]
                      :BORDER [128 128 128]
                      :ACCENT [238 179 146]
-                     :DIMMED_TEXT [128 128 128]
-                     :INVALID_HIGHLIGHT [200 50 50]
-                     :VALID_HIGHLIGHT [50 200 50]
-                     :TABLE_HEADER_BACKGROUND [50 50 100]
-                     :SCROLLBAR_THUMB [100 100 100]
-                     :WINDOW_BORDER [200 200 200]
-                     :TABLE_HEADER_TEXT [200 200 200]
-                     :SUCCESS [50 200 50]
-                     :ERROR [200 50 50]
-                     :WARNING [238 179 146]
-                     :INFO [238 179 146]
-                     :FOCUSED_BORDER [238 179 146]
-                     :SHADOW [5 5 5]}}))
+                     :SELECTED_HIGHLIGHT [192 192 192]
+                     :SELECTED_TEXT [0 0 0]}}))
 
 (describe "frame"
   (it "includes the background color from the theme"

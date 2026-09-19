@@ -94,6 +94,27 @@
     (let [result (fonts/construct {:id "core:other" :file "Wide.otf" :size 16 :overrides "core:default"})]
       (should= {:file "Wide.otf" :size 16} result))))
 
+(describe "check"
+  (it "finds nothing wrong when the font file is in the same mod's fonts folder"
+    (let [context {:data {:file "Mono.ttf"} :mod "core" :file "core/fonts/default.json"
+                   :paths #{"core/fonts/default.json" "core/fonts/Mono.ttf"}}]
+      (should= [] (fonts/check context))))
+
+  (it "reports a missing font file at the descriptor's /file field, naming the folder"
+    (let [context {:data {:file "Mono.ttf"} :mod "core" :file "core/fonts/default.json"
+                   :paths #{"core/fonts/default.json"}}]
+      (should= [{:kind :invalid
+                 :file "core/fonts/default.json"
+                 :path "/file"
+                 :expected "the font file \"Mono.ttf\" in \"core/fonts\""
+                 :message "core/fonts/default.json: /file expected the font file \"Mono.ttf\" in \"core/fonts\""}]
+               (fonts/check context))))
+
+  (it "does not accept the same file name in another mod's fonts folder"
+    (let [context {:data {:file "Mono.ttf"} :mod "pack" :file "pack/fonts/default.json"
+                   :paths #{"pack/fonts/default.json" "core/fonts/Mono.ttf"}}]
+      (should= ["/file"] (map :path (fonts/check context))))))
+
 (describe "font"
   (it "returns font with full path and size when registered"
     (let [mods-data (f/mods (f/manifest "core")

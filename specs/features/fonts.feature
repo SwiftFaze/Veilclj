@@ -1,3 +1,7 @@
+# acceptance-mutation-manifest-begin
+# {"version":1,"tested_at":"2026-09-19T20:52:43.879140Z","feature_name":"Fonts","feature_path":"specs/features/fonts.feature","background_hash":"179c262436ff6b7987c1736603ab96fc75a3b33c86cd51155b9d9232e271d576","implementation_hash":"unknown","scenarios":[]}
+# acceptance-mutation-manifest-end
+
 Feature: Fonts
   A font is mod content: a small JSON descriptor mods/<mod>/fonts/<name>.json
   that names a font file (.ttf or .otf) in the same folder and the pixel size

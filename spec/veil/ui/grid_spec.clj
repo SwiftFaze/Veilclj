@@ -19,13 +19,13 @@
     (should= {:cols 160 :rows 43}
              (grid/size 1920 1080 12 25)))
 
-  (it "enforces minimum 80 columns"
-    (should= {:cols 80 :rows 24}
-             (grid/size 600 300 12 25)))
+  (it "enforces minimum 80 columns in a narrow, tall window"
+    (should= {:cols 80 :rows 36}
+             (grid/size 600 900 12 25)))
 
-  (it "enforces minimum 24 rows"
-    (should= {:cols 80 :rows 24}
-             (grid/size 600 300 12 25)))
+  (it "enforces minimum 24 rows in a wide, short window"
+    (should= {:cols 100 :rows 24}
+             (grid/size 1200 300 12 25)))
 
   (it "handles partial cell dimensions"
     (should= {:cols 80 :rows 24}
