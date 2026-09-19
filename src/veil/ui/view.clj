@@ -30,15 +30,17 @@
 (defn buffer
   "Render the game state into a cell buffer.
    Writes each screen line centered horizontally, preserving its row position.
-   The selected menu item is drawn in reverse video; every other line in normal text."
+   The selected menu item is drawn in reverse video; every other line in normal text.
+   Draws a single-line border around the whole grid's edges."
   [state cols rows]
-  (reduce (fn [buf {:keys [text row selected?]}]
-            (let [col (quot (- cols (count text)) 2)
-                  fg (if selected? :SELECTED_TEXT :NORMAL_TEXT)
-                  bg (if selected? :SELECTED_HIGHLIGHT :BACKGROUND)]
-              (buffer/write-text buf col row text fg bg)))
-          (buffer/blank cols rows)
-          (lines-for-screen state)))
+  (let [buf (reduce (fn [b {:keys [text row selected?]}]
+                      (let [col (quot (- cols (count text)) 2)
+                            fg (if selected? :SELECTED_TEXT :NORMAL_TEXT)
+                            bg (if selected? :SELECTED_HIGHLIGHT :BACKGROUND)]
+                        (buffer/write-text b col row text fg bg)))
+                    (buffer/blank cols rows)
+                    (lines-for-screen state))]
+    (buffer/draw-box buf 0 0 cols rows :WINDOW_BORDER :BACKGROUND)))
 
 (defn scene
   "Compose the full rendering pipeline: state -> buffer -> commands.

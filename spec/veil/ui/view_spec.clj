@@ -99,6 +99,73 @@
       (should= "Options" (state/selected-item s))
       (should= {:glyph \O :fg :NORMAL_TEXT :bg :BACKGROUND} (buffer/cell buf 36 4)))))
 
+(describe "border on main menu"
+  (it "draws the top-left corner"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= {:glyph \┌ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 0 0))))
+
+  (it "draws the top-right corner"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= {:glyph \┐ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 99 0))))
+
+  (it "draws the bottom-left corner"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= {:glyph \└ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 0 29))))
+
+  (it "draws the bottom-right corner"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= {:glyph \┘ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 99 29))))
+
+  (it "draws the top edge"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= {:glyph \─ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 50 0))))
+
+  (it "draws the bottom edge"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= {:glyph \─ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 50 29))))
+
+  (it "draws the left edge"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= {:glyph \│ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 0 15))))
+
+  (it "draws the right edge"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= {:glyph \│ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 99 15))))
+
+  (it "keeps the cell inside the top-left corner blank"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= buffer/blank-cell (buffer/cell buf 1 1))))
+
+  (it "keeps the cell inside the top-right corner blank"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= buffer/blank-cell (buffer/cell buf 98 1))))
+
+  (it "keeps the cell inside the bottom-left corner blank"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= buffer/blank-cell (buffer/cell buf 1 28))))
+
+  (it "keeps the cell inside the bottom-right corner blank"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= buffer/blank-cell (buffer/cell buf 98 28)))))
+
+(describe "border on map screen"
+  (it "draws the top-left corner"
+    (let [buf (view/buffer (map-screen (themed-state)) 100 30)]
+      (should= {:glyph \┌ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 0 0))))
+
+  (it "draws the bottom-right corner"
+    (let [buf (view/buffer (map-screen (themed-state)) 100 30)]
+      (should= {:glyph \┘ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 99 29)))))
+
+(describe "border on options screen"
+  (it "draws the top-left corner"
+    (let [buf (view/buffer (options-screen (themed-state)) 100 30)]
+      (should= {:glyph \┌ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 0 0))))
+
+  (it "draws the bottom-right corner"
+    (let [buf (view/buffer (options-screen (themed-state)) 100 30)]
+      (should= {:glyph \┘ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 99 29)))))
+
 (describe "scene"
   (it "turns a window and font measurements into draw commands"
     (let [frame (view/scene (themed-state) 960 600 12.0 20.0 5.0)]
