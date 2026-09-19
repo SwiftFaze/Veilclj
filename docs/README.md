@@ -6,6 +6,7 @@ Narrative documentation lives here; `CLAUDE.md` only links to it.
 |---|---|
 | [architecture.md](architecture.md) | Adding a namespace, or unsure which layer code belongs in |
 | [testing.md](testing.md) | Writing or running any spec |
+| [mod-format.md](mod-format.md) | Writing or changing a mod, a `mod.json` or a theme file, or a new content type |
 | [property-testing.md](property-testing.md) | Adding or running a test.check property spec (`bb property`) |
 | [clean-code-gate.md](clean-code-gate.md) | `check-clean.sh` fails, or you're answering its checklist |
 | [release.md](release.md) | Versioning, changelog, how releases and installers get built |

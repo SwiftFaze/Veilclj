@@ -28,7 +28,8 @@ Dependencies point one way, downward. Nothing may depend on a layer above it.
 |---|---|---|---|
 | Entry | `veil.main` | `-main`, launch steps, sketch assembly, the per-frame and per-key callbacks: Quil calls and passing data along, no decisions (`bb shell-check`) | yes |
 | UI | `veil.ui.*` | drawing state as glyphs, mapping key events to game inputs, the QA tooling (`veil.ui.qa.*`) | yes |
-| Game | `veil.game.*` | rules: screens, menus, world, entities, the events a state change caused | **no** |
+| Game | `veil.game.*` | rules: screens, menus, world, entities, the events a state change caused, the color lookup (`veil.game.theme`) | **no** |
+| Mods | `veil.mods.*` | reading `mods/` and building the registry, content types and their validation (themes: `veil.mods.themes`); file format: `mod-format.md` | no; only `veil.mods.disk` does I/O |
 
 `veil.game` must stay free of Quil and I/O; it is where the specs, CRAP score
 and mutation testing concentrate. The direction is enforced by
@@ -49,6 +50,9 @@ is a judgment-checklist line (`docs/clean-code-gate.md`).
 ## Where state lives
 
 - Game state: the fun-mode state map, nowhere else. No atoms in `veil.game`.
+  Besides the screen, menu and player it holds the mods registry (`:mods`), the
+  loaded themes (`:themes`, theme id -> its 19 colors) and the id of the active
+  one (`:active-theme`).
 - Settings persisted between runs (`settings.json` in the working directory)
   are runtime output and are git-ignored.
 
@@ -98,17 +102,24 @@ check (`bb shell-check`, a blocking section of the gate) are in
 | Decision the shell used to make | Now answered by | Layer |
 |---|---|---|
 | Did the mods load, and what does a failure say and exit with? | `veil.mods.loader/startup` (registry, or error report plus exit status 1) | mods |
-| What state does the game start in? | `veil.game.state/starting` | game |
+| Which themes does the game have, and does the launch stop without the default one? | `veil.mods.themes/startup` (`{:themes ..}`, or error report plus exit status 1 when `core:default` isn't registered) | mods |
+| Which mods directory is read? | `veil.mods.loader/mods-dir` (the `veil.mods.dir` property, else `mods`) | mods |
+| What state does the game start in? | `veil.game.state/starting` (registry and themes) | game |
+| Which color is drawn? | `veil.game.theme/color` (a key looked up in the active theme in the state); `veil.ui.view` only asks, `veil.mods.themes/construct` resolved every optional key's fallback at load | game |
 | Does the launch start the game or stop it with a message? | `veil.ui.qa.launch/outcome` | ui |
 | Is this key the raw Escape that Processing would treat as quit? | `veil.ui.input/escape?` | ui |
 | Where and in what colour is each line of text drawn? | `veil.ui.view/frame` (`state`, window `width`) returns `:x`, `:y` and `:color` on every command | ui |
 | Is it time to quit? | `veil.ui.qa.mode/frame`'s `:exit?` | ui |
 
-The startup decision is split at its two seams so that no layer gained a
-dependency: `startup` needs only `veil.mods.loader`, `starting` only
-`veil.game.state`; `veil.main` reads the mods directory (`veil.mods.disk`),
-calls `startup`, and hands the registry to `starting` when the sketch sets up.
-`dependency-checker.edn` did not change. `draw!` passes `(q/width)` to
+The startup decision is split at its seams so that no layer gained a
+dependency: `loader/startup` needs only `veil.mods.loader`, `themes/startup`
+only `veil.mods.themes`, `starting` only `veil.game.state`. `veil.main` reads
+the mods directory (`veil.mods.disk`, at the path `loader/mods-dir` chose),
+calls `loader/startup` with the content types (`themes/content-type`), then
+`themes/startup` on the registry it got back, and hands the registry and
+`themes/all`'s theme map to `starting` when the sketch sets up. `veil.game.theme`
+knows nothing of `veil.mods.*`: the theme map reaches it only as data in the
+state. `dependency-checker.edn` did not change. `draw!` passes `(q/width)` to
 `view/frame` rather than the view knowing the window, so a resizable window
 would still lay out correctly.
 
