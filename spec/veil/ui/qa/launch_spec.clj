@@ -78,3 +78,16 @@
     (should= ["java" "-cp" "cp" "clojure.main" "-m" "veil.main"
               "--keys" "s.keys" "--log" "l.edn"]
              (launch/command "java" "cp" "s.keys" "l.edn"))))
+
+(describe "outcome"
+  (it "wraps a successful launch with :start key"
+    (let [launched {:registry "r" :qa "q"}]
+      (should= {:start launched} (launch/outcome launched))))
+
+  (it "extracts error and exit-status from a failed launch"
+    (let [launched {:error "Boom!" :exit-status 1}]
+      (should= {:error "Boom!" :exit-status 1} (launch/outcome launched))))
+
+  (it "preserves other keys in a successful launch"
+    (let [launched {:registry "r" :qa "q" :extra "value"}]
+      (should= {:start launched} (launch/outcome launched)))))

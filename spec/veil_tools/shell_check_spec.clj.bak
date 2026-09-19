@@ -1,0 +1,158 @@
+(ns veil-tools.shell-check-spec
+  (:require [speclj.core :refer :all]
+            [veil-tools.shell-check :as shell-check]))
+
+(describe "check: allowed forms"
+  (it "allows a bare symbol in a guard"
+    (let [result (shell-check/check {"src/veil/main.clj" "(ns test (:require [veil.ui.input :as input]))\n(when exit? (q/exit))"
+                                     "src/veil/ui/draw.clj" ""})]
+      (should= 0 (:exit-status result))
+      (should= [] (:findings result))))
+
+  (it "allows a keyword lookup of one symbol in a guard"
+    (let [result (shell-check/check {"src/veil/main.clj" "(ns test) (if (:error launched) (die launched) (open-window))"
+                                     "src/veil/ui/draw.clj" ""})]
+      (should= 0 (:exit-status result))
+      (should= [] (:findings result))))
+
+  (it "allows a veil.* function call with simple args in a guard"
+    (let [result (shell-check/check {"src/veil/main.clj" "(ns test (:require [veil.ui.input :as input]))\n(when (input/escape? event) (q/exit))"
+                                     "src/veil/ui/draw.clj" ""})]
+      (should= 0 (:exit-status result))
+      (should= [] (:findings result))))
+
+  (it "allows non-Quil calls outside guards"
+    (let [result (shell-check/check {"src/veil/main.clj" "(ns test) (q/text text x y)"
+                                     "src/veil/ui/draw.clj" ""})]
+      (should= 0 (:exit-status result))
+      (should= [] (:findings result)))))
+
+(describe "check: guard violations"
+  (it "reports a guard on an expression with ="
+    (let [result (shell-check/check {"src/veil/main.clj" "(ns test (:require [veil.ui.input :as input]))\n(when (= (char 27) (:raw-key event)) (q/exit))"
+                                     "src/veil/ui/draw.clj" ""})]
+      (should= 1 (:exit-status result))
+      (should (some #(.contains % "a guard on an expression") (:findings result)))
+      (should (some #(.contains % "line 2") (:findings result)))))
+
+  (it "reports a guard on an expression with not"
+    (let [result (shell-check/check {"src/veil/main.clj" "(ns test)\n(when (not exit?) (q/exit))"
+                                     "src/veil/ui/draw.clj" ""})]
+      (should= 1 (:exit-status result))
+      (should (some #(.contains % "a guard on an expression") (:findings result)))))
+
+  (it "reports a guard on an expression with and"
+    (let [result (shell-check/check {"src/veil/main.clj" "(ns test)\n(if (and ready? exit?) (q/exit) nil)"
+                                     "src/veil/ui/draw.clj" ""})]
+      (should= 1 (:exit-status result))
+      (should (some #(.contains % "a guard on an expression") (:findings result)))))
+
+  (it "reports a guard on a non-veil function call"
+    (let [result (shell-check/check {"src/veil/main.clj" "(ns test)\n(when (q/key-pressed?) (q/exit))"
+                                     "src/veil/ui/draw.clj" ""})]
+      (should= 1 (:exit-status result))
+      (should (some #(.contains % "a guard on an expression") (:findings result)))))
+
+  (it "reports a guard on a function call with non-simple args"
+    (let [result (shell-check/check {"src/veil/main.clj" "(ns test (:require [veil.ui.input :as input]))\n(when (input/escape? (first events)) (q/exit))"
+                                     "src/veil/ui/draw.clj" ""})]
+      (should= 1 (:exit-status result))
+      (should (some #(.contains % "a guard on an expression") (:findings result))))))
+
+(describe "check: calculations"
+  (it "reports arithmetic operator +"
+    (let [result (shell-check/check {"src/veil/main.clj" ""
+                                     "src/veil/ui/draw.clj" "(ns test)\n(q/text text x (+ y 1))"})]
+      (should= 1 (:exit-status result))
+      (should (some #(.contains % "calculation with +") (:findings result)))))
+
+  (it "reports all arithmetic and comparison operators"
+    (doseq [op ["+", "-", "*", "/", "inc", "dec", "mod", "quot", "rem", "=", "not=", "<", ">", "<=", ">="]]
+      (let [result (shell-check/check {"src/veil/main.clj" (str "(ns test)\n(" op " a b)")
+                                       "src/veil/ui/draw.clj" ""})]
+        (should= 1 (:exit-status result))
+        (should (some #(.contains % (str "calculation with " op)) (:findings result)))))))
+
+(describe "check: branches"
+  (it "reports cond"
+    (let [result (shell-check/check {"src/veil/main.clj" "(ns test)\n(cond a (q/exit) :else (q/frame-rate 30))"
+                                     "src/veil/ui/draw.clj" ""})]
+      (should= 1 (:exit-status result))
+      (should (some #(.contains % "a multi-way branch") (:findings result)))))
+
+  (it "reports case"
+    (let [result (shell-check/check {"src/veil/main.clj" "(ns test)\n(case mode :a (q/exit) (q/frame-rate 30))"
+                                     "src/veil/ui/draw.clj" ""})]
+      (should= 1 (:exit-status result))
+      (should (some #(.contains % "a multi-way branch") (:findings result)))))
+
+  (it "reports condp"
+    (let [result (shell-check/check {"src/veil/main.clj" "(ns test)\n(condp = mode :a (q/exit))"
+                                     "src/veil/ui/draw.clj" ""})]
+      (should= 1 (:exit-status result))
+      (should (some #(.contains % "a multi-way branch") (:findings result))))))
+
+(describe "check: reporting"
+  (it "reports every finding"
+    (let [result (shell-check/check {"src/veil/main.clj" "(ns test)\n(q/text t (/ (q/width) 2) 0)\n(when (= state 1) (q/exit))"
+                                     "src/veil/ui/draw.clj" ""})]
+      (should= 2 (count (:findings result)))
+      (should (some #(.contains % "line 2") (:findings result)))
+      (should (some #(.contains % "line 3") (:findings result)))))
+
+  (it "returns exit status 1 when there are findings"
+    (let [result (shell-check/check {"src/veil/main.clj" "(ns test)\n(+ 1 2)"
+                                     "src/veil/ui/draw.clj" ""})]
+      (should= 1 (:exit-status result))))
+
+  (it "returns exit status 0 when there are no findings"
+    (let [result (shell-check/check {"src/veil/main.clj" "(ns test)\n(q/exit)"
+                                     "src/veil/ui/draw.clj" "(ns test2)\n(q/text t x y)"})]
+      (should= 0 (:exit-status result))))
+
+  (it "only checks the two shell files"
+    (let [result (shell-check/check {"src/veil/ui/view.clj" "(+ 50 (* row 40))"
+                                     "src/veil/main.clj" "(ns test)\n(q/exit)"
+                                     "src/veil/ui/draw.clj" "(ns test2)\n(q/text t x y)"})]
+      (should= 0 (:exit-status result)))))
+
+(describe "check: missing files"
+  (it "reports a missing src/veil/main.clj"
+    (let [result (shell-check/check {"src/veil/ui/draw.clj" ""})]
+      (should= 1 (:exit-status result))
+      (should (some #(.contains % "src/veil/main.clj") (:findings result)))
+      (should (some #(.contains % "file not found") (:findings result)))))
+
+  (it "reports a missing src/veil/ui/draw.clj"
+    (let [result (shell-check/check {"src/veil/main.clj" ""})]
+      (should= 1 (:exit-status result))
+      (should (some #(.contains % "src/veil/ui/draw.clj") (:findings result)))
+      (should (some #(.contains % "file not found") (:findings result)))))
+
+  (it "reports both files missing"
+    (let [result (shell-check/check {})]
+      (should= 1 (:exit-status result))
+      (should= 2 (count (:findings result))))))
+
+(describe "check: comments and docstrings ignored"
+  (it "ignores comments"
+    (let [result (shell-check/check {"src/veil/main.clj" "(ns test)\n;; (when (= a b) (q/exit))"
+                                     "src/veil/ui/draw.clj" ""})]
+      (should= 0 (:exit-status result))
+      (should= [] (:findings result))))
+
+  (it "ignores docstrings"
+    (let [result (shell-check/check {"src/veil/main.clj" "(ns test)\n(defn f \"(+ 1 2) then (cond a b)\" [])"
+                                     "src/veil/ui/draw.clj" ""})]
+      (should= 0 (:exit-status result))
+      (should= [] (:findings result)))))
+
+(describe "check: findings sorted by path then line"
+  (it "sorts findings by path then line number"
+    (let [result (shell-check/check {"src/veil/main.clj" "(ns test)\n(+ 1 2)\n(- 3 4)"
+                                     "src/veil/ui/draw.clj" "(ns test2)\n(* 5 6)"})]
+      (should= 3 (count (:findings result)))
+      (let [findings (:findings result)]
+        (should (.contains (first findings) "src/veil/main.clj line 2"))
+        (should (.contains (second findings) "src/veil/main.clj line 3"))
+        (should (.contains (nth findings 2) "src/veil/ui/draw.clj line 2"))))))

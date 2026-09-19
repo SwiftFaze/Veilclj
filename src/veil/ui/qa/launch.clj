@@ -52,3 +52,11 @@
   [java-exe classpath script-path log-path]
   [java-exe "-cp" classpath "clojure.main" "-m" "veil.main"
    "--keys" script-path "--log" log-path])
+
+(defn outcome
+  "Convert a launch result to an outcome: {:start launched} on success, or
+  {:error msg :exit-status 1} on failure."
+  [launched]
+  (if (:error launched)
+    (select-keys launched [:error :exit-status])
+    {:start launched}))

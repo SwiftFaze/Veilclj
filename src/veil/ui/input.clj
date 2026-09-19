@@ -21,6 +21,11 @@
     (= raw-key (char 27)) :back
     :else nil))
 
+(defn escape?
+  "Check if an event is a raw Escape key (char 27). Returns a boolean."
+  [event]
+  (and (some? event) (= (char 27) (:raw-key event))))
+
 (defn event->input
   "Translate a Quil key event map {:key kw :raw-key char :key-code int} to a
   game input (:up, :down, :confirm, :back) or nil."
