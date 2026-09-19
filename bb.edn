@@ -10,7 +10,7 @@
          :git/sha "e90be2e7aa02c2ec5d6544e9cecddc6b73ad3e4d"}
         io.github.unclebob/clj-mutate
         {:git/url "https://github.com/unclebob/clj-mutate"
-         :git/sha "911e707bf50b5d9999640b84b780cc6b3247f0fb"}
+         :git/sha "1256a01433739712d62b13e20615c2b61762d3c7"}
         io.github.unclebob/dependency-checker
         {:git/url "https://github.com/unclebob/dependency-checker"
          :git/sha "61097ea222a377b781f003712bc54a73bb8a2d4d"}
@@ -72,6 +72,10 @@
   {:doc      "Fail if a quality gate was loosened vs a base ref (default origin/develop)"
    :requires ([veil-tools.gate-ratchet :as ratchet])
    :task     (System/exit (ratchet/check (or (first *command-line-args*) "origin/develop")))}
+  update-tools
+  {:doc      "Repin every Uncle Bob tool to its latest commit (--check: report only)"
+   :requires ([veil-tools.update-tools :as update-tools])
+   :task     (System/exit (apply update-tools/run *command-line-args*))}
 
   ;; --- manual inspection (never gates) ---------------------------------------
   introvert {:doc      "deintroverter: find specs whose assertions don't touch src"
