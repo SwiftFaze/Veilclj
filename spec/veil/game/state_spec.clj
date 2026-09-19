@@ -148,3 +148,20 @@
 (describe "mods"
   (it "is nil before a registry is attached"
     (should-be-nil (state/mods (state/initial)))))
+
+(describe "starting"
+  (it "returns the initial game state with the mods registry attached"
+    (let [registry {:load-order ["core"] :content {}}
+          s (state/starting registry)]
+      (should= :main-menu (state/screen s))
+      (should= registry (state/mods s))))
+
+  (it "has New Game selected"
+    (let [registry {:load-order ["core"] :content {}}
+          s (state/starting registry)]
+      (should= "New Game" (state/selected-item s))))
+
+  (it "is not over"
+    (let [registry {:load-order ["core"] :content {}}
+          s (state/starting registry)]
+      (should-not (state/over? s)))))

@@ -56,3 +56,17 @@
 
   (it "returns nil for unknown keys"
     (should= nil (input/event->input {:key :unknown :raw-key \?}))))
+
+(describe "escape?"
+  (it "returns true for Escape raw key"
+    (should= true (input/escape? {:raw-key (char 27)})))
+
+  (it "returns false for other keys"
+    (should= false (input/escape? {:raw-key \a}))
+    (should= false (input/escape? {:raw-key \newline})))
+
+  (it "returns false for nil event"
+    (should= false (input/escape? nil)))
+
+  (it "returns false when raw-key is missing"
+    (should= false (input/escape? {:key :up}))))

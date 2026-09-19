@@ -120,3 +120,31 @@
   (it "lists every problem's message under a heading"
     (should= "Failed to load mods:\n  a.json: broken\n  b.json: broken"
              (loader/error-report [{:message "a.json: broken"} {:message "b.json: broken"}]))))
+
+(describe "startup"
+  (it "returns registry on clean load"
+    (let [result (loader/startup (f/mods (f/manifest "core")) f/content-types)]
+      (should (contains? result :registry))
+      (should-not (contains? result :error))))
+
+  (it "returns no error on clean load"
+    (let [result (loader/startup (f/mods (f/manifest "core")) f/content-types)]
+      (should-be-nil (:error result))))
+
+  (it "returns error and exit-status 1 on failed load"
+    (let [result (loader/startup (f/mods (f/manifest "broken-pack" "nonexistent-mod")) f/content-types)]
+      (should (contains? result :error))
+      (should= 1 (:exit-status result))))
+
+  (it "error report starts with 'Failed to load mods:'"
+    (let [result (loader/startup (f/mods (f/manifest "broken-pack" "nonexistent-mod")) f/content-types)]
+      (should (.startsWith (:error result) "Failed to load mods:"))))
+
+  (it "error report names all problems"
+    (let [result (loader/startup
+                   (f/mods (f/manifest "core")
+                           ["core/widgets/lever.json" "{\"id\": \"core:lever\"}"]
+                           ["core/widgets/crank.json" "{\"id\": \"core:crank\"}"])
+                   f/content-types)]
+      (should (.contains (:error result) "core/widgets/lever.json"))
+      (should (.contains (:error result) "core/widgets/crank.json")))))

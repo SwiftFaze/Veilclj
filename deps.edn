@@ -14,15 +14,16 @@
 
   ;; Same spec population as the mutation workers (clj-mutate requires it),
   ;; hence the ~no-mutate tag. -> target/coverage/ (HTML + lcov.info)
-  ;; tools/ is instrumented for veil-tools.docs-check only, so bb mutate can
-  ;; target it: the other tools namespaces need babashka libraries a JVM
-  ;; classpath lacks, so instrumenting them all fails the run.
+  ;; tools/ is instrumented for veil-tools.docs-check and veil-tools.shell-check
+  ;; only, so bb mutate can target them: the other tools namespaces need
+  ;; babashka libraries a JVM classpath lacks, so instrumenting them all fails
+  ;; the run.
   :cov   {:extra-paths ["spec" "tools"]
           :extra-deps  {speclj/speclj       {:mvn/version "3.13.0"}
                         cloverage/cloverage {:mvn/version "1.2.4"}}
           :main-opts   ["-m" "speclj.cloverage" "-c" "--tag" "~no-mutate" "spec"
                         "--" "-p" "src" "-p" "tools"
-                        "-n" "veil\\..*" "-n" "veil-tools\\.docs-check"
+                        "-n" "veil\\..*" "-n" "veil-tools\\.docs-check" "-n" "veil-tools\\.shell-check"
                         "-s" "spec" "--lcov"]}
 
   ;; Acceptance pipeline runtime: generated entry points + step handlers.

@@ -1,6 +1,7 @@
 (ns veil.main
   "Entry point: opens the Quil window. Kept thin on purpose - game rules live
-  in pure namespaces under veil.game, drawing under veil.ui."
+  in pure namespaces under veil.game, drawing under veil.ui. It calls Quil and
+  passes data along; bb shell-check fails the build if it decides anything."
   (:require [quil.core :as q]
             [quil.middleware :as m]
             [quil.applet :as qa]
@@ -21,13 +22,13 @@
 (defn- setup [registry]
   (q/frame-rate 30)
   (q/text-font (q/create-font "Monospaced" 32))
-  (state/with-mods (state/initial) registry))
+  (state/starting registry))
 
 (defn- prevent-processing-exit
   "Processing calls exit() if its key field == 27 (ESC). To make Esc mean 'back'
   instead, we zero that field. See processing.core.PApplet.handleKeyEvent."
   [event]
-  (when (= (char 27) (:raw-key event))
+  (when (input/escape? event)
     (set! (.-key ^processing.core.PApplet (qa/current-applet)) (char 0)))
   event)
 
@@ -53,18 +54,15 @@
   (mode/plan args files/read-script))
 
 (defn- load-mods-step [_]
-  (let [result (loader/load-mods (disk/read-mods-dir "mods") [])]
-    (if (contains? result :errors)
-      {:error (loader/error-report (:errors result))}
-      {:registry (:registry result)})))
+  (loader/startup (disk/read-mods-dir "mods") []))
 
 (defn- start-log-step [{:keys [qa]}]
   (files/start-log! (:log-path qa)))
 
-(defn- die [message]
+(defn- die [outcome]
   (binding [*out* *err*]
-    (println message))
-  (System/exit 1))
+    (println (:error outcome)))
+  (System/exit (:exit-status outcome)))
 
 (defn- open-window [{:keys [registry qa]}]
   (let [qa-state (atom qa)]
@@ -80,7 +78,8 @@
 
 (defn -main [& args]
   (let [launched (launch/run-steps {:args args}
-                                   [plan-step load-mods-step start-log-step])]
-    (if (:error launched)
-      (die (:error launched))
-      (open-window launched))))
+                                   [plan-step load-mods-step start-log-step])
+        outcome (launch/outcome launched)]
+    (if (:error outcome)
+      (die outcome)
+      (open-window (:start outcome)))))

@@ -1,6 +1,7 @@
 (ns veil.ui.draw
-  "Quil drawing layer. Kept thin and near-branchless: only this ns touches Quil.
-  No specs possible here. It must stay trivial."
+  "Quil drawing layer: hands each draw command from veil.ui.view to Quil and
+  decides nothing (bb shell-check fails the build if it does). It has no specs
+  because it needs a live window; the QA run and the playtest cover it."
   (:require [quil.core :as q]
             [veil.ui.view :as view]))
 
@@ -8,9 +9,8 @@
   "Draw the current game state using Quil. Called once per frame."
   [state]
   (q/background 0)
-  (q/fill 220)
   (q/text-align :center :center)
-  (doseq [{:keys [text row selected?]} (view/frame state)]
-    (q/fill (if selected? [255 255 100] [220 220 220]))
-    (q/text text (/ (q/width) 2) (+ 50 (* row 40))))
+  (doseq [{:keys [text x y color]} (view/frame state (q/width))]
+    (q/fill color)
+    (q/text text x y))
   state)

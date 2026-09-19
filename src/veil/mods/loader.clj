@@ -160,3 +160,12 @@
   "The text shown when mods fail to load: a heading, then one problem per line."
   [errors]
   (str/join "\n" (cons "Failed to load mods:" (map #(str "  " (:message %)) errors))))
+
+(defn startup
+  "Load mods and return {:registry r} on success or {:error msg :exit-status 1} on failure.
+  Pure function - no I/O."
+  [mods-data content-types]
+  (let [result (load-mods mods-data content-types)]
+    (if (contains? result :errors)
+      {:error (error-report (:errors result)) :exit-status 1}
+      {:registry (:registry result)})))

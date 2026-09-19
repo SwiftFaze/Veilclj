@@ -7,8 +7,8 @@ bash .claude/tools/check-clean.sh
 One command, run identically by the implementing agent before it reports done
 and by the orchestrator verifying that report, and by CI on every PR. It
 orchestrates Uncle Bob's tools (`docs/testing.md`) and adds what none of them
-covers: the CRAP ceiling, the docs check, the text-smell checks, which findings
-block versus advise, and the judgment checklist.
+covers: the CRAP ceiling, the docs check, the text-smell checks, the Quil shell
+check, which findings block versus advise, and the judgment checklist.
 
 The tool gates judge the whole repo (it started clean, so any red is yours);
 the text-smell check judges only the lines your change added versus `develop`,
@@ -26,13 +26,15 @@ and the docs check's QA-procedure half only the feature files your change added.
 | 6 | `bb dry`: duplicate-code candidates | advisory |
 | 7 | Docs check (`veil-tools.docs-check`): every `bb` task is mentioned in `docs/testing.md`; every feature added on the branch has a QA procedure or a `QA: none - <reason>` line | advisory |
 | 8 | Added lines: no commented-out forms (`;; (…)`, `#_(…)`), TODO/FIXME/XXX/HACK, or `clj-kondo/ignore` | yes |
+| 9 | `bb shell-check`: `veil.main` and `veil.ui.draw` decide and calculate nothing (rule: [`docs/testing.md`](testing.md#the-quil-shell-rule-bb-shell-check)) | yes |
 
 An **advisory** finding doesn't fail the gate, but each one needs a disposition
 in the completion report: fix it, or one line on why it's correct as written.
 For section 7 the fix is nearly always the doc (`docs/testing.md`, "Docs check"),
 not the check.
 
-`--fast` skips the JVM-heavy sections (1-4, 6) for the inner loop. A `--fast`
+`--fast` skips the JVM-heavy sections (1-4, 6) for the inner loop; section 9 is
+Babashka-only, so it still runs. A `--fast`
 run never counts as passing the gate. A full run takes about 30 seconds.
 
 ## Judgment checklist

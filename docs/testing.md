@@ -18,6 +18,7 @@ a `bb` task (`bb tasks` lists them); tool versions are pinned by git SHA in
 | QA run | `bb qa <slug>`, `bb qa --all` | veil.ui.qa (in this repo) | never - local step before the playtest |
 | Scripted / logged play | `bb play --keys <script> --log <file>` | veil.ui.qa | never - manual |
 | Docs check | `check-clean.sh` section 7 | `veil-tools.docs-check` (in this repo, `tools/`) | advisory |
+| Quil shell | `bb shell-check` | `veil-tools.shell-check` (in this repo, `tools/`) | yes, `check-clean.sh` section 9 |
 | Introverted specs | `bb introvert` | [deintroverter4clj](https://github.com/unclebob/deintroverter4clj) | never - manual only |
 | UML diagram | `bb uml-ir`, `bb uml` | [uml-viewer](https://github.com/unclebob/uml-viewer) | never - manual only |
 
@@ -97,13 +98,36 @@ bb mutate src/veil/game/menu.clj --mutate-all        # full rerun
 ```
 
 Exit 3 means surviving or uncovered mutants: a behavior no spec pins down.
-Target `src/veil/game/**` and `src/veil/ui/**`; `veil.main` is the Quil shell,
-which specs never execute, so its mutants are uncoverable by design.
-`veil.ui.qa.runner` is the same kind of shell (it spawns the game and prints),
-so it is skipped too; the decisions it used to hold live in
-`veil.ui.qa.session`, which is specced with fake I/O and is a normal target, as
-is `veil.ui.qa.files` (specced against temp files). Snapshots in
-`.metrics/mutate/` are committed so later runs only retest changed forms.
+Target `src/veil/game/**`, `src/veil/mods/**` and `src/veil/ui/**`, plus the
+two `tools/` namespaces the coverage run instruments (`veil-tools.docs-check`,
+`veil-tools.shell-check`; the `:cov` alias in `deps.edn` says why only those).
+Skip the Quil shell (`veil.main`, `veil.ui.draw`: by the rule below they hold no
+decision to mutate) and the I/O files `veil.mods.disk` and `veil.ui.qa.runner`.
+Snapshots in `.metrics/mutate/` are committed, so later runs are differential.
+
+## The Quil shell rule (`bb shell-check`)
+
+Only a line that calls Quil or Processing may go uncovered, because only those
+need a live applet, and it must decide nothing. Every decision and calculation
+lives in a pure, specced function that the shell (`veil.main`, `veil.ui.draw`)
+passes data to; which function answers what is in `docs/architecture.md`, "The
+Quil shell decides nothing". The QA run (`bb qa`) and the human playtest verify
+the Quil calls; neither is a gate. `veil.main` has no coverage exception:
+uncovered logic there moves out.
+
+`bb shell-check` (`tools/veil_tools/shell_check.clj`, section 9 of
+`check-clean.sh`, blocking) reads the two files with the Clojure reader
+(comments and strings are ignored) and exits 1, printing `<path> line <n>:
+<message>`, for:
+
+- **A guard on an expression.** `if`, `when`, `if-not` and `when-not` may test
+  a symbol, a keyword lookup of one (`(:error launched)`), or a `veil.*`
+  function called on such values (`(input/escape? event)`); `=`, `and`, `or`,
+  `not` and any other call are expressions.
+- **A calculation:** `+ - * / inc dec mod quot rem = not= < > <= >=`, called.
+- **A multi-way branch:** `cond`, `case` and `condp`.
+- **A missing or unreadable shell file**, so a rename can't switch the check
+  off. Only `veil.main` and `veil.ui.draw` are checked.
 
 ## QA runs (deterministic keyboard QA)
 

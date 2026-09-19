@@ -87,3 +87,8 @@
   "Get the mod registry from the game state."
   [state]
   (:mods state))
+
+(defn starting
+  "Build the starting game state from a mods registry."
+  [registry]
+  (with-mods (initial) registry))
