@@ -48,10 +48,20 @@ gets built. Pay the approval latency only where being wrong is expensive.
     - **Rendering changes can't be verified by specs** — specs cover the state
       that drawing reads, not the pixels. Say explicitly in the report which
       screens changed so the human playtest (`CLAUDE.md` Step 4.5) covers them.
+    - **Behavior a key sequence can exercise gets a QA procedure**, written at
+      spec time next to the `.feature`: `specs/qa/<slug>.keys` (the keys) and
+      `specs/qa/<slug>.edn` (the log entries expected). Formats and the event
+      vocabulary: `docs/testing.md`, "QA runs".
 5. **Acceptance tests** (`coder`, same agent as Step 4) — wire the `.feature`
    file into the acceptance pipeline (`bb acceptance`) so it's executable, not
    documentation: add step handlers under `acceptance/veil/acceptance/steps/`.
    Steps drive the pure game state (`veil.game`), never the Quil window.
+   **Before the human playtest, run `bb qa <slug>`** (or `bb qa --all`): it
+   plays the procedure's keys through `veil.main`'s real key handler and checks
+   the log. It opens a window, so it is a local step, not part of
+   `check-clean.sh` or CI. A pass means input reaches the outcomes the
+   procedure expects; it says nothing about rendering or feel, so the human
+   playtest stays mandatory but narrower: how it *feels* and *looks*.
 6. **Mutation testing** (`hardener`, after the gate is clean) — `bb mutate <file>` on each
    changed `veil.game`/`veil.ui` source file, and `bb acceptance-mutate` when a
    `.feature` changed. This is the check on the specs, since they aren't
@@ -124,6 +134,7 @@ else.
   `AskUserQuestion` for a genuinely standalone multiple-choice pick.
 - Never mark a feature done without: `check-clean.sh` at exit 0 with the
   judgment checklist answered, acceptance tests passing, the Step 7
-  documentation decision stated explicitly, the human playtest (`CLAUDE.md`
-  Step 4.5), and the linked issue closed (`CLAUDE.md` Step 7.5). A gate you
+  documentation decision stated explicitly, `bb qa <slug>` passing where a QA
+  procedure exists, the human playtest (`CLAUDE.md` Step 4.5), and the linked
+  issue closed (`CLAUDE.md` Step 7.5). A gate you
   cannot pass is a blocker to report, never a rule to suppress.

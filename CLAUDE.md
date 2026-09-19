@@ -79,9 +79,10 @@ pipeline step, not every session. Repo-specific file layout:
 
 Two repo-specific pipeline steps, both mandatory:
 
-<!-- added 2026-09-19: coder does Steps 4-5 in one run; hardener can't change behavior (#23) -->
-- **Step 4.5 — human playtest.** After the coder's commit, before the hardener:
-  the human runs `bb play` and plays the changed behavior. Tests prove the code
+<!-- added 2026-09-19: coder does Steps 4-5 in one run; hardener can't change behavior (#23); `bb qa` precedes the playtest and narrows it (#24) -->
+- **Step 4.5 — human playtest.** After the coder's commit and a passing `bb qa
+  <slug>` (`.claude/workflow.md`), before the hardener: the human runs
+  `bb play` and plays the changed behavior. Tests prove the code
   does what the spec says, not whether movement, navigation, or rendering
   *feel* right. For a multi-area change, playtest each area as it lands, not
   once at the end. Record what was tested in the PR description. No feature is
