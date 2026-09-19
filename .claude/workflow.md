@@ -33,36 +33,31 @@ gets built. Pay the approval latency only where being wrong is expensive.
    regenerate `.feature`, then ask what's still open.
 3. **Human approval — high-risk path only** — stop and wait. Do not proceed on
    your own.
-4. **Implementation** (Haiku 4.5) — **read `.claude/subagent-delegation.md`
-   before dispatching.** It covers agent type/model, handoff prompt contents,
-   staying in one agent across 4→5→7, and verifying what comes back.
+4. **Implementation** (`coder`, `.claude/agents/coder.md`) — **read
+   `.claude/orchestrator.md` before dispatching.** It covers the coder →
+   commit → hardener handoff, prompt contents, and verifying what comes back.
+   The Clean Code gate is the hardener's (`.claude/agents/hardener.md`), not
+   this step's.
     - **Test-first.** Write the failing speclj `it` before the code that
       passes it (`bb spec -a` reruns on save). Uncle Bob's three laws of TDD
       are the default loop here, not an aspiration.
-    - **The Clean Code gate is mandatory and blocking.** You may not report
-      this step finished until `bash .claude/tools/check-clean.sh` exits 0 and
-      you have answered every line of the judgment checklist it prints, with
-      evidence. It is the same command the orchestrator runs to verify you.
-      Rules, thresholds and carve-outs: `docs/clean-code-gate.md`.
     - **Respect the layer direction** in `docs/architecture.md`:
       `veil.main → veil.ui → veil.game`, and `veil.game` never touches Quil,
       I/O or atoms. Fix a violation by moving the code or passing data in,
       never by weakening the rule.
-    - The gate's checklist mechanizes `uncle-bob-craft`; read that skill for the
-      design lens. Neither makes implementation code human-reviewed.
     - **Rendering changes can't be verified by specs** — specs cover the state
       that drawing reads, not the pixels. Say explicitly in the report which
       screens changed so the human playtest (`CLAUDE.md` Step 4.5) covers them.
-5. **Acceptance tests** (Haiku 4.5, same agent as Step 4) — wire the `.feature`
+5. **Acceptance tests** (`coder`, same agent as Step 4) — wire the `.feature`
    file into the acceptance pipeline (`bb acceptance`) so it's executable, not
    documentation: add step handlers under `acceptance/veil/acceptance/steps/`.
    Steps drive the pure game state (`veil.game`), never the Quil window.
-6. **Mutation testing** (tooling, no model) — `bb mutate <file>` on each
+6. **Mutation testing** (`hardener`, after the gate is clean) — `bb mutate <file>` on each
    changed `veil.game`/`veil.ui` source file, and `bb acceptance-mutate` when a
    `.feature` changed. This is the check on the specs, since they aren't
    reviewed. Survivors get a spec (or a sharper example), not a shrug. Confirm
    the run targeted the files the change actually touched.
-7. **Documentation** (Haiku 4.5, same agent as Steps 4-5) — part of done, not
+7. **Documentation** (`hardener`, same agent as Step 6) — part of done, not
    cleanup:
     - New domain concept, non-obvious design decision, or a deviation from an
       existing pattern → add/update an entry in `docs/`.
@@ -91,7 +86,8 @@ code, not a constant. If you change one, record the new value and the reasoning
 here — don't loosen a gate because one change didn't fit under it.
 
 **SLAP (Single Level of Abstraction) is not enforced** — no tool backs it here.
-It's design guidance from the `uncle-bob-craft` checklist in Step 4; don't
+It's design guidance from the `uncle-bob-craft` checklist the hardener
+applies (`.claude/agents/hardener.md`); don't
 describe it as a build gate.
 
 ## Session management

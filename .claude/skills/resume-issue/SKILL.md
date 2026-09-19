@@ -106,8 +106,8 @@ Before resuming, state in a few lines:
 
 Unless `--report-only` was passed, continue the pipeline from the resume point,
 following `.claude/workflow.md` for that step exactly as a fresh run would —
-including `.claude/subagent-delegation.md` before dispatching Steps 4-7, and
-the blocking `check-clean.sh` gate.
+including `.claude/orchestrator.md` before dispatching the `coder` or
+`hardener` agent for Steps 4-7, and the blocking `check-clean.sh` gate.
 
 Two things to get right on a resume specifically:
 

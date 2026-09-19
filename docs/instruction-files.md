@@ -1,7 +1,7 @@
 # Instruction files
 
-`CLAUDE.md`, `.claude/workflow.md`, `.claude/subagent-delegation.md` and the
-skills load into agent context, so every line costs something on every task
+`CLAUDE.md`, `.claude/workflow.md`, `.claude/orchestrator.md`, the agent
+definitions in `.claude/agents/` and the skills load into agent context, so every line costs something on every task
 that loads it. They decay by accretion: one-off fixes get appended and nothing
 is ever removed.
 
@@ -15,7 +15,8 @@ loaded:
 |---|---|---|
 | `CLAUDE.md` | every session | 100 |
 | `.claude/workflow.md` | every pipeline step | 150 |
-| `.claude/subagent-delegation.md` | on dispatch | 90 |
+| `.claude/orchestrator.md` | on dispatch (orchestrator) | 90 |
+| `.claude/agents/*.md` | every run of that agent | 61 |
 | `.claude/skills/*/SKILL.md` | on skill use | 215 |
 | `docs/*.md` | on demand | 250 |
 
