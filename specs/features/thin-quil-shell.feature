@@ -1,5 +1,5 @@
 # acceptance-mutation-manifest-begin
-# {"version":1,"tested_at":"2026-09-19T15:36:03.044732100Z","feature_name":"Thin Quil shell","feature_path":"specs/features/thin-quil-shell.feature","background_hash":"74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b","implementation_hash":"unknown","scenarios":[{"index":6,"name":"A raw Escape is recognised so Processing's quit can be suppressed","scenario_hash":"18f13df2f0b680fb26d2a0940817aec874281acf785706de505ce4ba88cd254d","mutation_count":8,"result":{"Total":8,"Killed":8,"Survived":0,"Errors":0},"tested_at":"2026-09-19T15:35:25.110079300Z"},{"index":7,"name":"A draw command carries the colour its selection state calls for","scenario_hash":"4db4dd456025e28246f048c30a705184c516611d2e2ac88567f8a2ff51f71399","mutation_count":6,"result":{"Total":6,"Killed":6,"Survived":0,"Errors":0},"tested_at":"2026-09-19T15:35:25.110079300Z"},{"index":8,"name":"A draw command carries the pixel position for its row","scenario_hash":"2066fbcc77e2e6e155a5c31914b99a253be787ad6f7687d04160245f95c68dd0","mutation_count":16,"result":{"Total":16,"Killed":16,"Survived":0,"Errors":0},"tested_at":"2026-09-19T15:35:25.110079300Z"},{"index":9,"name":"Every draw command on every screen carries a colour and a position","scenario_hash":"d1d4acde51fd0d68ad7f041fbb3146d0309d6fd7b2852acdaeb7f0710c8452f8","mutation_count":3,"result":{"Total":3,"Killed":3,"Survived":0,"Errors":0},"tested_at":"2026-09-19T15:35:25.110079300Z"},{"index":12,"name":"Arithmetic and comparison are findings wherever they appear","scenario_hash":"179e2d1088649524021be0d6a74c9f78045777bb7bcfb64c6ff5fa0712a62703","mutation_count":15,"result":{"Total":15,"Killed":15,"Survived":0,"Errors":0},"tested_at":"2026-09-19T15:35:25.110079300Z"},{"index":17,"name":"A shell file that is missing is a finding, so a rename can't switch the check off","scenario_hash":"1f46bef12cdeab577f7731361fe7d8ba26f7c89064b629d9c0b3eb990cd9fe14","mutation_count":4,"result":{"Total":4,"Killed":4,"Survived":0,"Errors":0},"tested_at":"2026-09-19T15:35:25.110079300Z"}]}
+# {"version":1,"tested_at":"2026-09-19T18:32:17.053088200Z","feature_name":"Thin Quil shell","feature_path":"specs/features/thin-quil-shell.feature","background_hash":"74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b","implementation_hash":"unknown","scenarios":[{"index":7,"name":"A draw command carries the colour its selection state calls for","scenario_hash":"e44b668d68fae71a180a20899bd366b0e8363d98cf18cb34dc61a5f2f16391d0","mutation_count":6,"result":{"Total":6,"Killed":6,"Survived":0,"Errors":0},"tested_at":"2026-09-19T18:31:35.758465400Z"},{"index":6,"name":"A raw Escape is recognised so Processing's quit can be suppressed","scenario_hash":"18f13df2f0b680fb26d2a0940817aec874281acf785706de505ce4ba88cd254d","mutation_count":8,"result":{"Total":8,"Killed":8,"Survived":0,"Errors":0},"tested_at":"2026-09-19T15:35:25.110079300Z"},{"index":8,"name":"A draw command carries the pixel position for its row","scenario_hash":"2066fbcc77e2e6e155a5c31914b99a253be787ad6f7687d04160245f95c68dd0","mutation_count":16,"result":{"Total":16,"Killed":16,"Survived":0,"Errors":0},"tested_at":"2026-09-19T15:35:25.110079300Z"},{"index":9,"name":"Every draw command on every screen carries a colour and a position","scenario_hash":"d1d4acde51fd0d68ad7f041fbb3146d0309d6fd7b2852acdaeb7f0710c8452f8","mutation_count":3,"result":{"Total":3,"Killed":3,"Survived":0,"Errors":0},"tested_at":"2026-09-19T15:35:25.110079300Z"},{"index":12,"name":"Arithmetic and comparison are findings wherever they appear","scenario_hash":"179e2d1088649524021be0d6a74c9f78045777bb7bcfb64c6ff5fa0712a62703","mutation_count":15,"result":{"Total":15,"Killed":15,"Survived":0,"Errors":0},"tested_at":"2026-09-19T15:35:25.110079300Z"},{"index":17,"name":"A shell file that is missing is a finding, so a rename can't switch the check off","scenario_hash":"1f46bef12cdeab577f7731361fe7d8ba26f7c89064b629d9c0b3eb990cd9fe14","mutation_count":4,"result":{"Total":4,"Killed":4,"Survived":0,"Errors":0},"tested_at":"2026-09-19T15:35:25.110079300Z"}]}
 # acceptance-mutation-manifest-end
 
 Feature: Thin Quil shell
@@ -18,7 +18,8 @@ Feature: Thin Quil shell
     shell check: which guards, calculations and branching forms it accepts and
     which it reports in veil.main and veil.ui.draw, how findings are reported,
     and that a missing shell file is itself a finding.
-  Supersedes: nothing. It narrows one out-of-scope item in
+  Supersedes: nothing, except that its colour examples now pin core:default's
+    theme colours instead of the old hard-coded ones (themes.feature). It narrows one out-of-scope item in
     deterministic-keyboard-qa.feature: that file leaves "quitting the process
     when the script ends" to the playtest, but the decision to quit is already
     specced (mode/frame's :exit?), so only the q/exit call is left uncovered.
@@ -104,9 +105,9 @@ Feature: Thin Quil shell
   Scenario Outline: A draw command carries the colour its selection state calls for
     Given the main menu with <item> selected
     When the draw commands are built for a window 960 pixels wide
-    Then the command for <item> has the colour 255 255 100
-    And the command for <other> has the colour 220 220 220
-    And the command for "VEIL" has the colour 220 220 220
+    Then the command for <item> has the colour 192 192 192
+    And the command for <other> has the colour 255 255 255
+    And the command for "VEIL" has the colour 255 255 255
 
     Examples:
       | item     | other    |
@@ -278,7 +279,8 @@ Feature: Thin Quil shell
 #     width, y is 50 plus 40 per row). They pin the arithmetic that moves out
 #     of draw!, so a deliberate layout change has to edit the table. That is
 #     the point, but it is the table most likely to look like churn later.
-#   - The colour examples pin the values draw! uses today. The unconditional
+#   - The colour examples pin core:default's SELECTED_HIGHLIGHT and NORMAL_TEXT (themes.feature
+#     supersedes the old hard-coded 255,255,100 and 220,220,220). The unconditional
 #     (q/fill 220) before the loop in draw! is dead once each command sets its
 #     own colour; removing it is part of the move, not a behaviour change.
 #   - The startup outcome is checked in two layers: the mods layer decides the

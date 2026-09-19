@@ -86,8 +86,8 @@ split.
 ## Layers (dependency-checker)
 
 Components are the second namespace segment (`veil.ui.menu` → `:ui`).
-`dependency-checker.edn` allows `:main → :ui, :game` and `:ui → :game`, nothing
-else, and fails on cycles. See `architecture.md`.
+`dependency-checker.edn` allows `:main → :ui, :game, :mods` and `:ui → :game`,
+nothing else (`:game` and `:mods` depend on nothing), and fails on cycles. See `architecture.md`.
 
 ## Mutation testing (clj-mutate)
 

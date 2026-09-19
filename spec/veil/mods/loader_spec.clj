@@ -116,6 +116,16 @@
       (should= [[:foreign-namespace "goblin-pack/widgets/spear.json" "core:spear" "goblin-pack"]]
                (map (juxt :kind :file :id :mod) (:errors result))))))
 
+(describe "mods-dir"
+  (it "is the property's path when the property is set"
+    (should= "/opt/veil/app/mods" (loader/mods-dir "/opt/veil/app/mods")))
+
+  (it "falls back to 'mods' when the property is not set"
+    (should= "mods" (loader/mods-dir nil)))
+
+  (it "falls back to 'mods' when the property is blank"
+    (should= "mods" (loader/mods-dir "  "))))
+
 (describe "error-report"
   (it "lists every problem's message under a heading"
     (should= "Failed to load mods:\n  a.json: broken\n  b.json: broken"

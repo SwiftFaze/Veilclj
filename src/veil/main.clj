@@ -6,23 +6,25 @@
             [quil.middleware :as m]
             [quil.applet :as qa]
             [veil.game.state :as state]
+            [veil.game.theme :as theme]
             [veil.ui.draw :as draw]
             [veil.ui.input :as input]
             [veil.ui.qa.files :as files]
             [veil.ui.qa.launch :as launch]
             [veil.ui.qa.mode :as mode]
             [veil.mods.disk :as disk]
-            [veil.mods.loader :as loader])
+            [veil.mods.loader :as loader]
+            [veil.mods.themes :as themes])
   (:gen-class))
 
 (def window
   {:title "Veil"
    :size  [960 600]})
 
-(defn- setup [registry]
+(defn- setup [registry themes]
   (q/frame-rate 30)
   (q/text-font (q/create-font "Monospaced" 32))
-  (state/starting registry))
+  (state/starting registry themes))
 
 (defn- prevent-processing-exit
   "Processing calls exit() if its key field == 27 (ESC). To make Esc mean 'back'
@@ -54,7 +56,11 @@
   (mode/plan args files/read-script))
 
 (defn- load-mods-step [_]
-  (loader/startup (disk/read-mods-dir "mods") []))
+  (let [mods-dir (loader/mods-dir (System/getProperty "veil.mods.dir"))]
+    (loader/startup (disk/read-mods-dir mods-dir) [themes/content-type])))
+
+(defn- themes-step [{:keys [registry]}]
+  (themes/startup registry theme/default-id))
 
 (defn- start-log-step [{:keys [qa]}]
   (files/start-log! (:log-path qa)))
@@ -64,12 +70,12 @@
     (println (:error outcome)))
   (System/exit (:exit-status outcome)))
 
-(defn- open-window [{:keys [registry qa]}]
+(defn- open-window [{:keys [registry themes qa]}]
   (let [qa-state (atom qa)]
     (q/sketch
       :title       (:title window)
       :size        (:size window)
-      :setup       #(setup registry)
+      :setup       #(setup registry themes)
       :draw        draw/draw!
       :update      (fn [state] (update-state qa-state state))
       :key-pressed (fn [state event] (key-pressed qa-state state event))
@@ -78,7 +84,7 @@
 
 (defn -main [& args]
   (let [launched (launch/run-steps {:args args}
-                                   [plan-step load-mods-step start-log-step])
+                                   [plan-step load-mods-step themes-step start-log-step])
         outcome (launch/outcome launched)]
     (if (:error outcome)
       (die outcome)

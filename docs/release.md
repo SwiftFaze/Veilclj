@@ -29,7 +29,10 @@ and the `-beta` pair (prerelease).
 
 1. `bb uber` -> `target/veil-<version>.jar` (AOT-compiled `veil.main`, Quil
    natives included)
-2. `jpackage` -> `.exe` / `.deb` / `.pkg`, uploaded to the GitHub Release
+2. `jpackage` -> `.exe` / `.deb` / `.pkg`, uploaded to the GitHub Release. The
+   input folder holds the jar and a copy of `mods/`; jpackage is passed
+   `-Dveil.mods.dir=$APPDIR/mods`, because an installed game's working
+   directory isn't its install folder (`docs/mod-format.md`).
 
 The workflow needs a `RELEASE_PLEASE_TOKEN` secret (fine-grained PAT, Contents +
 Pull requests read/write on this repo) - `release.yml` explains why the default

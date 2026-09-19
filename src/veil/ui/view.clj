@@ -1,6 +1,7 @@
 (ns veil.ui.view
   "Pure view rendering: translates game state to draw commands. No Quil."
-  (:require [veil.game.state :as state]))
+  (:require [veil.game.state :as state]
+            [veil.game.theme :as theme]))
 
 (defn- row->y
   "Pixel y of a logical row: a 50 pixel top margin, then 40 pixels per row."
@@ -8,16 +9,18 @@
   (+ 50 (* row 40)))
 
 (defn- command-color
-  "The selected item is highlighted; everything else is plain."
-  [{:keys [selected?]}]
-  (if selected? [255 255 100] [220 220 220]))
+  "The selected item is highlighted; everything else is plain. Colors come from the active theme."
+  [state {:keys [selected?]}]
+  (if selected?
+    (theme/color state :SELECTED_HIGHLIGHT)
+    (theme/color state :NORMAL_TEXT)))
 
 (defn- lay-out
   "Give each command its pixel position and colour. This is here, not in the
   Quil layer, so the drawing code has nothing left to decide or calculate."
-  [width commands]
+  [state width commands]
   (mapv (fn [cmd]
-          (assoc cmd :x (/ width 2) :y (row->y (:row cmd)) :color (command-color cmd)))
+          (assoc cmd :x (/ width 2) :y (row->y (:row cmd)) :color (command-color state cmd)))
         commands))
 
 (defn- frame-main-menu
@@ -51,6 +54,11 @@
       [{:text "Options" :row 4}
        {:text "Esc: back" :row 20}])))
 
+(defn background
+  "The background color for the current screen from the active theme."
+  [state]
+  (theme/color state :BACKGROUND))
+
 (defn frame
   "Generate draw commands for the current state. Each command is a map with
   :text (string), :row (logical line number), optionally :selected? (bool),
@@ -61,4 +69,4 @@
                    :map (frame-map state)
                    :options (frame-options state)
                    [])]
-    (lay-out width commands)))
+    (lay-out state width commands)))

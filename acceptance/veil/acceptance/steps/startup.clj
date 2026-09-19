@@ -3,12 +3,14 @@
   (:require [clojure.string :as str]
             [veil.acceptance.step-support :refer [ok check fail]]
             [veil.game.state :as state]
+            [veil.game.theme :as theme]
             [veil.ui.input :as input]
             [veil.ui.view :as view]
             [veil.ui.qa.launch :as launch]
             [veil.ui.qa.mode :as mode]
             [veil.mods.fixtures :as f]
-            [veil.mods.loader :as loader]))
+            [veil.mods.loader :as loader]
+            [veil.mods.themes :as themes]))
 
 (def handlers
   [[#"the mods directory holds mod \"([^\"]+)\" with no dependencies"
@@ -123,8 +125,28 @@
 
    [#"the main menu with (.+) selected"
     (fn [world [_ item]]
-      (let [reached (->> (iterate #(state/handle-input % :down) (state/initial))
-                         (take (count (state/menu-items (state/initial))))
+      (let [base-state (state/starting {:load-order ["core"] :content {}}
+                                       {"core:default" {:SELECTED_HIGHLIGHT [192 192 192]
+                                                         :SELECTED_TEXT [0 0 0]
+                                                         :NORMAL_TEXT [255 255 255]
+                                                         :DIMMED_TEXT [128 128 128]
+                                                         :BACKGROUND [0 0 0]
+                                                         :INVALID_HIGHLIGHT [224 90 78]
+                                                         :VALID_HIGHLIGHT [111 207 125]
+                                                         :TABLE_HEADER_BACKGROUND [26 26 26]
+                                                         :BORDER [192 192 192]
+                                                         :SCROLLBAR_THUMB [128 128 128]
+                                                         :ACCENT [238 179 146]
+                                                         :WINDOW_BORDER [255 255 255]
+                                                         :TABLE_HEADER_TEXT [0 194 194]
+                                                         :SUCCESS [111 207 125]
+                                                         :ERROR [224 90 78]
+                                                         :WARNING [238 179 146]
+                                                         :INFO [238 179 146]
+                                                         :FOCUSED_BORDER [238 179 146]
+                                                         :SHADOW [0 0 0]}})
+            reached (->> (iterate #(state/handle-input % :down) base-state)
+                         (take (count (state/menu-items base-state)))
                          (filter #(= item (state/selected-item %)))
                          first)]
         (if reached
@@ -177,7 +199,26 @@
 
    [#"the game is on the (.+) screen"
     (fn [world [_ screen-name]]
-      (let [start (state/initial)
+      (let [start (state/starting {:load-order ["core"] :content {}}
+                                  {"core:default" {:SELECTED_HIGHLIGHT [192 192 192]
+                                                    :SELECTED_TEXT [0 0 0]
+                                                    :NORMAL_TEXT [255 255 255]
+                                                    :DIMMED_TEXT [128 128 128]
+                                                    :BACKGROUND [0 0 0]
+                                                    :INVALID_HIGHLIGHT [224 90 78]
+                                                    :VALID_HIGHLIGHT [111 207 125]
+                                                    :TABLE_HEADER_BACKGROUND [26 26 26]
+                                                    :BORDER [192 192 192]
+                                                    :SCROLLBAR_THUMB [128 128 128]
+                                                    :ACCENT [238 179 146]
+                                                    :WINDOW_BORDER [255 255 255]
+                                                    :TABLE_HEADER_TEXT [0 194 194]
+                                                    :SUCCESS [111 207 125]
+                                                    :ERROR [224 90 78]
+                                                    :WARNING [238 179 146]
+                                                    :INFO [238 179 146]
+                                                    :FOCUSED_BORDER [238 179 146]
+                                                    :SHADOW [0 0 0]}})
             screens {"main menu" start
                      "map" (state/handle-input start :confirm)
                      "options" (-> start (state/handle-input :down) (state/handle-input :confirm))}]

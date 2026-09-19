@@ -7,7 +7,8 @@
             [veil.acceptance.step-support :refer [ok check fail]]
             [veil.mods.fixtures :as fixtures]
             [veil.mods.loader :as loader]
-            [veil.mods.registry :as registry]))
+            [veil.mods.registry :as registry]
+            [veil.mods.themes :as themes]))
 
 ;; --- Building the mods/ data ---
 
@@ -54,8 +55,9 @@
   (let [{:keys [files folders]} @world
         top-folder (comp first #(str/split % #"/"))
         mods-data {:folders (into (set folders) (map top-folder (keys files)))
-                   :files   (or files {})}]
-    (swap! world assoc :result (loader/load-mods mods-data fixtures/content-types))
+                   :files   (or files {})}
+        content-types (into fixtures/content-types [themes/content-type])]
+    (swap! world assoc :result (loader/load-mods mods-data content-types))
     (ok)))
 
 ;; --- Asserting on the result ---

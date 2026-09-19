@@ -44,7 +44,7 @@
 (defn- read-entry
   "{:entry e} or {:errors [...]} for one content file."
   [{:keys [mod content-type file text]}]
-  (let [{:keys [data errors]} (validate/validate file text (:spec content-type))
+  (let [{:keys [data errors]} (validate/validate file text (:spec content-type) (:phrases content-type {}))
         {:keys [id overrides]} data]
     (cond
       errors                            {:errors errors}
@@ -155,6 +155,11 @@
       (seq errors) {:errors (vec errors)}
       error        {:errors [error]}
       :else        (register-all load-order content-types manifests entries))))
+
+(defn mods-dir
+  "The mods directory path: the property if it's set and non-blank, else 'mods'."
+  [property]
+  (if (str/blank? property) "mods" property))
 
 (defn error-report
   "The text shown when mods fail to load: a heading, then one problem per line."

@@ -1,0 +1,70 @@
+{
+  "id": "core:default",
+  "colors": {
+    "SELECTED_HIGHLIGHT": {
+      "r": 192,
+      "g": 192,
+      "b": 192
+    },
+    "SELECTED_TEXT": {
+      "r": 0,
+      "g": 0,
+      "b": 0
+    },
+    "NORMAL_TEXT": {
+      "r": 255,
+      "g": 255,
+      "b": 255
+    },
+    "DIMMED_TEXT": {
+      "r": 128,
+      "g": 128,
+      "b": 128
+    },
+    "BACKGROUND": {
+      "r": 0,
+      "g": 0,
+      "b": 0
+    },
+    "INVALID_HIGHLIGHT": {
+      "r": 224,
+      "g": 90,
+      "b": 78
+    },
+    "VALID_HIGHLIGHT": {
+      "r": 111,
+      "g": 207,
+      "b": 125
+    },
+    "TABLE_HEADER_BACKGROUND": {
+      "r": 26,
+      "g": 26,
+      "b": 26
+    },
+    "BORDER": {
+      "r": 192,
+      "g": 192,
+      "b": 192
+    },
+    "SCROLLBAR_THUMB": {
+      "r": 128,
+      "g": 128,
+      "b": 128
+    },
+    "ACCENT": {
+      "r": 238,
+      "g": 179,
+      "b": 146
+    },
+    "WINDOW_BORDER": {
+      "r": 255,
+      "g": 255,
+      "b": 255
+    },
+    "TABLE_HEADER_TEXT": {
+      "r": 0,
+      "g": 194,
+      "b": 194
+    }
+  }
+}

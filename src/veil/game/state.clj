@@ -1,6 +1,7 @@
 (ns veil.game.state
-  "Global game state: screens, menu, player, game over flag, mods registry."
-  (:require [veil.game.menu :as menu]))
+  "Global game state: screens, menu, player, game over flag, mods registry, themes."
+  (:require [veil.game.menu :as menu]
+            [veil.game.theme :as theme]))
 
 (defn initial
   "Return the initial game state: main menu with New Game selected, not over."
@@ -8,7 +9,9 @@
   {:screen :main-menu
    :menu (menu/new-menu)
    :over? false
-   :player {:glyph \@}})
+   :player {:glyph \@}
+   :themes {}
+   :active-theme theme/default-id})
 
 (defn screen
   "Get the current screen keyword (:main-menu, :map, :options)."
@@ -88,7 +91,16 @@
   [state]
   (:mods state))
 
+(defn with-themes
+  "Associate themes and set the active theme with the game state."
+  [state themes]
+  (assoc state :themes themes :active-theme theme/default-id))
+
 (defn starting
-  "Build the starting game state from a mods registry."
-  [registry]
-  (with-mods (initial) registry))
+  "Build the starting game state from a mods registry.
+   1-arity: registry only, so no themes are loaded.
+   2-arity: registry and the themes map (theme id -> colors) to draw with."
+  ([registry]
+   (with-mods (initial) registry))
+  ([registry themes]
+   (with-themes (with-mods (initial) registry) themes)))
