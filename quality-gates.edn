@@ -2,5 +2,5 @@
 ;; (tools/veil_tools/gate_ratchet.clj); record the reasoning in
 ;; .claude/workflow.md "Constraints" when a value changes.
 {;; Max CRAP score per function (crap4clj). CC^2 x (1-coverage)^3 + CC:
- ;; a fully covered function passes up to CC 8; an uncovered one only to CC 2.
- :crap-max 8}
+ ;; a fully covered function passes up to CC 10; an uncovered one only to CC 2.
+ :crap-max 10}

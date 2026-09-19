@@ -2,7 +2,7 @@
   "Acceptance steps for the advisory docs check."
   (:require [clojure.string :as str]
             [veil-tools.docs-check :as docs-check]
-            [veil.acceptance.step-support :refer [ok check]]))
+            [veil.acceptance.step-support :refer [ok check arrange]]))
 
 (defn- split-list
   "Split step text like `\"play\", \"spec\" and \"qa\"` into bare items."
@@ -14,12 +14,6 @@
   "A bb.edn whose tasks map has one empty entry per key."
   [task-keys]
   (str "{:tasks {" (str/join " " (map #(str % " {}") task-keys)) "}}"))
-
-(defn- arrange
-  "Store the given world entries; the step itself always succeeds."
-  [world & entries]
-  (apply swap! world assoc entries)
-  (ok))
 
 (defn- add-feature [features path]
   (conj (or features []) {:path path :description [] :after-scenario []}))

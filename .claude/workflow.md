@@ -82,8 +82,12 @@ Enforced mechanically by `check-clean.sh` and CI, so don't re-derive them by
 eye (details: `docs/testing.md`):
 
 - Specs and acceptance tests pass; specs are well-formed (SCRAP).
-- CRAP score ≤ 8 per function (`quality-gates.edn`) — complexity is only
-  tolerable when it is covered.
+<!-- added 2026-09-19: the ratchet docstring requires the reasoning for a changed limit to be recorded here -->
+- CRAP score ≤ 10 per function (`quality-gates.edn`) — complexity is only
+  tolerable when it is covered. Raised from 8: at 8, agents split a flat
+  one-question cond/case into helpers taking booleans the caller already knew;
+  10 matches the upstream tooling's own gate. How to split:
+  `docs/clean-code-gate.md`.
 - Layer direction `veil.main → veil.ui → veil.game` (`dependency-checker.edn`).
 - No commented-out code, deferred-work markers or suppressions in added lines.
 - Loosening any of the above fails the `quality-gate-ratchet` CI job.

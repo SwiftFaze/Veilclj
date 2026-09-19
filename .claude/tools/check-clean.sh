@@ -379,6 +379,11 @@ one clause of evidence. "All good" is not an answer; name the file.
                   order, with no assertion before the act.
   [ ] No new debt I introduced no code path that exists only for tests, and no
                   abstraction with a single caller added "for later".
+  [ ] No flag splits (only if I split a function to meet the CRAP limit) Each
+                  function I extracted owns its inputs: it takes the raw data,
+                  not booleans or verdicts the caller already had. Evidence:
+                  name each function you extracted and the inputs it owns, or
+                  say you extracted none.
   [ ] Single answer (only if I changed veil.ui) For each thing a changed veil.ui
                   fn shows or decides, veil.game already supplies it and veil.ui
                   calls that. Evidence: name the veil.ui fn and the veil.game fn.

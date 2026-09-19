@@ -71,8 +71,8 @@ retests changed scenarios.
 
 `CRAP = CC² × (1 − coverage)³ + CC`. `bb crap` runs coverage (`bb cov`) and
 writes `.metrics/crap.edn`; `bb crap-gate` fails if any function exceeds
-`:crap-max` in `quality-gates.edn` (8). A fully covered function passes up to
-complexity 8; an uncovered one only up to 2 - so the fix is either specs or a
+`:crap-max` in `quality-gates.edn`. A fully covered function passes up to
+complexity 10; an uncovered one only up to 2 - so the fix is either specs or a
 split.
 
 ## Layers (dependency-checker)
