@@ -12,6 +12,30 @@
 (defn- simple-handler [s ev]
   (state/handle-input s (input/event->input ev)))
 
+(defn- expand-script [script-text]
+  "Expand a script from table cell format (lines separated by ' / ') to newline-separated form."
+  (let [lines (clojure.string/split script-text #" / ")
+        trimmed-lines (mapv clojure.string/trim lines)]
+    (clojure.string/join "\n" trimmed-lines)))
+
+(defn- play-script [world script-text]
+  "Parse and play a script, storing state, entries, log text, and finished flag."
+  (let [script-text-expanded (expand-script script-text)
+        parse-result (script/parse script-text-expanded)]
+    (if (:error parse-result)
+      (fail (:error parse-result))
+      (let [steps (:steps parse-result)
+            play-result (play/play simple-handler (or (:state @world) (state/initial)) steps)
+            entries (:entries play-result)
+            rendered-text (binding [*print-namespace-maps* false]
+                            (str (pr-str (log/header)) "\n" (log/render entries)))]
+        (swap! world assoc
+               :state (:state play-result)
+               :entries entries
+               :log-text rendered-text
+               :finished? (:finished? play-result))
+        (ok)))))
+
 (def handlers
   [[#"the key script line \"(.*)\" is parsed"
     (fn [world [_ line]]
@@ -21,10 +45,7 @@
 
    [#"the key script \"(.*)\" is parsed"
     (fn [world [_ script-text]]
-      (let [lines (clojure.string/split script-text #" / ")
-            trimmed-lines (mapv clojure.string/trim lines)
-            filtered-lines (filter (fn [l] (and (not (clojure.string/blank? l)) (not (clojure.string/starts-with? l "/")))) trimmed-lines)
-            script-text-expanded (clojure.string/join "\n" filtered-lines)
+      (let [script-text-expanded (expand-script script-text)
             result (script/parse script-text-expanded)]
         (swap! world assoc :script-result result)
         (ok)))]
@@ -85,45 +106,11 @@
 
    [#"the script \"(.*)\" is played$"
     (fn [world [_ script-text]]
-      (let [lines (clojure.string/split script-text #" / ")
-            trimmed-lines (mapv clojure.string/trim lines)
-            filtered-lines (filter (fn [l] (and (not (clojure.string/blank? l)) (not (clojure.string/starts-with? l "/")))) trimmed-lines)
-            script-text-expanded (clojure.string/join "\n" filtered-lines)
-            parse-result (script/parse script-text-expanded)]
-        (if (:error parse-result)
-          (fail (:error parse-result))
-          (let [steps (:steps parse-result)
-                play-result (play/play simple-handler (or (:state @world) (state/initial)) steps)
-                entries (:entries play-result)
-                rendered-text (binding [*print-namespace-maps* false]
-                                (str (pr-str (log/header)) "\n" (log/render entries)))]
-            (swap! world assoc
-                   :state (:state play-result)
-                   :entries entries
-                   :log-text rendered-text
-                   :finished? (:finished? play-result))
-            (ok)))))]
+      (play-script world script-text))]
 
    [#"the script \"(.*)\" has been played$"
     (fn [world [_ script-text]]
-      (let [lines (clojure.string/split script-text #" / ")
-            trimmed-lines (mapv clojure.string/trim lines)
-            filtered-lines (filter (fn [l] (and (not (clojure.string/blank? l)) (not (clojure.string/starts-with? l "/")))) trimmed-lines)
-            script-text-expanded (clojure.string/join "\n" filtered-lines)
-            parse-result (script/parse script-text-expanded)]
-        (if (:error parse-result)
-          (fail (:error parse-result))
-          (let [steps (:steps parse-result)
-                play-result (play/play simple-handler (or (:state @world) (state/initial)) steps)
-                entries (:entries play-result)
-                rendered-text (binding [*print-namespace-maps* false]
-                                (str (pr-str (log/header)) "\n" (log/render entries)))]
-            (swap! world assoc
-                   :state (:state play-result)
-                   :entries entries
-                   :log-text rendered-text
-                   :finished? (:finished? play-result))
-            (ok)))))]
+      (play-script world script-text))]
 
    [#"the run is finished"
     (fn [world _]
