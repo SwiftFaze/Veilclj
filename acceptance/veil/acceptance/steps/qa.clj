@@ -23,16 +23,22 @@
     (fn [world [_ script-text]]
       (let [lines (clojure.string/split script-text #" / ")
             trimmed-lines (mapv clojure.string/trim lines)
-            script-text-expanded (clojure.string/join "\n" trimmed-lines)
+            filtered-lines (filter (fn [l] (and (not (clojure.string/blank? l)) (not (clojure.string/starts-with? l "/")))) trimmed-lines)
+            script-text-expanded (clojure.string/join "\n" filtered-lines)
             result (script/parse script-text-expanded)]
         (swap! world assoc :script-result result)
         (ok)))]
+
+   [#"the script key (\S+) is pressed"
+    (fn [world [_ key-name]]
+      (swap! world assoc :pressed-key key-name)
+      (ok))]
 
    [#"the script presses ([^ ].*)"
     (fn [world [_ keys-text]]
       (let [result (:script-result @world)]
         (if (:error result)
-          (ok)
+          (fail (str "script was rejected: " (:error result)))
           (let [steps (:steps result)
                 key-names (map :key steps)
                 expected-keys (if (= keys-text "no keys")
@@ -60,15 +66,13 @@
           (check (= error-msg (:error result))
                  (str "expected error '" error-msg "' but got '" (:error result) "'")))))]
 
-   [#"the game input is ([^ ]+)"
+   [#"the game input is (.+)"
     (fn [world [_ input-name]]
-      (let [result (:script-result @world)]
-        (if (:error result)
-          (ok)
-          (let [steps (:steps result)
-                key-name (when (seq steps) (:key (first steps)))
-                event (when key-name (script/key->event key-name))
-                game-input (when event (input/event->input event))
+      (let [key-name (:pressed-key @world)]
+        (if-not key-name
+          (fail "no key was pressed")
+          (let [event (script/key->event key-name)
+                game-input (input/event->input event)
                 expected-input (case input-name
                                "up" :up
                                "down" :down
@@ -79,23 +83,52 @@
             (check (= expected-input game-input)
                    (str "expected input " expected-input " got " game-input))))))]
 
-   [#"the script \"(.*)\" is played"
+   [#"the script \"(.*)\" is played$"
     (fn [world [_ script-text]]
       (let [lines (clojure.string/split script-text #" / ")
             trimmed-lines (mapv clojure.string/trim lines)
-            script-text-expanded (clojure.string/join "\n" trimmed-lines)
+            filtered-lines (filter (fn [l] (and (not (clojure.string/blank? l)) (not (clojure.string/starts-with? l "/")))) trimmed-lines)
+            script-text-expanded (clojure.string/join "\n" filtered-lines)
             parse-result (script/parse script-text-expanded)]
         (if (:error parse-result)
           (fail (:error parse-result))
           (let [steps (:steps parse-result)
                 play-result (play/play simple-handler (or (:state @world) (state/initial)) steps)
                 entries (:entries play-result)
-                rendered-text (str (pr-str (log/header)) "\n" (log/render entries))]
+                rendered-text (binding [*print-namespace-maps* false]
+                                (str (pr-str (log/header)) "\n" (log/render entries)))]
             (swap! world assoc
                    :state (:state play-result)
                    :entries entries
-                   :log-text rendered-text)
+                   :log-text rendered-text
+                   :finished? (:finished? play-result))
             (ok)))))]
+
+   [#"the script \"(.*)\" has been played$"
+    (fn [world [_ script-text]]
+      (let [lines (clojure.string/split script-text #" / ")
+            trimmed-lines (mapv clojure.string/trim lines)
+            filtered-lines (filter (fn [l] (and (not (clojure.string/blank? l)) (not (clojure.string/starts-with? l "/")))) trimmed-lines)
+            script-text-expanded (clojure.string/join "\n" filtered-lines)
+            parse-result (script/parse script-text-expanded)]
+        (if (:error parse-result)
+          (fail (:error parse-result))
+          (let [steps (:steps parse-result)
+                play-result (play/play simple-handler (or (:state @world) (state/initial)) steps)
+                entries (:entries play-result)
+                rendered-text (binding [*print-namespace-maps* false]
+                                (str (pr-str (log/header)) "\n" (log/render entries)))]
+            (swap! world assoc
+                   :state (:state play-result)
+                   :entries entries
+                   :log-text rendered-text
+                   :finished? (:finished? play-result))
+            (ok)))))]
+
+   [#"the run is finished"
+    (fn [world _]
+      (check (:finished? @world)
+             "run is not finished"))]
 
    [#"the log entries are \"(.*)\""
     (fn [world [_ log-text]]
@@ -116,7 +149,11 @@
 
    [#"the log entries follow it"
     (fn [world _]
-      (ok))]
+      (let [log-text (:log-text @world)
+            lines (clojure.string/split log-text #"\n")
+            non-blank-lines (filter (fn [l] (not (clojure.string/blank? l))) lines)]
+        (check (> (count non-blank-lines) 1)
+               "log has no entries after header")))]
 
    [#"the log text has ([0-9]+) lines"
     (fn [world [_ num-str]]
@@ -170,7 +207,9 @@
 
    [#"no script is played and no log is written"
     (fn [world _]
-      (ok))]
+      (let [launch-result (:launch @world)]
+        (check (and (nil? (:keys launch-result)) (nil? (:log launch-result)))
+               (str "expected both nil, got keys: " (:keys launch-result) ", log: " (:log launch-result)))))]
 
    [#"the launch is rejected with \"(.*)\""
     (fn [world [_ error-msg]]
@@ -182,24 +221,23 @@
 
    [#"the procedure expects \"(.*)\""
     (fn [world [_ expected-text]]
-      (let [log-text (or (:log-text @world) "{:log/version 1}\n")
-            log-parse-result (log/parse log-text)]
-        (if (:error log-parse-result)
-          (do
-            (swap! world assoc :status 1 :error (:error log-parse-result))
-            (ok))
-          (let [entries (:entries log-parse-result)
-                expected-list (if (clojure.string/blank? expected-text)
-                              []
-                              (mapv clojure.edn/read-string (clojure.string/split expected-text #" / ")))
-                check-result (procedure/check entries expected-list)]
-            (if (empty? expected-list)
-              (do
-                (swap! world assoc :status 1 :error "expects nothing")
-                (ok))
-              (do
-                (swap! world assoc :report (:report check-result) :status (:status check-result))
-                (ok)))))))]
+      (if (clojure.string/blank? expected-text)
+        (do
+          (swap! world assoc :status 1 :error "expects nothing")
+          (ok))
+        (let [log-text (:log-text @world)]
+          (if-not log-text
+            (fail "no script has been played (log text not set)")
+            (let [log-parse-result (log/parse log-text)]
+              (if (:error log-parse-result)
+                (do
+                  (swap! world assoc :status 1 :error (:error log-parse-result))
+                  (ok))
+                (let [entries (:entries log-parse-result)
+                      expected-list (mapv clojure.edn/read-string (clojure.string/split expected-text #" / "))
+                      check-result (procedure/check entries expected-list)]
+                  (swap! world assoc :report (:report check-result) :status (:status check-result))
+                  (ok))))))))]
 
    [#"the report marks the expected entries as ([a-z ]+)"
     (fn [world [_ report-text]]

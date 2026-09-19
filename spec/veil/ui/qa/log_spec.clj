@@ -7,6 +7,11 @@
     (should= {:log/version 1} (log/header))))
 
 (describe "render"
+  (it "renders header as plain map, not namespaced"
+    (let [header (log/header)
+          text (log/render [header])]
+      (should= "{:log/version 1}\n" text)))
+
   (it "renders entries as pr-str one per line"
     (let [entries [{:tick 1 :key :down} {:tick 1 :event :menu/selection-changed :to :options}]
           text (log/render entries)]

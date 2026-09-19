@@ -9,7 +9,8 @@
 (defn render
   "Render entries as pr-str, one per line, newline-terminated."
   [entries]
-  (str (clojure.string/join "\n" (map pr-str entries)) "\n"))
+  (binding [*print-namespace-maps* false]
+    (str (clojure.string/join "\n" (map pr-str entries)) "\n")))
 
 (defn parse
   "Parse log text into {:entries [...]} or {:error \"...\"}."
