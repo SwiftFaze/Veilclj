@@ -22,7 +22,7 @@
  {;; --- build & run ---------------------------------------------------------
   play  {:doc  "Launch the game (accepts --keys, --log)"
          :task (apply clojure "-M:run" *command-line-args*)}
-  qa    {:doc  "Run a QA procedure: bb qa <slug> (opens game window)"
+  qa    {:doc  "Run a QA procedure: bb qa <slug>, or every procedure: bb qa --all (opens the game window)"
          :task (apply clojure "-M:qa" *command-line-args*)}
   uber  {:doc  "Build the runnable jar -> target/veil-<version>.jar"
          :task (clojure "-T:build" "uber")}

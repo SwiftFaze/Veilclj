@@ -237,7 +237,7 @@
    [#"the QA run exits with status ([0-9])"
     (fn [world [_ status-str]]
       (let [expected-status (Long/parseLong status-str)
-            actual-status (:status @world)]
+            actual-status (or (:status (:summary @world)) (:status @world))]
         (check (= expected-status actual-status)
                (str "expected status " expected-status " got " actual-status))))]
 
@@ -276,4 +276,52 @@
    [#"the QA run is rejected with \"(.*)\""
     (fn [world [_ error-msg]]
       (check (= error-msg (:error @world))
-             (str "expected error '" error-msg "' but got '" (:error @world) "'")))]])
+             (str "expected error '" error-msg "' but got '" (:error @world) "'")))]
+
+   [#"the procedure files are \"(.*)\""
+    (fn [world [_ files-text]]
+      (let [file-names (if (clojure.string/blank? files-text)
+                         []
+                         (mapv clojure.string/trim (clojure.string/split files-text #" / ")))
+            result (procedure/slugs file-names)]
+        (if (:error result)
+          (do
+            (swap! world assoc :error (:error result) :status 1)
+            (ok))
+          (do
+            (swap! world assoc :slugs-result result)
+            (ok)))))]
+
+   [#"the slugs to run are \"(.*)\""
+    (fn [world [_ slugs-text]]
+      (let [slugs-result (:slugs-result @world)]
+        (if (:error slugs-result)
+          (fail "procedure files were rejected")
+          (let [expected-slugs (if (clojure.string/blank? slugs-text)
+                                 []
+                                 (clojure.string/split slugs-text #" "))
+                actual-slugs (:slugs slugs-result)]
+            (check (= (vec expected-slugs) actual-slugs)
+                   (str "expected slugs " (vec expected-slugs) " got " (vec actual-slugs)))))))]
+
+   [#"the procedures finish with \"(.*)\""
+    (fn [world [_ results-text]]
+      (let [results-list (if (clojure.string/blank? results-text)
+                           []
+                           (mapv (fn [item]
+                                   (let [[slug status-str] (clojure.string/split (clojure.string/trim item) #":")]
+                                     [slug (Long/parseLong status-str)]))
+                                 (clojure.string/split results-text #" / ")))
+            summary-result (procedure/summary results-list)]
+        (swap! world assoc :summary summary-result)
+        (ok)))]
+
+   [#"the summary reads \"(.*)\""
+    (fn [world [_ expected-line]]
+      (let [summary-result (:summary @world)]
+        (if-not summary-result
+          (fail "no summary was computed")
+          (check (= expected-line (:line summary-result))
+                 (str "expected '" expected-line "' but got '" (:line summary-result) "'")))))]
+
+])

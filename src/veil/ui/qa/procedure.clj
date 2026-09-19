@@ -70,3 +70,27 @@
               (str status-str " " (pr-str exp))))
           expected
           report)))
+
+(defn slugs
+  "Extract slugs from a list of file names.
+   Returns {:slugs [sorted list]} or {:error \"no QA procedures in specs/qa\"}."
+  [file-names]
+  (let [edn-files (filter #(.endsWith % ".edn") file-names)
+        slugs-list (sort (map #(subs % 0 (- (count %) 4)) edn-files))]
+    (if (empty? slugs-list)
+      {:error "no QA procedures in specs/qa"}
+      {:slugs slugs-list})))
+
+(defn summary
+  "Generate summary line for multiple procedure results.
+   Takes a sequence of [slug status] pairs.
+   Returns {:line \"QA all: p passed, f failed...\" :status 0|1}."
+  [results]
+  (let [statuses (map second results)
+        passed (count (filter zero? statuses))
+        failed (count (filter (complement zero?) statuses))
+        failed-slugs (map first (filter (fn [[_ status]] (not (zero? status))) results))
+        failed-str (when (> failed 0) (str " (" (clojure.string/join ", " failed-slugs) ")"))
+        line (str "QA all: " passed " passed, " failed " failed" (or failed-str ""))
+        status (if (> failed 0) 1 0)]
+    {:line line :status status}))
