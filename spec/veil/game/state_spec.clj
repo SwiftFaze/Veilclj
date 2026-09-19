@@ -1,8 +1,15 @@
 (ns veil.game.state-spec
   (:require [speclj.core :refer :all]
-            [veil.game.state :as state]))
+            [veil.game.state :as state]
+            [veil.game.theme :as theme]))
 
 (describe "initial"
+  (it "has no themes loaded"
+    (should= {} (:themes (state/initial))))
+
+  (it "has the default theme active"
+    (should= theme/default-id (theme/active-id (state/initial))))
+
   (it "starts on the main menu"
     (should= :main-menu (state/screen (state/initial))))
 
@@ -164,4 +171,28 @@
   (it "is not over"
     (let [registry {:load-order ["core"] :content {}}
           s (state/starting registry)]
-      (should-not (state/over? s)))))
+      (should-not (state/over? s))))
+
+  (it "carries the themes it is given"
+    (let [themes {"core:default" {:BACKGROUND [0 0 0]}}
+          s (state/starting {:load-order ["core"] :content {}} themes)]
+      (should= themes (:themes s))))
+
+  (it "activates the default theme"
+    (let [themes {"core:default" {:BACKGROUND [0 0 0]}}
+          s (state/starting {:load-order ["core"] :content {}} themes)]
+      (should= theme/default-id (theme/active-id s))))
+
+  (it "carries no themes when none are given"
+    (let [s (state/starting {:load-order ["core"] :content {}})]
+      (should= {} (:themes s)))))
+
+(describe "with-themes"
+  (it "attaches the themes to the state"
+    (let [themes {"core:default" {:BACKGROUND [0 0 0]}}]
+      (should= themes (:themes (state/with-themes (state/initial) themes)))))
+
+  (it "makes the default theme the active one, replacing any other"
+    (let [themes {"core:default" {:BACKGROUND [0 0 0]} "other:dark" {:BACKGROUND [9 9 9]}}
+          s (-> (state/initial) (assoc :active-theme "other:dark"))]
+      (should= theme/default-id (theme/active-id (state/with-themes s themes))))))

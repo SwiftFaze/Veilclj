@@ -1,3 +1,7 @@
+# acceptance-mutation-manifest-begin
+# {"version":1,"tested_at":"2026-09-19T18:32:12.267323400Z","feature_name":"Themes","feature_path":"specs/features/themes.feature","background_hash":"179c262436ff6b7987c1736603ab96fc75a3b33c86cd51155b9d9232e271d576","implementation_hash":"unknown","scenarios":[{"index":2,"name":"Every one of the 13 required keys must be present","scenario_hash":"3201b27f31669db222923354322f107b9e259ecf3bc4ad97bc14a1c0d2b39cb0","mutation_count":13,"result":{"Total":13,"Killed":13,"Survived":0,"Errors":0},"tested_at":"2026-09-19T18:31:31.187434Z"},{"index":7,"name":"An optional key a theme omits resolves to its fallback key","scenario_hash":"a3f5cf1aaedd5804b8afc78c29ef6be1954e55453ac8f1859ddc2a605cd8a90c","mutation_count":12,"result":{"Total":12,"Killed":12,"Survived":0,"Errors":0},"tested_at":"2026-09-19T18:31:31.187434Z"},{"index":8,"name":"An optional key a theme defines is used as given","scenario_hash":"03d8b957c0b35e975d4203e36f682fb8698bdf3a4d14a362f25e42c2ed3b2485","mutation_count":12,"result":{"Total":12,"Killed":12,"Survived":0,"Errors":0},"tested_at":"2026-09-19T18:31:31.187434Z"}]}
+# acceptance-mutation-manifest-end
+
 Feature: Themes
   A theme is a named set of UI colors shipped by a mod as
   mods/<id>/themes/<name>.json. It is the first real content type registered

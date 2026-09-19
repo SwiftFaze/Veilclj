@@ -8,7 +8,8 @@
             [veil.mods.themes :as themes]
             [veil.mods.fixtures :as fixtures]
             [veil.mods.loader :as loader]
-            [veil.mods.registry :as registry]))
+            [veil.mods.registry :as registry]
+            [veil.ui.view :as view]))
 
 (defn- color-obj [r g b]
   {:r r :g g :b b})
@@ -236,19 +237,17 @@
 
    [#"the frame's background color is (\d+),(\d+),(\d+)"
     (fn [world [_ r g b]]
-      (require '[veil.ui.view :as view])
       (let [expected [(Integer/parseInt r) (Integer/parseInt g) (Integer/parseInt b)]
             s (:state @world)
-            actual (try ((resolve 'veil.ui.view/background) s) (catch Exception _ nil))]
+            actual (try (view/background s) (catch Exception _ nil))]
         (check (= expected actual)
                (str "frame's background color is " expected ", got " actual))))]
 
    [#"the selected menu item \"([^\"]+)\" is drawn in (\d+),(\d+),(\d+)"
     (fn [world [_ label r g b]]
-      (require '[veil.ui.view :as view])
       (let [expected [(Integer/parseInt r) (Integer/parseInt g) (Integer/parseInt b)]
             s (:state @world)
-            commands (try ((resolve 'veil.ui.view/frame) s 960) (catch Exception _ []))
+            commands (try (view/frame s 960) (catch Exception _ []))
             cmd (first (filter #(and (= label (:text %)) (:selected? %)) commands))
             actual (:color cmd)]
         (check (and cmd (= expected actual))
@@ -256,10 +255,9 @@
 
    [#"the menu item \"([^\"]+)\" is drawn in (\d+),(\d+),(\d+)"
     (fn [world [_ label r g b]]
-      (require '[veil.ui.view :as view])
       (let [expected [(Integer/parseInt r) (Integer/parseInt g) (Integer/parseInt b)]
             s (:state @world)
-            commands (try ((resolve 'veil.ui.view/frame) s 960) (catch Exception _ []))
+            commands (try (view/frame s 960) (catch Exception _ []))
             cmd (first (filter #(and (= label (:text %)) (not (:selected? %))) commands))
             actual (:color cmd)]
         (check (and cmd (= expected actual))

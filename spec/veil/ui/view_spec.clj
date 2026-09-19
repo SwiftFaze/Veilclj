@@ -135,3 +135,14 @@
     (let [s (-> (themed-state) (state/handle-input :down) (state/handle-input :confirm))
           commands (view/frame s 960)]
       (should (some #(string/includes? (:text %) "Esc") commands)))))
+
+(describe "background"
+  (it "is the active theme's BACKGROUND color"
+    (let [s (assoc-in (themed-state) [:themes "core:default" :BACKGROUND] [5 5 5])]
+      (should= [5 5 5] (view/background s))))
+
+  (it "follows the active theme when another theme is made active"
+    (let [s (-> (themed-state)
+                (assoc-in [:themes "other:dark"] {:BACKGROUND [9 9 9]})
+                (theme/activate "other:dark"))]
+      (should= [9 9 9] (view/background s)))))
