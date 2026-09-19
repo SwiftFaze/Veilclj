@@ -83,54 +83,30 @@ Since Step 0 already confirmed this is standard-path work, there is no
 Step 3 approval gate to wait for (`.claude/workflow.md`'s Step 3 is
 high-risk-path only) — move straight to implementation.
 
-## Step 4 — Implementation + acceptance tests + docs, in one Haiku handoff
+## Step 4 — Implementation, then hardening: coder → commit → hardener
 
-Follow `.claude/workflow.md`'s Step 4 model selection and
-`.claude/subagent-delegation.md`'s handoff rules exactly: dispatch a
-**fresh agent pinned to Haiku 4.5** (not `/fork`, unless the context
-genuinely can't be compressed — see that file's criteria) with a
-self-contained prompt built by you, the orchestrator —
-explicit file paths with line numbers, actual referenced code (not just
-names), and the reasoning already settled in `intent.md` and the
-`.feature` file. Tell it explicitly not to explore beyond what you hand
-it; if something's missing it should stop and report rather than
-scanning the repo.
-
-Per the "Context handoff rule," this is one continuous handoff spanning
-Steps 4, 5, and 7 of the normal pipeline — implementation, wiring the
-`.feature` file to the acceptance pipeline, and the documentation update — not three
-separate delegations. Include in the prompt:
-
-- The complexity budget (`.claude/workflow.md`'s Constraints section).
-- The `uncle-bob-craft` self-check to apply while writing (not a separate
-  review pass).
-- The Clean Code gate: `bash .claude/tools/check-clean.sh` at exit 0,
-  with every judgment-checklist line answered with evidence, before
-  reporting done.
-- The layer direction in `docs/architecture.md` (`veil.game` never
-  requires Quil, `veil.ui` or `veil.main`).
-- The documentation requirements from workflow.md's Step 7.
+Follow `.claude/orchestrator.md`'s dispatching rules exactly: dispatch the
+`coder` agent (Steps 4-5), verify its commit, then dispatch the `hardener`
+agent (gate, judgment checklist, Steps 6-7) with the coder's sha. Each
+agent's model, tools, ownership and "don't explore" constraint are pinned in
+`.claude/agents/`; your prompt carries only the ticket's context: explicit
+file paths with line numbers, the actual referenced code (not just names),
+and the reasoning already settled in `intent.md` and the `.feature` file.
 
 **Skip repo CLAUDE.md's Step 4.5 mid-pipeline playtest entirely — do not
 have the agent or yourself pause for it here.** That's the one step this
 skill deliberately relocates; it happens once, at the very end (Step 6
 below), not here.
 
-## Step 5 — Verify the handoff yourself, then run mutation testing
+## Step 5 — Verify each handoff yourself
 
-Per "Verifying what comes back" in `.claude/subagent-delegation.md`: do not
-relay the Haiku agent's "done" report as fact. Independently open the
-files it claims to have changed, and re-run `bash .claude/tools/check-clean.sh` yourself. If it's
-wrong, follow the escalation path in that file (corrective follow-up
-first, `/fork` only after a second same-class failure).
-
-Once the gate is genuinely clean, run mutation testing yourself
-(Step 6 of the normal pipeline, tooling only) on each changed source
-namespace - command in `docs/testing.md`.
-
-Skim the surviving mutants. This is a self-check, not
-something to relay unexamined — if coverage on the changed code looks
-weak, that's worth fixing before the playtest, not after.
+Per "Verifying what comes back" in `.claude/orchestrator.md`: do not
+relay either agent's "done" report as fact. Check the coder's commit before
+dispatching the hardener; after the hardener, independently open the files
+it changed, re-run `bash .claude/tools/check-clean.sh` yourself, and
+confirm its mutation runs targeted the changed files. If something's wrong,
+or the hardener hands back a behavior change, follow that file's escalation
+section.
 
 ## Step 6 — Stop here: the one human checkpoint
 
