@@ -94,11 +94,11 @@ Feature: Deterministic keyboard QA run
     And the run is finished
 
     Examples:
-      | script                  | screen    | over     |
-      | Down / Enter            | options   | not over |
-      | Down / Enter / Esc      | main menu | not over |
-      | Enter                   | map       | not over |
-      | Up / Enter              | main menu | over     |
+      | script                  | screen             | over     |
+      | Down / Enter            | the options screen | not over |
+      | Down / Enter / Esc      | the main menu      | not over |
+      | Enter                   | the map screen     | not over |
+      | Up / Enter              | the main menu      | over     |
 
   Scenario Outline: Each key press is logged, followed by the events it caused
     When the script "<script>" is played
