@@ -39,7 +39,7 @@ run never counts as passing the gate. A full run takes about 30 seconds.
 
 After the mechanical checks pass, the script prints a checklist that cannot be
 automated: SLAP, SRP, Purity, Naming, Why-not-what, Test intent, AAA, No new
-debt, and Single answer. Each line needs PASS/FAIL **plus evidence naming a file, function or
+debt, No flag splits, and Single answer. Each line needs PASS/FAIL **plus evidence naming a file, function or
 spec**. A checklist without evidence counts as a skipped step.
 
 Worked examples for the Clojure-specific lines:
@@ -59,6 +59,18 @@ One more line is owed whenever the change touches `veil.ui`:
   out itself is a FAIL, with evidence naming both functions; the fix is to call
   `veil.game`, not to move the copy. Rule:
   [`docs/architecture.md`](architecture.md#layers).
+
+<!-- added 2026-09-19: splitting a function only to get under the CRAP limit produced helpers that took booleans the caller had already computed, which hides the branching instead of reducing it -->
+One more line is owed whenever you split a function to get it under the CRAP
+limit:
+
+- **No flag splits** - a function extracted to meet the limit must own its
+  inputs. It takes the raw data and works out the answer itself; it does not
+  take booleans (or other pre-computed verdicts) the caller already had, because
+  that only moves the branching out of sight and leaves the caller as complex as
+  before. A nested or mixed-duty function over the limit still has to be split,
+  along the duties it mixes. Evidence: name each function you extracted and the
+  inputs it owns, or say you extracted none.
 
 ## If you can't pass it
 
