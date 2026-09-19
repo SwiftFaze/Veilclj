@@ -58,9 +58,6 @@ VEIL_PROPERTY_SEED=<n> bb property           # rerun from a seed (Git Bash)
 $env:VEIL_PROPERTY_SEED=<n>; bb property     # the same in PowerShell
 ```
 
-The Git Bash form is the one that has been exercised; the PowerShell line is
-the equivalent syntax.
-
 **What makes a good property.** A real invariant over generated input:
 something that must hold for *every* input, such as a bound or "always a real
 item" (menu selection is always an index into the menu's items), a round trip,
