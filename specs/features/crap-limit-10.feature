@@ -1,3 +1,8 @@
+# mutation-stamp: sha256=6beaf8e17d9141909136368a07c9c17f2a35c77e4627471e7a6239a2171bff3b
+# acceptance-mutation-manifest-begin
+# {"version":1,"tested_at":"2026-09-19T14:08:29.802719900Z","feature_name":"The CRAP gate compares each function against the configured limit","feature_path":"specs/features/crap-limit-10.feature","background_hash":"74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b","implementation_hash":"unknown","scenarios":[{"index":2,"name":"Coverage buys complexity","scenario_hash":"4e100e308d217d4cb23e0a0178603c8e491c0acac2b78813a45d79af01a96a8c","mutation_count":16,"result":{"Total":16,"Killed":16,"Survived":0,"Errors":0},"tested_at":"2026-09-19T14:08:01.603347100Z"}]}
+# acceptance-mutation-manifest-end
+
 Feature: The CRAP gate compares each function against the configured limit
   What bb crap-gate passes and fails for a given limit. CRAP is
   CC^2 x (1 - coverage)^3 + CC, so a limit sets two budgets at once: how
