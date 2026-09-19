@@ -11,10 +11,11 @@
             [veil.acceptance.steps.startup :as startup]
             [veil.acceptance.steps.shell-check :as shell-check]
             [veil.acceptance.steps.themes :as themes]
-            [veil.acceptance.steps.fonts :as fonts]))
+            [veil.acceptance.steps.fonts :as fonts]
+            [veil.acceptance.steps.grid :as grid]))
 
 (def step-handlers
-  (concat window/handlers menu/handlers mods/handlers qa/handlers docs-check/handlers crap-gate/handlers startup/handlers shell-check/handlers themes/handlers fonts/handlers))
+  (concat window/handlers menu/handlers mods/handlers qa/handlers docs-check/handlers crap-gate/handlers startup/handlers shell-check/handlers themes/handlers fonts/handlers grid/handlers))
 
 (defn handle-step [world text]
   (if-let [[handler match] (some (fn [[pattern handler]]
