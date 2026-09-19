@@ -38,11 +38,11 @@
   ;; uml-viewer: generate the diagram IR from docs/uml/veil.policy.edn, then view it.
   :uml-ir {:extra-deps {io.github.unclebob/uml-viewer
                         {:git/url "https://github.com/unclebob/uml-viewer"
-                         :git/sha "12abff74e51433fc90306d2be553844a0fa18230"}}
+                         :git/sha "8e1c88d40ef1806ce60a6e83cf6ca894a5f95f61"}}
            :main-opts  ["-m" "uml-viewer.main.ir-generator" "docs/uml/veil.policy.edn"]}
   :uml    {:extra-deps {io.github.unclebob/uml-viewer
                         {:git/url "https://github.com/unclebob/uml-viewer"
-                         :git/sha "12abff74e51433fc90306d2be553844a0fa18230"}}
+                         :git/sha "8e1c88d40ef1806ce60a6e83cf6ca894a5f95f61"}}
            :main-opts  ["-m" "uml-viewer.main.uml-viewer" "target/uml/veil.edn"]}
 
   :build {:deps       {io.github.clojure/tools.build {:mvn/version "0.10.14"}}
