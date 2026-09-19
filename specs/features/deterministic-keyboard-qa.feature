@@ -72,7 +72,7 @@ Feature: Deterministic keyboard QA run
       | Down / wait 1.5       | line 2: wait needs a whole number  |
 
   Scenario Outline: A script key reaches the game as the same input a real key press gives
-    When the script presses <key>
+    When the script key <key> is pressed
     Then the game input is <input>
 
     Examples:
