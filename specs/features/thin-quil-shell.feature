@@ -18,7 +18,8 @@ Feature: Thin Quil shell
     shell check: which guards, calculations and branching forms it accepts and
     which it reports in veil.main and veil.ui.draw, how findings are reported,
     and that a missing shell file is itself a finding.
-  Supersedes: nothing. It narrows one out-of-scope item in
+  Supersedes: nothing, except that its colour examples now pin core:default's
+    theme colours instead of the old hard-coded ones (themes.feature). It narrows one out-of-scope item in
     deterministic-keyboard-qa.feature: that file leaves "quitting the process
     when the script ends" to the playtest, but the decision to quit is already
     specced (mode/frame's :exit?), so only the q/exit call is left uncovered.
@@ -104,9 +105,9 @@ Feature: Thin Quil shell
   Scenario Outline: A draw command carries the colour its selection state calls for
     Given the main menu with <item> selected
     When the draw commands are built for a window 960 pixels wide
-    Then the command for <item> has the colour 255 255 100
-    And the command for <other> has the colour 220 220 220
-    And the command for "VEIL" has the colour 220 220 220
+    Then the command for <item> has the colour 192 192 192
+    And the command for <other> has the colour 255 255 255
+    And the command for "VEIL" has the colour 255 255 255
 
     Examples:
       | item     | other    |
@@ -278,7 +279,8 @@ Feature: Thin Quil shell
 #     width, y is 50 plus 40 per row). They pin the arithmetic that moves out
 #     of draw!, so a deliberate layout change has to edit the table. That is
 #     the point, but it is the table most likely to look like churn later.
-#   - The colour examples pin the values draw! uses today. The unconditional
+#   - The colour examples pin core:default's SELECTED_HIGHLIGHT and NORMAL_TEXT (themes.feature
+#     supersedes the old hard-coded 255,255,100 and 220,220,220). The unconditional
 #     (q/fill 220) before the loop in draw! is dead once each command sets its
 #     own colour; removing it is part of the move, not a behaviour change.
 #   - The startup outcome is checked in two layers: the mods layer decides the

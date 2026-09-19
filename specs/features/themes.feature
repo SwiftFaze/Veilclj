@@ -144,7 +144,7 @@ Feature: Themes
   Scenario: The game starts with core:default active
     Given mod "core" has the theme file "core/themes/default.json" ported from Java Veil
     When the mods are loaded
-    And the game starts
+    And the starting state is built from the loaded mods
     Then the active theme is "core:default"
     And the color for NORMAL_TEXT is 255,255,255
 
@@ -154,7 +154,7 @@ Feature: Themes
     And mod "amber-pack" has a theme "amber-pack:amber" with every required color
     And its NORMAL_TEXT is 255,176,0
     When the mods are loaded
-    And the game starts
+    And the starting state is built from the loaded mods
     And theme "amber-pack:amber" is made active
     Then the active theme is "amber-pack:amber"
     And the color for NORMAL_TEXT is 255,176,0
@@ -165,20 +165,20 @@ Feature: Themes
     And mod "retheme-pack" has a theme "core:default" with every required color that overrides "core:default"
     And its NORMAL_TEXT is 10,20,30
     When the mods are loaded
-    And the game starts
+    And the starting state is built from the loaded mods
     Then the active theme is "core:default"
     And the color for NORMAL_TEXT is 10,20,30
 
   Scenario: Starting with no themes registered at all fails loudly
     Given mod "core" ships no themes
     When the mods are loaded
-    And the game starts
+    And the starting state is built from the loaded mods
     Then starting fails naming the missing theme "core:default"
 
   Scenario: Starting when themes are registered but core:default isn't fails loudly
     Given mod "core" has a theme "core:other" with every required color
     When the mods are loaded
-    And the game starts
+    And the starting state is built from the loaded mods
     Then starting fails naming the missing theme "core:default"
 
   # --- What the player sees ---
@@ -186,7 +186,7 @@ Feature: Themes
   Scenario: The main menu draws in the active theme's colors
     Given mod "core" has the theme file "core/themes/default.json" ported from Java Veil
     When the mods are loaded
-    And the game starts
+    And the starting state is built from the loaded mods
     Then the frame's background color is 0,0,0
     And the selected menu item "New Game" is drawn in 192,192,192
     And the menu item "Options" is drawn in 255,255,255
@@ -198,7 +198,7 @@ Feature: Themes
     And its NORMAL_TEXT is 120,60,0
     And its BACKGROUND is 5,5,5
     When the mods are loaded
-    And the game starts
+    And the starting state is built from the loaded mods
     Then the frame's background color is 5,5,5
     And the selected menu item "New Game" is drawn in 255,176,0
     And the menu item "Options" is drawn in 120,60,0
