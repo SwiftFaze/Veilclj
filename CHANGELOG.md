@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-beta.7](https://github.com/SwiftFaze/Veilclj/compare/v0.1.0-beta.6...v0.1.0-beta.7) (2026-09-19)
+
+
+### Features
+
+* themes as the first mod content type ([#50](https://github.com/SwiftFaze/Veilclj/issues/50)) ([b1f2b74](https://github.com/SwiftFaze/Veilclj/commit/b1f2b7444558f92dfc634201e478a3aa1236aa5c))
+
 ## [0.1.0-beta.6](https://github.com/SwiftFaze/Veilclj/compare/v0.1.0-beta.5...v0.1.0-beta.6) (2026-09-19)
 
 
