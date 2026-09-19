@@ -20,6 +20,8 @@ line of code. Before adding:
   the moment #N lands, and nothing prompts anyone to remove it.
 - **Tag every rule** `<!-- added YYYY-MM-DD: why -->`. Without the reason, nobody
   can later tell a load-bearing rule from a dead one, so nothing is ever deleted.
+  Write the why so it stands alone: no issue numbers or intent-doc links, which
+  go stale once the tracker or scratch file moves on.
 - **One canonical home per rule.** Other files link to it, never restate it.
 - **If it is mechanically checkable, write the check, not the rule.**
 - **At or over budget, adding requires removing.** Budgets are CI-enforced:
@@ -79,7 +81,7 @@ pipeline step, not every session. Repo-specific file layout:
 
 Two repo-specific pipeline steps, both mandatory:
 
-<!-- added 2026-09-19: coder does Steps 4-5 in one run; hardener can't change behavior (#23); `bb qa` precedes the playtest and narrows it (#24) -->
+<!-- added 2026-09-19: coder does Steps 4-5 in one run; hardener can't change behavior; `bb qa` precedes the playtest and narrows it -->
 - **Step 4.5 — human playtest.** After the coder's commit and a passing `bb qa
   <slug>` (`.claude/workflow.md`), before the hardener: the human runs
   `bb play` and plays the changed behavior. Tests prove the code

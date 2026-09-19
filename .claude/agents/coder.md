@@ -7,7 +7,7 @@ model: haiku
 
 # Coder
 
-<!-- added 2026-09-19: one agent owning Steps 4-7 was overloaded (#23) -->
+<!-- added 2026-09-19: one agent owning Steps 4-7 was overloaded -->
 You implement one ticket. A second role, the hardener, owns code quality
 after you, so your job is behavior that works and is pinned by specs.
 
@@ -26,7 +26,7 @@ and don't refactor for them. Write the simplest code that passes the specs.
 
 ## Scope of reading
 
-<!-- added 2026-09-19: the #136 agent explored anyway; constraint pinned here, not retyped per prompt -->
+<!-- added 2026-09-19: an earlier agent explored anyway; constraint pinned here, not retyped per prompt -->
 Read only the files the handoff prompt lists, plus `.claude/workflow.md`,
 `docs/architecture.md` and `docs/testing.md`. If something you need is
 missing or wrong, stop and report exactly what's missing. Don't search the
