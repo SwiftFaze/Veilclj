@@ -140,13 +140,6 @@
                        (sort-by (registration-order load-order content-types) entries))]
     (if (:errors result) result {:registry result})))
 
-;; --- Utility functions ---
-
-(defn mods-dir
-  "The mods directory path: the property if it's set and non-blank, else 'mods'."
-  [property]
-  (if (clojure.string/blank? property) "mods" property))
-
 ;; --- Entry points ---
 
 (defn load-mods
@@ -162,6 +155,11 @@
       (seq errors) {:errors (vec errors)}
       error        {:errors [error]}
       :else        (register-all load-order content-types manifests entries))))
+
+(defn mods-dir
+  "The mods directory path: the property if it's set and non-blank, else 'mods'."
+  [property]
+  (if (str/blank? property) "mods" property))
 
 (defn error-report
   "The text shown when mods fail to load: a heading, then one problem per line."

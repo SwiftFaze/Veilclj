@@ -3,13 +3,13 @@
    A theme is a JSON object with an id (namespace:name), a required
    colors object containing 13 color keys (each with r, g, b channels from 0-255),
    and optionally 6 more color keys that fall back to specific required keys.
-   The :construct function resolves fallbacks, so a registry entry's :value is
-   always complete (all 19 keys present as [r g b] vectors)."
+   `construct` resolves fallbacks, so a registry entry's :value is always
+   complete (all 19 keys present as [r g b] vectors).
+   veil.mods.ids is required only to register the :veil.mods.ids/id spec that
+   ::theme refers to."
   (:require [clojure.spec.alpha :as s]
-            [clojure.string :as str]
-            [veil.mods.ids :as ids]
+            [veil.mods.ids]
             [veil.mods.loader :as loader]
-            [veil.mods.validate :as validate]
             [veil.mods.registry :as registry]))
 
 (defn channel?
@@ -38,7 +38,7 @@
 (s/def :theme.color/WINDOW_BORDER ::color)
 (s/def :theme.color/TABLE_HEADER_TEXT ::color)
 
-; Optional keys with fallbacks
+
 (s/def :theme.color/SUCCESS ::color)
 (s/def :theme.color/ERROR ::color)
 (s/def :theme.color/WARNING ::color)
@@ -75,31 +75,34 @@
    ::color "an object with r, g and b"
    ::colors "an object with r, g and b"})
 
+(def ^:private fallbacks
+  "Each optional color key, and the required key whose color it takes when a
+   theme leaves it out."
+  {:SUCCESS :VALID_HIGHLIGHT
+   :ERROR :INVALID_HIGHLIGHT
+   :WARNING :ACCENT
+   :INFO :ACCENT
+   :FOCUSED_BORDER :ACCENT
+   :SHADOW :BACKGROUND})
+
 (defn- color->vector [{:keys [r g b]}]
   [r g b])
 
-(defn- resolve-optional [colors optional-key fallback-key]
-  (if (contains? colors optional-key)
-    (get colors optional-key)
-    (get colors fallback-key)))
+(defn- fill-optional
+  "colors, plus each optional key the theme left out, copied from its fallback."
+  [colors]
+  (reduce-kv (fn [filled optional fallback]
+               (if (contains? filled optional)
+                 filled
+                 (assoc filled optional (get filled fallback))))
+             colors
+             fallbacks))
 
 (defn construct
   "Transform validated theme data into a registry entry value:
    all 19 color keys as [r g b] vectors, with optional keys filled from fallbacks."
   [data]
-  (let [colors (:colors data)
-        resolved-colors (into {}
-          (for [[k v] colors]
-            [(keyword (name k)) (color->vector v)]))]
-    ; Add required keys first (should already be there)
-    (merge resolved-colors
-      ; Add optional keys with fallbacks
-      {:SUCCESS (resolve-optional resolved-colors :SUCCESS :VALID_HIGHLIGHT)
-       :ERROR (resolve-optional resolved-colors :ERROR :INVALID_HIGHLIGHT)
-       :WARNING (resolve-optional resolved-colors :WARNING :ACCENT)
-       :INFO (resolve-optional resolved-colors :INFO :ACCENT)
-       :FOCUSED_BORDER (resolve-optional resolved-colors :FOCUSED_BORDER :ACCENT)
-       :SHADOW (resolve-optional resolved-colors :SHADOW :BACKGROUND)})))
+  (fill-optional (update-vals (:colors data) color->vector)))
 
 (def content-type
   {:type :theme
@@ -115,11 +118,13 @@
     (for [theme-id (registry/content-ids registry :theme)]
       [theme-id (:value (registry/entry registry :theme theme-id))])))
 
+(defn- missing-default-report [default-id]
+  (loader/error-report [{:message (str "theme \"" default-id "\" is not registered")}]))
+
 (defn startup
   "Load themes from a registry and return {:themes {...}} when the default
    theme is registered, else {:error msg :exit-status 1}."
   [registry default-id]
   (if (registry/entry registry :theme default-id)
     {:themes (all registry)}
-    {:error (loader/error-report [{:message (str "theme \"" default-id "\" is not registered")}])
-     :exit-status 1}))
+    {:error (missing-default-report default-id) :exit-status 1}))

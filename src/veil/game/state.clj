@@ -98,8 +98,8 @@
 
 (defn starting
   "Build the starting game state from a mods registry.
-   1-arity: just registry (for backward compatibility).
-   2-arity: registry and themes map."
+   1-arity: registry only, so no themes are loaded.
+   2-arity: registry and the themes map (theme id -> colors) to draw with."
   ([registry]
    (with-mods (initial) registry))
   ([registry themes]
