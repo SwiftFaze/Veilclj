@@ -51,7 +51,7 @@ Worked examples for the Clojure-specific lines:
   is orchestration; one that does `(mod (inc idx) (count items))` inline mixes
   in detail. Extract the detail into a named function.
 
-<!-- added 2026-09-19: dependency-checker cannot see veil.ui re-deriving a veil.game rule (#25) -->
+<!-- added 2026-09-19: dependency-checker cannot see veil.ui re-deriving a veil.game rule -->
 One more line is owed whenever the change touches `veil.ui`:
 
 - **Single answer** - for each thing a changed `veil.ui` function shows or

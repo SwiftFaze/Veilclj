@@ -35,7 +35,7 @@ and mutation testing concentrate. The direction is enforced by
 dependency-checker (`dependency-checker.edn`, `bb layers`), and the UML viewer
 (`bb uml`) draws any violating edge red.
 
-<!-- added 2026-09-19: dependency-checker sees only the direction of an arrow, not a rule worked out twice (#25) -->
+<!-- added 2026-09-19: dependency-checker sees only the direction of an arrow, not a rule worked out twice -->
 **`veil.ui` translates; it doesn't decide.** When `veil.game` already answers a
 question (is this tile walkable, which menu item is next), `veil.ui` calls it
 and translates the result into glyphs or game inputs. Working out the same

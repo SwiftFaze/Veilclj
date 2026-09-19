@@ -19,7 +19,7 @@ as the baseline (a hand-written commit, or one already built and playtested).
 
 ## Sequence
 
-<!-- added 2026-09-19: nothing fixed where the PR sits in the pipeline; a PR proposed after a spec-only push would have closed #24 on an unbuilt feature (#38) -->
+<!-- added 2026-09-19: nothing fixed where the PR sits in the pipeline; a PR proposed after a spec-only push would have closed its issue on an unbuilt feature -->
 1. **Refuse without a committed spec.** `specs/features/<slug>.feature` must be
    committed on this branch (`git ls-files --error-unmatch`, clean in
    `git status`). If not, stop and point to `/spec-feature`. Don't write the
@@ -48,7 +48,7 @@ With `--from-hardener`, do steps 5-6 only; every hardener verification still run
 
 ## Dispatching
 
-<!-- added 2026-09-19: Steps 4-7 split into two roles so neither is overloaded (#23) -->
+<!-- added 2026-09-19: Steps 4-7 split into two roles so neither is overloaded -->
 - **Coder → commit → hardener, one after the other, on the feature branch.**
   Dispatch `subagent_type: "coder"`; verify its commit (below); stop for the
   human playtest (`CLAUDE.md` Step 4.5); then dispatch `subagent_type:
@@ -131,7 +131,7 @@ The ladder applies to each role separately.
 3. **If the fork fails the same check,** the problem is in the diagnosis, not
    the executing agent. Stop and reconsider.
 
-<!-- added 2026-09-19: hardener must not change behavior; resuming beats re-briefing (#23) -->
+<!-- added 2026-09-19: hardener must not change behavior; resuming beats re-briefing -->
 **Hardener → coder hand-back.** When the hardener reports that a gate needs a
 behavior change, that's a handoff, not a failure. Resume the *original* coder
 via `SendMessage` with the hardener's finding (it still holds the
