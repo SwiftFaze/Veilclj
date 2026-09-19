@@ -1,9 +1,10 @@
 # Instruction files
 
-`CLAUDE.md`, `.claude/workflow.md`, `.claude/orchestrator.md`, the agent
-definitions in `.claude/agents/` and the skills load into agent context, so every line costs something on every task
-that loads it. They decay by accretion: one-off fixes get appended and nothing
-is ever removed.
+`CLAUDE.md`, `.claude/workflow.md`, the agent definitions in `.claude/agents/`
+and the skills (including `implement-issue`, the Steps 4-7 orchestration) load
+into agent context, so every line costs something on every task that loads it.
+They decay by accretion: one-off fixes get appended and nothing is ever
+removed.
 
 ## Budgets
 
@@ -15,7 +16,6 @@ loaded:
 |---|---|---|
 | `CLAUDE.md` | every session | 100 |
 | `.claude/workflow.md` | every pipeline step | 150 |
-| `.claude/orchestrator.md` | on dispatch (orchestrator) | 90 |
 | `.claude/agents/*.md` | every run of that agent | 61 |
 | `.claude/skills/*/SKILL.md` | on skill use | 215 |
 | `docs/*.md` | on demand | 250 |
@@ -32,7 +32,7 @@ Record of prose rules replaced by a check, so they aren't re-added as prose:
 | "Always put `Closes #N` in the PR body" | `repo-hygiene.yml` `pr-body-closes-issue` |
 | "Never hand-edit the version or changelog" | `repo-hygiene.yml` `no-manual-release-edits` |
 | "Keep instruction files short" | `check-instruction-budget.sh` |
-| "No commented-out code / TODOs" | `check-clean.sh` section 7 |
+| "No commented-out code / TODOs" | `check-clean.sh` section 8 |
 | "Engine code must not depend on the UI" | `dependency-checker.edn` + `check-clean.sh` section 5 |
 | "Don't quietly loosen a quality gate" | `repo-hygiene.yml` `quality-gate-ratchet` |
 

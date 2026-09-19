@@ -7,11 +7,12 @@ bash .claude/tools/check-clean.sh
 One command, run identically by the implementing agent before it reports done
 and by the orchestrator verifying that report, and by CI on every PR. It
 orchestrates Uncle Bob's tools (`docs/testing.md`) and adds what none of them
-covers: the CRAP ceiling, the text-smell checks, which findings block versus
-advise, and the judgment checklist.
+covers: the CRAP ceiling, the docs check, the text-smell checks, which findings
+block versus advise, and the judgment checklist.
 
 The tool gates judge the whole repo (it started clean, so any red is yours);
-the text-smell check judges only the lines your change added versus `develop`.
+the text-smell check judges only the lines your change added versus `develop`,
+and the docs check's QA-procedure half only the feature files your change added.
 
 ## Sections
 
@@ -23,10 +24,13 @@ the text-smell check judges only the lines your change added versus `develop`.
 | 4 | `bb crap` + `bb crap-gate`: every function CRAP ≤ `quality-gates.edn` `:crap-max` | yes |
 | 5 | `bb layers`: no layer violations or cycles | yes |
 | 6 | `bb dry`: duplicate-code candidates | advisory |
-| 7 | Added lines: no commented-out forms (`;; (…)`, `#_(…)`), TODO/FIXME/XXX/HACK, or `clj-kondo/ignore` | yes |
+| 7 | Docs check (`veil-tools.docs-check`): every `bb` task is mentioned in `docs/testing.md`; every feature added on the branch has a QA procedure or a `QA: none - <reason>` line | advisory |
+| 8 | Added lines: no commented-out forms (`;; (…)`, `#_(…)`), TODO/FIXME/XXX/HACK, or `clj-kondo/ignore` | yes |
 
 An **advisory** finding doesn't fail the gate, but each one needs a disposition
 in the completion report: fix it, or one line on why it's correct as written.
+For section 7 the fix is nearly always the doc (`docs/testing.md`, "Docs check"),
+not the check.
 
 `--fast` skips the JVM-heavy sections (1-4, 6) for the inner loop. A `--fast`
 run never counts as passing the gate. A full run takes about 30 seconds.

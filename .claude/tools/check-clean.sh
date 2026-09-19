@@ -225,11 +225,66 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 7. Textual smells no analyzer has a rule for
+# 7. Docs mentions and QA procedures (advisory)
 # ---------------------------------------------------------------------------
 
 hr
-echo "7. Commented-out code, deferred work, suppressions (added lines)"
+echo "7. Docs mentions and QA procedures (advisory)"
+hr
+
+# Collect added feature files: committed on branch + untracked
+added_features_list=""
+if [ "$SCOPE" = "all" ]; then
+  added_features_list=$(git ls-files -- 'specs/features/*.feature' 2>/dev/null || true)
+else
+  # Added features: new files on the branch
+  added_features_list=$(git diff --name-only --diff-filter=A "$merge_base" -- 'specs/features/*.feature' 2>/dev/null || true)
+  # Plus untracked feature files
+  added_features_list=$(echo "$added_features_list"; git ls-files --others --exclude-standard -- 'specs/features/*.feature' 2>/dev/null || true)
+fi
+
+# Collect existing procedure files
+existing_procedures=$(find specs/qa -name "*.edn" -type f 2>/dev/null || true)
+
+# Always run the check: task-findings runs regardless of added features
+mkdir -p target/clean-code
+feature_list_file="target/clean-code/added-features.txt"
+procedure_list_file="target/clean-code/procedures.txt"
+echo "$added_features_list" > "$feature_list_file"
+echo "$existing_procedures" > "$procedure_list_file"
+
+bb -e "
+  (require '[clojure.string :as str]
+            '[veil-tools.docs-check :as check])
+  (let [bb-edn-text (slurp \"bb.edn\")
+        testing-md-text (slurp \"docs/testing.md\")
+        feature-files (str/split-lines (slurp \"$feature_list_file\"))
+        added-features (vec (for [path feature-files :when (not (str/blank? path))]
+                              {:path path :text (slurp path)}))
+        procedure-files (str/split-lines (slurp \"$procedure_list_file\"))
+        procedures (set procedure-files)]
+    (check/run bb-edn-text testing-md-text added-features procedures)
+    nil)
+" > "$WORK/docs-check.txt" 2>&1
+check_exit=$?
+
+if [ $check_exit -eq 0 ]; then
+  cat "$WORK/docs-check.txt"
+  finding_count=$(grep -c "^    " "$WORK/docs-check.txt" || true)
+  advisory=$((advisory + finding_count))
+else
+  echo "  FAIL  docs check failed to load:"
+  head -1 "$WORK/docs-check.txt" | sed 's/^/    /'
+  blocking=$((blocking + 1))
+  sections_failed="$sections_failed docs-check"
+fi
+
+# ---------------------------------------------------------------------------
+# 8. Textual smells no analyzer has a rule for
+# ---------------------------------------------------------------------------
+
+hr
+echo "8. Commented-out code, deferred work, suppressions (added lines)"
 hr
 
 text_fail=0

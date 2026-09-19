@@ -5,10 +5,11 @@
             [veil.acceptance.steps.window :as window]
             [veil.acceptance.steps.menu :as menu]
             [veil.acceptance.steps.mods :as mods]
-            [veil.acceptance.steps.qa :as qa]))
+            [veil.acceptance.steps.qa :as qa]
+            [veil.acceptance.steps.docs-check :as docs-check]))
 
 (def step-handlers
-  (concat window/handlers menu/handlers mods/handlers qa/handlers))
+  (concat window/handlers menu/handlers mods/handlers qa/handlers docs-check/handlers))
 
 (defn handle-step [world text]
   (if-let [[handler match] (some (fn [[pattern handler]]

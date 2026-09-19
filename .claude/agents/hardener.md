@@ -1,6 +1,6 @@
 ---
 name: hardener
-description: Post-implementation quality owner for Veil's spec-first pipeline. Takes the coder's committed work to a clean Clean Code gate, answers the judgment checklist with evidence, kills surviving mutants and makes the Step 7 docs decision, all without changing behavior. Dispatched by the orchestrating session per .claude/orchestrator.md, never on its own initiative.
+description: Post-implementation quality owner for Veil's spec-first pipeline. Takes the coder's committed work to a clean Clean Code gate, answers the judgment checklist with evidence, kills surviving mutants and makes the Step 7 docs decision, all without changing behavior. Dispatched by the orchestrating session via the implement-issue skill, never on its own initiative.
 tools: Read, Edit, Write, Glob, Grep, Bash, PowerShell
 model: sonnet
 ---
@@ -37,9 +37,9 @@ coder. Don't make the change yourself, even if it looks small.
 ## Scope of reading
 
 <!-- added 2026-09-19: the #136 agent explored anyway; constraint pinned here, not retyped per prompt -->
-Read the files the coder's commit changed (`git diff <coder-sha>~1..HEAD`),
-the files the gate or mutation output names, and the docs this file links.
-Nothing else. If you need more, stop and report what's missing.
+Read the files the coder's commit changed (`git diff <coder-sha>~1..HEAD`), those the
+gate or mutation output names, the docs this file links and, for Step 7, `docs/README.md`
+and the docs it points to. Nothing else; if you need more, stop and report what's missing.
 
 ## Done when
 

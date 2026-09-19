@@ -33,11 +33,11 @@ gets built. Pay the approval latency only where being wrong is expensive.
    regenerate `.feature`, then ask what's still open.
 3. **Human approval — high-risk path only** — stop and wait. Do not proceed on
    your own.
-4. **Implementation** (`coder`, `.claude/agents/coder.md`) — **read
-   `.claude/orchestrator.md` before dispatching.** It covers the coder →
-   commit → hardener handoff, prompt contents, and verifying what comes back.
-   The Clean Code gate is the hardener's (`.claude/agents/hardener.md`), not
-   this step's.
+4. **Implementation** (`coder`, `.claude/agents/coder.md`) — **run Steps 4-7
+   through the `implement-issue` skill** (`.claude/skills/implement-issue/`).
+   It owns the coder → commit → hardener handoff, prompt contents, verifying
+   what comes back, and where the PR fits. The Clean Code gate is the
+   hardener's (`.claude/agents/hardener.md`), not this step's.
     - **Test-first.** Write the failing speclj `it` before the code that
       passes it (`bb spec -a` reruns on save). Uncle Bob's three laws of TDD
       are the default loop here, not an aspiration.
@@ -56,12 +56,10 @@ gets built. Pay the approval latency only where being wrong is expensive.
    file into the acceptance pipeline (`bb acceptance`) so it's executable, not
    documentation: add step handlers under `acceptance/veil/acceptance/steps/`.
    Steps drive the pure game state (`veil.game`), never the Quil window.
-   **Before the human playtest, run `bb qa <slug>`** (or `bb qa --all`): it
-   plays the procedure's keys through `veil.main`'s real key handler and checks
-   the log. It opens a window, so it is a local step, not part of
-   `check-clean.sh` or CI. A pass means input reaches the outcomes the
-   procedure expects; it says nothing about rendering or feel, so the human
-   playtest stays mandatory but narrower: how it *feels* and *looks*.
+   **QA run before the human playtest:** `implement-issue` step 3. It opens a
+   window, so it is a local step, not part of `check-clean.sh` or CI. A pass
+   says nothing about rendering or feel, so the human playtest stays mandatory
+   but narrower: how it *feels* and *looks*. Details: `docs/testing.md`.
 6. **Mutation testing** (`hardener`, after the gate is clean) — `bb mutate <file>` on each
    changed `veil.game`/`veil.ui` source file, and `bb acceptance-mutate` when a
    `.feature` changed. This is the check on the specs, since they aren't

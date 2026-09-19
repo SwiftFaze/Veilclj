@@ -1,5 +1,6 @@
 ---
 name: brainstorm-issue
+model: opus
 description: Brainstorm a feature idea with the user and capture it directly as a GitHub issue (or two, if scope splits), skipping specs/intent/ entirely. Use when the user wants to think out loud about an idea for later — not spec it through the full intent -> .feature -> approval pipeline.
 ---
 
