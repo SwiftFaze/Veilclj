@@ -6,43 +6,39 @@
             [veil.ui.grid :as grid]
             [veil.ui.commands :as commands]))
 
+(defn- main-menu-lines
+  "The main menu's lines; only the selected menu item is :selected?."
+  [game-state]
+  (let [selected (state/selected-item game-state)]
+    (concat [{:text "VEIL" :row 2}]
+            (map-indexed (fn [i item]
+                           {:text item :row (+ 4 (* i 2)) :selected? (= item selected)})
+                         (state/menu-items game-state))
+            [{:text "Use Up/Down or W/S to move, Enter to select" :row 12}])))
+
 (defn- lines-for-screen
-  "Get the text lines for the current screen: [text row]."
+  "The lines of the current screen: maps of :text, :row and, on the main menu, :selected?."
   [game-state]
   (case (state/screen game-state)
-    :main-menu (let [items (state/menu-items game-state)
-                     selected (state/selected-item game-state)]
-                 [["VEIL" 2]
-                  (map-indexed (fn [i item]
-                                 [item (+ 4 (* i 2))])
-                               items)
-                  ["Use Up/Down or W/S to move, Enter to select" 12]])
-    :map [["@" 6]
-          ["Esc: menu" 20]]
-    :options [["Options" 4]
-              ["Esc: back" 20]]
+    :main-menu (main-menu-lines game-state)
+    :map [{:text "@" :row 6}
+          {:text "Esc: menu" :row 20}]
+    :options [{:text "Options" :row 4}
+              {:text "Esc: back" :row 20}]
     []))
-
-(defn- flatten-lines [screen-lines]
-  "Flatten nested line sequences into a single sequence."
-  (for [group screen-lines
-        line (if (sequential? (first group)) group [group])]
-    line))
 
 (defn buffer
   "Render the game state into a cell buffer.
-   Writes each screen line centered horizontally, preserving its row position."
+   Writes each screen line centered horizontally, preserving its row position.
+   The selected menu item is drawn in reverse video; every other line in normal text."
   [state cols rows]
-  (let [lines (flatten-lines (lines-for-screen state))
-        selected (state/selected-item state)]
-    (reduce (fn [buf [text row]]
-              (let [col (quot (- cols (count text)) 2)
-                    is-selected? (= text selected)
-                    fg (if is-selected? :SELECTED_TEXT :NORMAL_TEXT)
-                    bg (if is-selected? :SELECTED_HIGHLIGHT :BACKGROUND)]
-                (buffer/write-text buf col row text fg bg)))
-            (buffer/blank cols rows)
-            lines)))
+  (reduce (fn [buf {:keys [text row selected?]}]
+            (let [col (quot (- cols (count text)) 2)
+                  fg (if selected? :SELECTED_TEXT :NORMAL_TEXT)
+                  bg (if selected? :SELECTED_HIGHLIGHT :BACKGROUND)]
+              (buffer/write-text buf col row text fg bg)))
+          (buffer/blank cols rows)
+          (lines-for-screen state)))
 
 (defn scene
   "Compose the full rendering pipeline: state -> buffer -> commands.

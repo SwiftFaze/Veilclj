@@ -29,19 +29,85 @@
                       :FOCUSED_BORDER [238 179 146]
                       :SHADOW [0 0 0]}}))
 
+(defn- options-screen [s]
+  (-> s (state/handle-input :down) (state/handle-input :confirm)))
+
+(defn- map-screen [s]
+  (state/handle-input s :confirm))
+
+(defn- text-at
+  "The glyphs of n cells of row starting at col."
+  [buf col row n]
+  (apply str (map #(:glyph (buffer/cell buf % row)) (range col (+ col n)))))
+
 (describe "main menu buffer"
-  (it "includes VEIL title"
-    (let [buf (view/buffer (themed-state) 80 24)]
-      (should (some #(= "VEIL" (apply str %)) (map (fn [r] (filter #(not= \space %) (map :glyph r))) (:cells buf))))))
+  (it "has the size it was asked for"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= 100 (:cols buf))
+      (should= 30 (:rows buf))))
 
-  (it "includes menu items"
-    (let [buf (view/buffer (themed-state) 80 24)]
-      (should= 80 (:cols buf))
-      (should= 24 (:rows buf))))
+  (it "centers the title on row 2"
+    (should= "VEIL" (text-at (view/buffer (themed-state) 80 24) 38 2 4)))
 
-  (it "marks the selected item in reverse video"
-    (let [s (themed-state)
-          buf (view/buffer s 80 24)
-          selected (state/selected-item s)
-          selected-row (+ 4)]
-      (should (some #(= :SELECTED_HIGHLIGHT (:bg %)) (get-in buf [:cells selected-row]))))))
+  (it "lists the menu items on rows 4, 6 and 8, centered"
+    (let [buf (view/buffer (themed-state) 80 24)]
+      (should= "New Game" (text-at buf 36 4 8))
+      (should= "Options" (text-at buf 36 6 7))
+      (should= "Quit" (text-at buf 38 8 4))))
+
+  (it "puts the hint on row 12"
+    (should= "Use Up/Down or W/S to move, Enter to select"
+             (text-at (view/buffer (themed-state) 80 24) 18 12 43)))
+
+  (it "keeps text centered when the grid is wider"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= "VEIL" (text-at buf 48 2 4))
+      (should= "New Game" (text-at buf 46 4 8))))
+
+  (it "draws the selected item in reverse video on exactly its own cells"
+    (let [buf (view/buffer (themed-state) 80 24)]
+      (should= {:glyph \N :fg :SELECTED_TEXT :bg :SELECTED_HIGHLIGHT} (buffer/cell buf 36 4))
+      (should= {:glyph \e :fg :SELECTED_TEXT :bg :SELECTED_HIGHLIGHT} (buffer/cell buf 43 4))
+      (should= buffer/blank-cell (buffer/cell buf 35 4))
+      (should= buffer/blank-cell (buffer/cell buf 44 4))))
+
+  (it "draws the other items and the title in normal text on the background"
+    (let [buf (view/buffer (themed-state) 80 24)]
+      (should= {:glyph \O :fg :NORMAL_TEXT :bg :BACKGROUND} (buffer/cell buf 36 6))
+      (should= {:glyph \V :fg :NORMAL_TEXT :bg :BACKGROUND} (buffer/cell buf 38 2))))
+
+  (it "moves the reverse video with the selection"
+    (let [buf (view/buffer (state/handle-input (themed-state) :down) 80 24)]
+      (should= :SELECTED_HIGHLIGHT (:bg (buffer/cell buf 36 6)))
+      (should= :BACKGROUND (:bg (buffer/cell buf 36 4))))))
+
+(describe "map screen buffer"
+  (it "shows the player as @ and an Esc hint"
+    (let [buf (view/buffer (map-screen (themed-state)) 80 24)]
+      (should= "@" (text-at buf 39 6 1))
+      (should= "Esc: menu" (text-at buf 35 20 9)))))
+
+(describe "options screen buffer"
+  (it "shows a heading and an Esc hint"
+    (let [buf (view/buffer (options-screen (themed-state)) 80 24)]
+      (should= "Options" (text-at buf 36 4 7))
+      (should= "Esc: back" (text-at buf 35 20 9))))
+
+  (it "draws the heading in normal text even though Options is the selected menu item"
+    (let [s (options-screen (themed-state))
+          buf (view/buffer s 80 24)]
+      (should= "Options" (state/selected-item s))
+      (should= {:glyph \O :fg :NORMAL_TEXT :bg :BACKGROUND} (buffer/cell buf 36 4)))))
+
+(describe "scene"
+  (it "turns a window and font measurements into draw commands"
+    (let [frame (view/scene (themed-state) 960 600 12.0 20.0 5.0)]
+      (should= [0 0 0] (:background frame))
+      (should (some #(= {:text "V" :x 456 :y 50 :color [255 255 255]} %) (:glyphs frame)))
+      (should (some #(= {:x 432 :y 100 :w 12 :h 25 :color [192 192 192]} %) (:rects frame)))))
+
+  (it "centers on a wider grid when the window is wider"
+    (let [wide (view/scene (themed-state) 1200 600 12.0 20.0 5.0)
+          title-x (fn [frame] (:x (first (filter #(= "V" (:text %)) (:glyphs frame)))))]
+      (should= 456 (title-x (view/scene (themed-state) 960 600 12.0 20.0 5.0)))
+      (should= 576 (title-x wide)))))
