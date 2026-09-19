@@ -59,3 +59,14 @@
   "Return the error message for an unknown slug."
   [slug]
   (str "no QA procedure for " slug " (expected " (path slug) ")"))
+
+(defn report-lines
+  "Generate report lines for a check result.
+   Returns a vector of strings, one per expected entry."
+  [expected report]
+  (binding [*print-namespace-maps* false]
+    (mapv (fn [exp status]
+            (let [status-str (if (= status :seen) "seen    " "MISSING")]
+              (str status-str " " (pr-str exp))))
+          expected
+          report)))

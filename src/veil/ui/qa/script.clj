@@ -78,3 +78,14 @@
     "Esc" :esc
     "Space" :space
     (keyword (clojure.string/lower-case key-name))))
+
+(defn event->key-keyword
+  "Convert a Quil-shaped event to the keyword used in log entries.
+   Handles raw-key (newline/return -> :enter, ESC -> :esc) or :key field."
+  [event]
+  (let [raw-key (:raw-key event)]
+    (cond
+      (or (= raw-key \newline) (= raw-key \return)) :enter
+      (= raw-key (char 27)) :esc
+      (keyword? (:key event)) (:key event)
+      :else :unknown)))

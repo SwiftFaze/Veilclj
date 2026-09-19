@@ -140,3 +140,25 @@
 
   (it "converts digit to keyword"
     (should= :7 (script/key-keyword "7"))))
+
+(describe "event->key-keyword"
+  (it "converts newline raw-key to :enter"
+    (should= :enter (script/event->key-keyword {:raw-key \newline})))
+
+  (it "converts return raw-key to :enter"
+    (should= :enter (script/event->key-keyword {:raw-key \return})))
+
+  (it "converts ESC raw-key to :esc"
+    (should= :esc (script/event->key-keyword {:raw-key (char 27)})))
+
+  (it "uses the event's :key if it's a keyword"
+    (should= :down (script/event->key-keyword {:key :down :raw-key (char 65535)})))
+
+  (it "converts unknown key to :unknown"
+    (should= :unknown (script/event->key-keyword {:raw-key \x})))
+
+  (it "handles letter key"
+    (should= :s (script/event->key-keyword {:key :s :raw-key \S})))
+
+  (it "handles digit key"
+    (should= :7 (script/event->key-keyword {:key :7 :raw-key \7}))))

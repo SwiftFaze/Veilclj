@@ -1,0 +1,6 @@
+{:script "specs/qa/main-menu.keys"
+ :expect [{:event :menu/selection-changed :to :options}
+          {:event :screen/changed :from :main-menu :to :options}
+          {:event :screen/changed :from :options :to :main-menu}
+          {:event :menu/selection-changed :to :quit}
+          {:event :game/over}]}

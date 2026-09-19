@@ -20,8 +20,10 @@
 
  :tasks
  {;; --- build & run ---------------------------------------------------------
-  play  {:doc  "Launch the game"
+  play  {:doc  "Launch the game (accepts --keys, --log)"
          :task (apply clojure "-M:run" *command-line-args*)}
+  qa    {:doc  "Run a QA procedure: bb qa <slug> (opens game window)"
+         :task (apply clojure "-M:qa" *command-line-args*)}
   uber  {:doc  "Build the runnable jar -> target/veil-<version>.jar"
          :task (clojure "-T:build" "uber")}
   clean {:doc  "Delete target/ and build/"
