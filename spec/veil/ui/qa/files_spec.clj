@@ -57,7 +57,15 @@
     (let [blocker (path-in @root "blocker")
           path (path-in @root "blocker" "run.log.edn")]
       (spit blocker "a file, not a directory")
-      (should= {:error (str "cannot write log " path)} (files/start-log! path)))))
+      (should= {:error (str "cannot write log " path)} (files/start-log! path))))
+
+  (it "writes to a bare relative filename (no directory) in the working directory"
+    (let [bare-name "veil-qa-test-temp.log.edn"]
+      (try
+        (should-be-nil (files/start-log! bare-name))
+        (should= "{:log/version 1}\n" (slurp bare-name))
+        (finally
+          (io/delete-file bare-name true))))))
 
 (describe "append-log!"
   (with-all root (temp-dir))

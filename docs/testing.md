@@ -113,7 +113,7 @@ bb play --log target/qa/session.log.edn                              # log a han
 `bb qa` starts the game in a child JVM (`bb play --keys ... --log ...`, 60 s
 timeout), which presses the script's keys and quits when they run out (or the
 game ends), then reads the log back and checks it. Each run opens the game
-window briefly. Pass `--keys` together with `--log`.
+window briefly.
 
 **Files** (write both next to the `.feature`, at spec time):
 

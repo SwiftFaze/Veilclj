@@ -28,16 +28,18 @@
   (when path
     (try
       (let [parent (.getParent (Paths/get path (make-array String 0)))]
-        (Files/createDirectories parent (make-array FileAttribute 0))
+        (when parent
+          (Files/createDirectories parent (make-array FileAttribute 0)))
         (spit path (log/render [(log/header)]))
         nil)
       (catch Exception _
         {:error (write-error-message path)}))))
 
 (defn append-log!
-  "Append entries to the log file."
+  "Append entries to the log file. Does nothing when no path was asked for
+   or when there are no entries to write."
   [path entries]
-  (when (seq entries)
+  (when (and path (seq entries))
     (try
       (spit path (log/render entries) :append true)
       (catch Exception e
