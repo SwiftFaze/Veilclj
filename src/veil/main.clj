@@ -23,9 +23,9 @@
   {:title "Veil"
    :size  [960 600]})
 
-(defn- setup [registry themes font-path font-size]
+(defn- setup [registry themes font-path size]
   (q/frame-rate 30)
-  (q/text-font (q/create-font font-path font-size true))
+  (q/text-font (q/create-font font-path size true))
   (state/starting registry themes))
 
 (defn- prevent-processing-exit
@@ -81,12 +81,12 @@
     (println (:error outcome)))
   (System/exit (:exit-status outcome)))
 
-(defn- open-window [{:keys [registry themes font-path font-size qa]}]
+(defn- open-window [{:keys [registry themes font-path size qa]}]
   (let [qa-state (atom qa)]
     (q/sketch
       :title       (:title window)
       :size        (:size window)
-      :setup       #(setup registry themes font-path font-size)
+      :setup       #(setup registry themes font-path size)
       :draw        draw/draw!
       :update      (fn [state] (update-state qa-state state))
       :key-pressed (fn [state event] (key-pressed qa-state state event))
@@ -99,8 +99,4 @@
         outcome (launch/outcome launched)]
     (if (:error outcome)
       (die outcome)
-      (let [start (:start outcome)
-            opened-font (:font-path start)]
-        (open-window (assoc start
-                            :font-path (:font-path opened-font)
-                            :font-size (:size opened-font)))))))
+      (open-window (:start outcome)))))
