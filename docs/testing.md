@@ -16,6 +16,7 @@ a `bb` task (`bb tasks` lists them); tool versions are pinned by git SHA in
 | Acceptance mutation | `bb acceptance-mutate` | APS | Step 6 + weekly CI |
 | QA run | `bb qa <slug>`, `bb qa --all` | veil.ui.qa (in this repo) | never - local step before the playtest |
 | Scripted / logged play | `bb play --keys <script> --log <file>` | veil.ui.qa | never - manual |
+| Docs check | `check-clean.sh` section 7 | `veil-tools.docs-check` (in this repo, `tools/`) | advisory |
 | Introverted specs | `bb introvert` | [deintroverter4clj](https://github.com/unclebob/deintroverter4clj) | never - manual only |
 | UML diagram | `bb uml-ir`, `bb uml` | [uml-viewer](https://github.com/unclebob/uml-viewer) | never - manual only |
 
@@ -163,12 +164,46 @@ format and runner decisions are covered by unit specs and by
 `specs/features/deterministic-keyboard-qa.feature`; opening the window and
 touching files are covered by running `bb qa`.
 
+### Docs check (advisory)
+
+Section 7 of `check-clean.sh` (`tools/veil_tools/docs_check.clj`) flags two
+kinds of stale documentation. It only advises: each finding needs a
+disposition in the completion report (`docs/clean-code-gate.md`), not a fix
+to the check.
+
+- **A `bb` task this file never mentions.** Every task in `bb.edn` (not its
+  keyword entries, not `-private` ones) must appear here as `bb <task>` ending
+  at a character that can't be part of a task name, so `bb qa-all` does not
+  mention `qa`. A new task needs a line in this file.
+- **A feature added on the branch with no QA procedure.** Only feature files
+  the branch *adds* are checked (new or untracked, not merely changed). Each
+  needs `specs/qa/<slug>.edn` (that file alone counts; whether its script
+  exists or passes is `bb qa`'s job), or opts out with a line
+  `QA: none - <reason>` in its `Feature:` description block, before the first
+  `Background:` or `Scenario:`. The reason is required: `QA: none` on its own
+  is still a finding, and the line means nothing after the first scenario.
+
 ## Quality gate ratchet
 
 Loosening `quality-gates.edn` or `dependency-checker.edn` (a higher CRAP
 ceiling, a new allowed layer edge, an exception, `:fail-on-*` turned off) fails
 the `quality-gate-ratchet` CI job (`bb gate-ratchet`). That is deliberate: a
 justified weakening is still possible, but a human must approve it explicitly.
+
+## Build and maintenance tasks
+
+Not test layers, but part of the `bb` surface, and the docs check requires
+every task to be mentioned here.
+
+- `bb uber` - build the runnable jar, `target/veil-<version>.jar`
+  (`docs/release.md`).
+- `bb clean` - delete `target/` and `build/`; the next `bb acceptance`
+  regenerates `build/`.
+- `bb update-tools` - repin every Uncle Bob tool (the git SHAs in `bb.edn`,
+  `deps.edn` and `tools/veil_tools/aps.clj`) to its latest commit.
+  `bb update-tools --check` only reports what is behind, exit 1 if anything is.
+  After a real repin, rerun the gate and `bb mutate` on changed files: a new
+  tool version can add findings on unchanged code.
 
 ## Manual tools
 
