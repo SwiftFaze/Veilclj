@@ -101,45 +101,33 @@ Exit 3 means surviving or uncovered mutants: a behavior no spec pins down.
 Target `src/veil/game/**`, `src/veil/mods/**` and `src/veil/ui/**`, plus the
 two `tools/` namespaces the coverage run instruments (`veil-tools.docs-check`,
 `veil-tools.shell-check`; the `:cov` alias in `deps.edn` says why only those).
-`veil.main` and `veil.ui.draw` are the Quil shell and are not mutation targets:
-by the rule below they hold no decision to mutate. `veil.mods.disk` (the mods
-directory walk) is skipped as well. `veil.ui.qa.runner` is another I/O shell (it
-spawns the game and prints), so it is skipped too; the
-decisions it used to hold live in `veil.ui.qa.session`, which is specced with
-fake I/O and is a normal target, as is `veil.ui.qa.files` (specced against temp
-files). Snapshots in `.metrics/mutate/` are committed so later runs only retest
-changed forms.
+Skip the Quil shell (`veil.main`, `veil.ui.draw`: by the rule below they hold no
+decision to mutate) and the I/O files `veil.mods.disk` and `veil.ui.qa.runner`.
+Snapshots in `.metrics/mutate/` are committed, so later runs are differential.
 
 ## The Quil shell rule (`bb shell-check`)
 
 Only a line that calls Quil or Processing may go uncovered, because only those
-need a live applet, and such a line must decide nothing. Every decision and
-calculation lives in a pure, specced function, and the shell (`veil.main`,
-`veil.ui.draw`) passes data to it and acts on the answer: `loader/startup`
-turns a mod load into a registry or an error report and exit status,
-`state/starting` builds the starting state, `input/escape?` says whether a key
-is the raw Escape, `launch/outcome` says whether the game starts, and
-`view/frame` returns each draw command with its colour and pixel position. What
-verifies the Quil calls themselves is the scripted QA run (`bb qa`) and the
-human playtest; neither is a gate. There is no coverage exception for
-`veil.main`: the fix for uncovered logic there is to move it out.
+need a live applet, and it must decide nothing. Every decision and calculation
+lives in a pure, specced function that the shell (`veil.main`, `veil.ui.draw`)
+passes data to; which function answers what is in `docs/architecture.md`, "The
+Quil shell decides nothing". The QA run (`bb qa`) and the human playtest verify
+the Quil calls; neither is a gate. `veil.main` has no coverage exception:
+uncovered logic there moves out.
 
 `bb shell-check` (`tools/veil_tools/shell_check.clj`, section 9 of
-`check-clean.sh`, blocking) enforces the rule by reading the two files with the
-Clojure reader, so comments, strings and docstrings are ignored. It reports
-`<path> line <n>: <message>` and exits 1 for:
+`check-clean.sh`, blocking) reads the two files with the Clojure reader
+(comments and strings are ignored) and exits 1, printing `<path> line <n>:
+<message>`, for:
 
 - **A guard on an expression.** `if`, `when`, `if-not` and `when-not` may test
-  one already-computed value: a symbol, a keyword lookup of a symbol
-  (`(:error launched)`), or a call to a `veil.*` function on such values
-  (`(input/escape? event)`). `=`, `and`, `or`, `not` and a call to anything
-  else (`q/key-pressed?`) are expressions.
-- **A calculation.** `+ - * / inc dec mod quot rem = not= < > <= >=` wherever
-  they are called; passing one as a value (`(reduce + xs)`) is not a call.
-- **A multi-way branch.** `cond`, `case` and `condp`.
-- **A missing shell file**, or one that cannot be read, so a rename cannot
-  switch the check off. Only those two files are checked;
-  `veil.ui.qa.runner` is out of its scope.
+  a symbol, a keyword lookup of one (`(:error launched)`), or a `veil.*`
+  function called on such values (`(input/escape? event)`); `=`, `and`, `or`,
+  `not` and any other call are expressions.
+- **A calculation:** `+ - * / inc dec mod quot rem = not= < > <= >=`, called.
+- **A multi-way branch:** `cond`, `case` and `condp`.
+- **A missing or unreadable shell file**, so a rename can't switch the check
+  off. Only `veil.main` and `veil.ui.draw` are checked.
 
 ## QA runs (deterministic keyboard QA)
 
