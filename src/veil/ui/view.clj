@@ -2,15 +2,22 @@
   "Pure view rendering: translates game state to draw commands. No Quil."
   (:require [veil.game.state :as state]))
 
-(defn- add-position-and-color
-  "Add :x, :y, and :color to each command based on width and row."
+(defn- row->y
+  "Pixel y of a logical row: a 50 pixel top margin, then 40 pixels per row."
+  [row]
+  (+ 50 (* row 40)))
+
+(defn- command-color
+  "The selected item is highlighted; everything else is plain."
+  [{:keys [selected?]}]
+  (if selected? [255 255 100] [220 220 220]))
+
+(defn- lay-out
+  "Give each command its pixel position and colour. This is here, not in the
+  Quil layer, so the drawing code has nothing left to decide or calculate."
   [width commands]
   (mapv (fn [cmd]
-          (let [row (:row cmd)
-                x (/ width 2)
-                y (+ 50 (* row 40))
-                color (if (:selected? cmd) [255 255 100] [220 220 220])]
-            (assoc cmd :x x :y y :color color)))
+          (assoc cmd :x (/ width 2) :y (row->y (:row cmd)) :color (command-color cmd)))
         commands))
 
 (defn- frame-main-menu
@@ -54,4 +61,4 @@
                    :map (frame-map state)
                    :options (frame-options state)
                    [])]
-    (add-position-and-color width commands)))
+    (lay-out width commands)))

@@ -127,7 +127,7 @@
              (findings (clean-files draw-path (source "(defn f \"(+ 1 2) then (cond a b)\" [] nil)")))))
 
   (it "ignores a discarded form"
-    (should= [] (main-findings "#_(+ 1 2)")))
+    (should= [] (main-findings "#_" "(+ 1 2)")))
 
   (it "reports the line of the offending form, not of its enclosing form"
     (should= [(str main-path " line 4: calculation with +")]

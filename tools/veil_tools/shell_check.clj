@@ -63,8 +63,8 @@
 (defn- allowed-guard-test?
   "A guard may test one already-computed value: a name, a keyword lookup of a
   name, or a veil.* function called on such values."
-  [test aliases]
-  (or (simple-value? test) (veil-call? test aliases)))
+  [guard-test aliases]
+  (or (simple-value? guard-test) (veil-call? guard-test aliases)))
 
 (defn- own-finding
   "The message for form itself (not its children), or nil."
