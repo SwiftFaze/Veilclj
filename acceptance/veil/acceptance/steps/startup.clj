@@ -138,11 +138,13 @@
    [#"the main menu with (.+) selected"
     (fn [world [_ item]]
       (let [s (state/initial)
-            s (loop [s s]
-                (let [selected (state/selected-item s)]
-                  (if (= selected item)
-                    s
-                    (state/handle-input s :down))))]
+            s (loop [s s count 0]
+                (if (>= count 10)
+                  (fail (str "Could not find menu item: " item))
+                  (let [selected (state/selected-item s)]
+                    (if (= selected item)
+                      s
+                      (recur (state/handle-input s :down) (inc count))))))]
         (swap! world assoc :state s))
       (ok))]
 
