@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-beta.2](https://github.com/SwiftFaze/Veilclj/compare/v0.0.1-beta.2...v0.1.0-beta.2) (2026-09-19)
+
+
+### Features
+
+* deterministic keyboard QA - key scripts, event log, bb qa ([#39](https://github.com/SwiftFaze/Veilclj/issues/39)) ([14cfa4b](https://github.com/SwiftFaze/Veilclj/commit/14cfa4b67ef3933f4908fd3ae86ca6f75d46eeae))
+
 ## [0.0.1-beta.2](https://github.com/SwiftFaze/Veilclj/compare/v0.0.1-beta.1...v0.0.1-beta.2) (2026-09-19)
 
 
