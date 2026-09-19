@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-beta.3](https://github.com/SwiftFaze/Veilclj/compare/v0.1.0-beta.2...v0.1.0-beta.3) (2026-09-19)
+
+
+### Features
+
+* implement-issue skill for Steps 4-7, with QA and docs verification ([#41](https://github.com/SwiftFaze/Veilclj/issues/41)) ([6315018](https://github.com/SwiftFaze/Veilclj/commit/63150181f407ccb5b1e29454b1e6321f97bb1dc3))
+
 ## [0.1.0-beta.2](https://github.com/SwiftFaze/Veilclj/compare/v0.0.1-beta.2...v0.1.0-beta.2) (2026-09-19)
 
 
