@@ -58,11 +58,12 @@
   (mode/plan args files/read-script))
 
 (defn- load-mods-step [_]
-  (let [mods-dir (loader/mods-dir (System/getProperty "veil.mods.dir"))]
-    (let [result (loader/startup (disk/read-mods-dir mods-dir) [themes/content-type fonts/content-type])]
-      (if (:error result)
-        result
-        (assoc result :mods-dir mods-dir)))))
+  (let [mods-dir (loader/mods-dir (System/getProperty "veil.mods.dir"))
+        result (loader/startup (disk/read-mods-dir mods-dir)
+                               [themes/content-type fonts/content-type])]
+    (if (:error result)
+      result
+      (assoc result :mods-dir mods-dir))))
 
 (defn- themes-step [{:keys [registry]}]
   (themes/startup registry theme/default-id))

@@ -19,7 +19,6 @@
   [x]
   (and (string? x)
        (not (or (.contains x "/") (.contains x "\\")))
-       (not (.startsWith x "/"))
        (or (.endsWith x ".ttf") (.endsWith x ".otf"))))
 
 (s/def ::file font-file-name?)
@@ -71,6 +70,6 @@
   "Load fonts from a registry and return {:font {...}} when the default font
    is registered, else {:error msg :exit-status 1}."
   [registry default-id]
-  (if-let [entry (registry/entry registry :font default-id)]
-    {:font (font registry default-id)}
+  (if-let [default-font (font registry default-id)]
+    {:font default-font}
     {:error (missing-default-report default-id) :exit-status 1}))

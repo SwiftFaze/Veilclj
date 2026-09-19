@@ -4,8 +4,9 @@
             [veil.ui.buffer :as buffer]
             [veil.game.state :as state]))
 
-(defn- test-state []
+(defn- test-state
   "A game state with the default theme."
+  []
   (state/starting
     {:load-order ["core"] :content {}}
     {"core:default" {:BACKGROUND [5 5 5]

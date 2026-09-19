@@ -125,6 +125,13 @@
                  (< x (* (+ col n) cw))))
           (:glyphs frame)))
 
+(defn- have-color
+  "Check that some draw commands were found and all of them have the RGB color;
+  label names them in the failure message."
+  [found label rgb]
+  (check (and (seq found) (every? #(= rgb (:color %)) found))
+         (str label " have colors " (pr-str (map :color found)) ", expected " rgb)))
+
 (defn- build-commands!
   "Turn the world's buffer into draw commands for the given cell size. A
   failure is kept in the world, so a scenario can assert it."
@@ -349,10 +356,9 @@
     (fn [world [_ text r g b]]
       (with-frame world
         (fn [frame]
-          (let [found (filter #(= text (:text %)) (:glyphs frame))]
-            (check (and (seq found) (every? #(= (rgb-of r g b) (:color %)) found))
-                   (str "glyph commands for \"" text "\" have colors "
-                        (pr-str (map :color found)) ", expected " (rgb-of r g b)))))))]
+          (have-color (filter #(= text (:text %)) (:glyphs frame))
+                      (str "glyph commands for \"" text "\"")
+                      (rgb-of r g b)))))]
 
    [#"there is a rectangle command at x (\d+) and y (\d+), (\d+) wide and (\d+) high, with the color (\d+),(\d+),(\d+)"
     (fn [world [_ x y w h r g b]]
@@ -367,10 +373,9 @@
     (fn [world [_ x y r g b]]
       (with-frame world
         (fn [frame]
-          (let [found (filter #(and (= (int-of x) (:x %)) (= (int-of y) (:y %))) (:rects frame))]
-            (check (and (seq found) (every? #(= (rgb-of r g b) (:color %)) found))
-                   (str "rectangles at x " x " y " y " have colors " (pr-str (map :color found))
-                        ", expected " (rgb-of r g b)))))))]
+          (have-color (filter #(and (= (int-of x) (:x %)) (= (int-of y) (:y %))) (:rects frame))
+                      (str "rectangles at x " x " y " y)
+                      (rgb-of r g b)))))]
 
    [#"the rectangle command behind \"([^\"]+)\" has the color (\d+),(\d+),(\d+)"
     (fn [world [_ text r g b]]
@@ -378,11 +383,10 @@
         (fn [frame]
           (with-text-location world text
             (fn [_ col row]
-              (let [[cw ch] (:cell-size @world)
-                    found (filter #(and (= (* col cw) (:x %)) (= (* row ch) (:y %))) (:rects frame))]
-                (check (and (seq found) (every? #(= (rgb-of r g b) (:color %)) found))
-                       (str "rectangles behind \"" text "\" have colors "
-                            (pr-str (map :color found)) ", expected " (rgb-of r g b)))))))))]
+              (let [[cw ch] (:cell-size @world)]
+                (have-color (filter #(and (= (* col cw) (:x %)) (= (* row ch) (:y %))) (:rects frame))
+                            (str "rectangles behind \"" text "\"")
+                            (rgb-of r g b))))))))]
 
    [#"the glyph commands for \"([^\"]+)\" have the color (\d+),(\d+),(\d+)"
     (fn [world [_ text r g b]]
@@ -390,10 +394,9 @@
         (fn [frame]
           (with-text-location world text
             (fn [_ col row]
-              (let [found (span-glyphs frame (:cell-size @world) col row (count text))]
-                (check (and (seq found) (every? #(= (rgb-of r g b) (:color %)) found))
-                       (str "glyph commands for \"" text "\" have colors "
-                            (pr-str (map :color found)) ", expected " (rgb-of r g b)))))))))]
+              (have-color (span-glyphs frame (:cell-size @world) col row (count text))
+                          (str "glyph commands for \"" text "\"")
+                          (rgb-of r g b)))))))]
 
    [#"the buffer is unchanged"
     (fn [world _]

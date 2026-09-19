@@ -10,15 +10,45 @@
             [veil.mods.themes :as themes])
   (:import [java.awt Font]))
 
-(defn- get-content-types []
-  (into fixtures/content-types [themes/content-type fonts/content-type]))
-
-(defn- parse-json-value [text]
+(defn- parse-json-value
   "Parse a JSON literal that might be a number, string, or other value."
+  [text]
   (try
     (json/read-str text)
     (catch Exception _
       text)))
+
+(defn- load-world
+  "Load the mods the scenario's files describe, with themes and fonts as content types."
+  [world]
+  (let [files (:files @world)]
+    (loader/load-mods {:folders (set (map #(first (str/split % #"/")) (keys files)))
+                       :files files}
+                      (into fixtures/content-types [themes/content-type fonts/content-type]))))
+
+(defn- loading-failed [load-result]
+  (fail (str "loading failed:\n" (loader/error-report (:errors load-result)))))
+
+(defn- with-registered-font
+  "Run (f entry full-file) for font id in the loaded world, where full-file is
+  the entry's path from the mods directory; fail when loading failed."
+  [world id f]
+  (let [load-result (load-world world)]
+    (if-let [reg (:registry load-result)]
+      (let [entry (registry/entry reg :font id)]
+        (f entry (when entry (str (:mod entry) "/fonts/" (-> entry :value :file)))))
+      (loading-failed load-result))))
+
+(defn- start-outcome
+  "What the font startup step gives for the loaded world: {:font f} or {:error msg}."
+  [world]
+  (try
+    (let [load-result (load-world world)]
+      (if-let [reg (:registry load-result)]
+        (fonts/startup reg fonts/default-id)
+        {:error (loader/error-report (:errors load-result))}))
+    (catch Exception e
+      {:error (str "Exception: " (.getMessage e))})))
 
 (def handlers
   [[#"mod \"([^\"]+)\" has a font \"([^\"]+)\" using file \"([^\"]+)\" at size (.+?)(?:\s+that overrides \"([^\"]+)\")?"
@@ -62,59 +92,29 @@
 
    [#"font \"([^\"]+)\" is registered from mod \"([^\"]+)\" with file \"([^\"]+)\" and size (\d+)"
     (fn [world [_ id mod file size]]
-      (let [content-types (get-content-types)
-            folders (set (map #(first (str/split % #"/")) (keys (:files @world))))
-            mods-data {:folders folders :files (:files @world)}
-            load-result (loader/load-mods mods-data content-types)
-            registry (:registry load-result)
-            entry (and registry (registry/entry registry :font id))
-            full-file (when entry (str (:mod entry) "/fonts/" (-> entry :value :file)))]
-        (if registry
+      (with-registered-font world id
+        (fn [entry full-file]
           (check (and entry
                       (= mod (:mod entry))
                       (= file full-file)
                       (= (Integer/parseInt size) (-> entry :value :size)))
-                 (str "font " id " is registered from mod " mod " with file " file " and size " size))
-          (fail (str "loading failed:\n" (loader/error-report (:errors load-result)))))))]
+                 (str "font " id " is registered from mod " mod " with file " file " and size " size)))))]
 
    [#"font \"([^\"]+)\" is registered from mod \"([^\"]+)\" with file \"([^\"]+)\""
     (fn [world [_ id mod file]]
-      (let [content-types (get-content-types)
-            folders (set (map #(first (str/split % #"/")) (keys (:files @world))))
-            mods-data {:folders folders :files (:files @world)}
-            load-result (loader/load-mods mods-data content-types)
-            registry (:registry load-result)
-            entry (and registry (registry/entry registry :font id))
-            full-file (when entry (str (:mod entry) "/fonts/" (-> entry :value :file)))]
-        (if registry
+      (with-registered-font world id
+        (fn [entry full-file]
           (check (and entry
                       (= mod (:mod entry))
                       (= file full-file))
-                 (str "font " id " is registered from mod " mod " with file " file))
-          (fail (str "loading failed:\n" (loader/error-report (:errors load-result)))))))]
+                 (str "font " id " is registered from mod " mod " with file " file)))))]
 
    [#"the font for startup is chosen from the loaded mods"
     (fn [world _]
-      (try
-        (let [content-types (get-content-types)
-              folders (set (map #(first (str/split % #"/")) (keys (:files @world))))
-              mods-data {:folders folders :files (:files @world)}
-              load-result (loader/load-mods mods-data content-types)]
-          (if-let [registry (:registry load-result)]
-            (let [fonts-result (fonts/startup registry fonts/default-id)]
-              (if-let [error (:error fonts-result)]
-                (do
-                  (swap! world assoc :startup-error error)
-                  (swap! world dissoc :startup-font))
-                (do
-                  (swap! world assoc :startup-font (:font fonts-result))
-                  (swap! world dissoc :startup-error))))
-            (do
-              (swap! world assoc :startup-error (loader/error-report (:errors load-result)))
-              (swap! world dissoc :startup-font))))
-        (catch Exception e
-          (swap! world assoc :startup-error (str "Exception: " (.getMessage e)))
-          (swap! world dissoc :startup-font)))
+      (let [outcome (start-outcome world)]
+        (if-let [error (:error outcome)]
+          (swap! world #(-> % (assoc :startup-error error) (dissoc :startup-font)))
+          (swap! world #(-> % (assoc :startup-font (:font outcome)) (dissoc :startup-error)))))
       (ok))]
 
    [#"the startup font is the file \"([^\"]+)\" at size (\d+)"

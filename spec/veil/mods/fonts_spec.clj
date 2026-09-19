@@ -1,10 +1,14 @@
 (ns veil.mods.fonts-spec
   (:require [speclj.core :refer :all]
-    [clojure.spec.alpha :as s]
     [veil.mods.fonts :as fonts]
     [veil.mods.loader :as loader]
     [veil.mods.fixtures :as f]
     [veil.mods.validate :as validate]))
+
+(defn- font-errors
+  "The validation errors for a font descriptor's JSON text."
+  [json-text]
+  (:errors (validate/validate "f.json" json-text (:spec fonts/content-type) (:phrases fonts/content-type))))
 
 (describe "font-file-name?"
   (it "accepts .ttf files with no path separators"
@@ -37,47 +41,47 @@
       (should-not (contains? result :errors))))
 
   (it "rejects size 0"
-    (let [errors (:errors (validate/validate "f.json" "{\"id\": \"core:default\", \"file\": \"Mono.ttf\", \"size\": 0}" (:spec fonts/content-type) (:phrases fonts/content-type)))]
+    (let [errors (font-errors "{\"id\": \"core:default\", \"file\": \"Mono.ttf\", \"size\": 0}")]
       (should= #{["/size" "a positive integer"]}
                (set (map (juxt :path :expected) errors)))))
 
   (it "rejects negative size"
-    (let [errors (:errors (validate/validate "f.json" "{\"id\": \"core:default\", \"file\": \"Mono.ttf\", \"size\": -5}" (:spec fonts/content-type) (:phrases fonts/content-type)))]
+    (let [errors (font-errors "{\"id\": \"core:default\", \"file\": \"Mono.ttf\", \"size\": -5}")]
       (should= #{["/size" "a positive integer"]}
                (set (map (juxt :path :expected) errors)))))
 
   (it "rejects non-integer size"
-    (let [errors (:errors (validate/validate "f.json" "{\"id\": \"core:default\", \"file\": \"Mono.ttf\", \"size\": 12.5}" (:spec fonts/content-type) (:phrases fonts/content-type)))]
+    (let [errors (font-errors "{\"id\": \"core:default\", \"file\": \"Mono.ttf\", \"size\": 12.5}")]
       (should= #{["/size" "a positive integer"]}
                (set (map (juxt :path :expected) errors)))))
 
   (it "rejects string size"
-    (let [errors (:errors (validate/validate "f.json" "{\"id\": \"core:default\", \"file\": \"Mono.ttf\", \"size\": \"20\"}" (:spec fonts/content-type) (:phrases fonts/content-type)))]
+    (let [errors (font-errors "{\"id\": \"core:default\", \"file\": \"Mono.ttf\", \"size\": \"20\"}")]
       (should= #{["/size" "a positive integer"]}
                (set (map (juxt :path :expected) errors)))))
 
   (it "rejects path-like file names"
-    (let [errors (:errors (validate/validate "f.json" "{\"id\": \"core:default\", \"file\": \"sub/Mono.ttf\", \"size\": 20}" (:spec fonts/content-type) (:phrases fonts/content-type)))]
+    (let [errors (font-errors "{\"id\": \"core:default\", \"file\": \"sub/Mono.ttf\", \"size\": 20}")]
       (should= #{["/file" "a font file name ending in .ttf or .otf"]}
                (set (map (juxt :path :expected) errors)))))
 
   (it "rejects missing id"
-    (let [errors (:errors (validate/validate "f.json" "{\"file\": \"Mono.ttf\", \"size\": 20}" (:spec fonts/content-type) (:phrases fonts/content-type)))]
+    (let [errors (font-errors "{\"file\": \"Mono.ttf\", \"size\": 20}")]
       (should= #{["/id" "a required field"]}
                (set (map (juxt :path :expected) errors)))))
 
   (it "rejects missing file"
-    (let [errors (:errors (validate/validate "f.json" "{\"id\": \"core:default\", \"size\": 20}" (:spec fonts/content-type) (:phrases fonts/content-type)))]
+    (let [errors (font-errors "{\"id\": \"core:default\", \"size\": 20}")]
       (should= #{["/file" "a required field"]}
                (set (map (juxt :path :expected) errors)))))
 
   (it "rejects missing size"
-    (let [errors (:errors (validate/validate "f.json" "{\"id\": \"core:default\", \"file\": \"Mono.ttf\"}" (:spec fonts/content-type) (:phrases fonts/content-type)))]
+    (let [errors (font-errors "{\"id\": \"core:default\", \"file\": \"Mono.ttf\"}")]
       (should= #{["/size" "a required field"]}
                (set (map (juxt :path :expected) errors)))))
 
   (it "rejects unknown fields"
-    (let [errors (:errors (validate/validate "f.json" "{\"id\": \"core:default\", \"file\": \"Mono.ttf\", \"size\": 20, \"family\": \"Mono\"}" (:spec fonts/content-type) (:phrases fonts/content-type)))]
+    (let [errors (font-errors "{\"id\": \"core:default\", \"file\": \"Mono.ttf\", \"size\": 20, \"family\": \"Mono\"}")]
       (should= #{["/family" "no such field"]}
                (set (map (juxt :path :expected) errors))))))
 

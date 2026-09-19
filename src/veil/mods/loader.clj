@@ -3,7 +3,11 @@
 
   A content type is {:type kw :folder \"widgets\" :spec spec :construct fn}:
   every mod's <folder>/*.json is validated against :spec and its data turned
-  into the registered value by :construct. Loading is three passes, each
+  into the registered value by :construct. Two keys are optional: :phrases
+  words a spec failure, and :check is called with {:data :mod :file :paths}
+  once the file satisfies :spec (:paths is every file path in the mods data)
+  and returns error maps for what a spec can't see, such as a file the JSON
+  names that must exist, or an empty seq. Loading is three passes, each
   needing the one before to have succeeded:
     1. validate every manifest and content file, collecting every problem;
     2. order the mods by dependency (first problem only);
@@ -42,13 +46,20 @@
    :message   (str file ": \"overrides\" is \"" overrides "\" but must equal the file's id \""
                    id "\"")})
 
+(defn- content-check-errors
+  "What the content type's own :check finds wrong with data that satisfies its
+  spec, or nil when the type has no :check."
+  [content-type context]
+  (when-let [check (:check content-type)]
+    (check context)))
+
 (defn- read-entry
   "{:entry e} or {:errors [...]} for one content file."
   [{:keys [mod content-type file text paths]}]
   (let [{:keys [data errors]} (validate/validate file text (:spec content-type) (:phrases content-type {}))
         {:keys [id overrides]} data
-        check-fn (:check content-type)
-        check-errors (when (and (not errors) check-fn) (check-fn {:data data :mod mod :file file :paths paths}))]
+        check-errors (when-not errors
+                       (content-check-errors content-type {:data data :mod mod :file file :paths paths}))]
     (cond
       errors                            {:errors errors}
       (seq check-errors)                {:errors check-errors}
