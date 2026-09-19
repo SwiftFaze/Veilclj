@@ -16,7 +16,8 @@ Feature: Terminal cell grid
     resolved to colors, blank cells adding nothing, a key the theme lacks
     failing loudly), the main menu, map and options screens drawn through the
     buffer (position, reverse video on the selected menu item, staying centered
-    when the grid is wider than 80 columns).
+    when the grid is wider than 80 columns), and the single-line border
+    around the whole grid on every screen.
   Supersedes: how the three screens are laid out and colored. The pixel `:x`,
     `:y` and `:color` commands of veil.ui.view/frame and `view/background` go
     away, so the three "draw command" scenarios of thin-quil-shell.feature are
@@ -25,7 +26,9 @@ Feature: Terminal cell grid
     item is now reverse video, not text in SELECTED_HIGHLIGHT). It also
     overturns game_window.feature's "resizing" exclusion: the window is now
     resizable, and the grid follows it.
-  Out of scope: frames, title bars, hint bars and every widget (#11); more than
+  Out of scope: frames around content, title bars, hint bars and every widget
+    (#11; the one-cell border around the whole grid is the exception and is
+    covered here, and #11's frames may replace it); more than
     one box style; text wrapping; the font itself (which file, how a mod
     supplies it, what a bad one does), which is mod content with its own rules;
     the Quil calls themselves (opening the resizable window, loading the font,
@@ -347,6 +350,55 @@ Feature: Terminal cell grid
       | 81   | 24   | VEIL                                        | 38  | 2   |
       | 160  | 43   | Quit                                        | 78  | 8   |
 
+  Scenario Outline: Every screen has a single-line border around the whole grid
+    Given the game is on the <screen> screen
+    When the screen is rendered into a grid of 80 columns by 24 rows
+    Then the cell at column <col>, row <row> holds glyph <glyph> in WINDOW_BORDER on BACKGROUND
+
+    Examples:
+      | screen    | col | row | glyph  |
+      | main menu | 0   | 0   | U+250C |
+      | main menu | 79  | 0   | U+2510 |
+      | main menu | 0   | 23  | U+2514 |
+      | main menu | 79  | 23  | U+2518 |
+      | main menu | 40  | 0   | U+2500 |
+      | main menu | 40  | 23  | U+2500 |
+      | main menu | 0   | 12  | U+2502 |
+      | main menu | 79  | 12  | U+2502 |
+      | map       | 0   | 0   | U+250C |
+      | map       | 79  | 23  | U+2518 |
+      | map       | 40  | 0   | U+2500 |
+      | map       | 0   | 12  | U+2502 |
+      | options   | 0   | 0   | U+250C |
+      | options   | 79  | 23  | U+2518 |
+      | options   | 40  | 23  | U+2500 |
+      | options   | 79  | 12  | U+2502 |
+
+  Scenario Outline: The border follows the grid's size
+    Given the game is on the main menu screen
+    When the screen is rendered into a grid of <cols> columns by <rows> rows
+    Then the cell at column <last_col>, row <last_row> holds glyph U+2518 in WINDOW_BORDER on BACKGROUND
+    And the cell at column <last_col>, row 0 holds glyph U+2510 in WINDOW_BORDER on BACKGROUND
+    And the cell at column 0, row <last_row> holds glyph U+2514 in WINDOW_BORDER on BACKGROUND
+
+    Examples:
+      | cols | rows | last_col | last_row |
+      | 100  | 30   | 99       | 29       |
+      | 120  | 40   | 119      | 39       |
+      | 81   | 25   | 80       | 24       |
+
+  Scenario Outline: The border leaves the cells just inside it blank
+    Given the game is on the <screen> screen
+    When the screen is rendered into a grid of 80 columns by 24 rows
+    Then the cell at column 1, row 1 is still blank
+    And the cell at column 78, row 22 is still blank
+
+    Examples:
+      | screen    |
+      | main menu |
+      | map       |
+      | options   |
+
   Scenario Outline: Every screen renders into a grid of the requested size
     Given the game is on the <screen> screen
     When the screen is rendered into a grid of 120 columns by 40 rows
@@ -380,6 +432,17 @@ Feature: Terminal cell grid
 #     have no drawing scenario until #11 draws borders, tables and scrollbars.
 #
 # Risks:
+#   - The border was added after the first playtest ("its difficult to see the
+#     grid"; intent Clarifications). It is a scope addition to the issue, which
+#     lists frames as out (#11); #11's frames may replace it. It uses
+#     WINDOW_BORDER, not BORDER, because that key is the theme's window frame.
+#     On a window smaller than 80x24 cells the grid is clamped and the window
+#     clips it, so the right and bottom border are not shown; that is the clamp
+#     rule, not a border bug.
+#   - The border takes the outermost row and column, and no screen writes there
+#     (text rows are 2 to 20, centered between the edges), so the position
+#     scenarios above are unchanged. A future screen that writes on row 0 or
+#     the last row would overwrite it.
 #   - The blit is untested by design. veil.ui.draw stays under bb shell-check,
 #     so every decision (whether a cell draws a rectangle, a glyph or nothing,
 #     the pixel position, the color) lives in the pure step, and the scenarios
