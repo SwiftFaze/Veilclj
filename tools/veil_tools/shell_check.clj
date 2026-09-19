@@ -1,164 +1,124 @@
 (ns veil-tools.shell-check
-  "Mechanical check that veil.main and veil.ui.draw make no decisions or calculations.
-  Reads Clojure source and analyzes forms, so comments and strings are ignored."
-  (:require [clojure.string :as str])
-  (:import [clojure.lang LineNumberingPushbackReader]))
+  "Mechanical check that veil.main and veil.ui.draw, the Quil shell, decide
+  nothing and calculate nothing, so everything they leave uncovered is a call
+  into Quil or Processing. The rule is in docs/testing.md.
 
-(def ^:private shell-files
+  Pure: `check` takes the source text of the shell files and returns findings.
+  Source is read with the Clojure reader, so comments and strings are ignored."
+  (:require [clojure.string :as str])
+  (:import [clojure.lang LineNumberingPushbackReader]
+           [java.io StringReader]))
+
+(def shell-files
+  "The only files the check looks at."
   ["src/veil/main.clj" "src/veil/ui/draw.clj"])
 
 (def ^:private calculation-ops
   #{'+ '- '* '/ 'inc 'dec 'mod 'quot 'rem '= 'not= '< '> '<= '>=})
 
-(def ^:private branch-heads
-  #{'cond 'case 'condp})
+(def ^:private branch-heads #{'cond 'case 'condp})
 
-(def ^:private guard-heads
-  #{'if 'when 'if-not 'when-not})
+(def ^:private guard-heads #{'if 'when 'if-not 'when-not})
 
-(defn- read-next
-  "Read one form from the reader, returning ::eof if at end."
-  [reader]
-  (clojure.lang.LispReader/read reader false ::eof nil))
-
-(defn- read-all-forms
-  "Read all forms from source text. Returns vector of forms with line metadata."
+(defn- read-forms
+  "Every top-level form in source-text; list forms carry :line metadata."
   [source-text]
-  (let [reader (LineNumberingPushbackReader. (java.io.StringReader. source-text))
-        forms (atom [])]
-    (loop []
-      (let [form (read-next reader)]
-        (if (= form ::eof)
-          @forms
-          (do
-            (swap! forms conj form)
-            (recur)))))))
+  (binding [*read-eval* false]
+    (let [reader (LineNumberingPushbackReader. (StringReader. source-text))]
+      (->> (repeatedly #(read reader false ::eof))
+           (take-while #(not= ::eof %))
+           vec))))
 
-(defn- parse-ns-aliases
-  "Extract :require aliases from the ns form. Returns a map of alias -> namespace."
-  [ns-form]
-  (try
-    (if (and (list? ns-form) (= (first ns-form) 'ns))
-      (let [clauses (drop 2 ns-form)]
-        (reduce (fn [acc clause]
-                  (if (and (vector? clause) (= (first clause) :require))
-                    (let [require-clauses (rest clause)]
-                      (reduce (fn [acc2 req]
-                                (cond
-                                  (vector? req)
-                                  (let [ns (first req)
-                                        rest-parts (rest req)
-                                        as-clause (some (fn [[k v]] (when (= k :as) v)) (partition 2 rest-parts))]
-                                    (if as-clause
-                                      (assoc acc2 as-clause ns)
-                                      acc2))
-                                  :else acc2))
-                              acc
-                              require-clauses))
-                    acc))
-                {}
-                clauses))
-      {})
-    (catch Exception _ {})))
+(defn- require-aliases
+  "alias symbol -> namespace symbol from the file's first ns form."
+  [forms]
+  (let [ns-form (first (filter #(and (seq? %) (= 'ns (first %))) forms))]
+    (into {} (for [clause (rest ns-form)
+                   :when (and (seq? clause) (= :require (first clause)))
+                   spec (rest clause)
+                   :when (vector? spec)
+                   [option value] (partition 2 (rest spec))
+                   :when (= :as option)]
+               [value (first spec)]))))
 
-(defn- veil-ns? [sym alias-map]
-  "Check if a symbol refers to a veil.* namespace (qualified or via alias)."
-  (if (symbol? sym)
-    (if-let [ns (namespace sym)]
-      (.startsWith (str ns) "veil.")
-      (if-let [resolved (alias-map sym)]
-        (.startsWith (str resolved) "veil.")
-        false))
-    false))
+(defn- veil-namespace?
+  "Whether sym is qualified with a veil.* namespace, directly or by alias."
+  [sym aliases]
+  (let [qualifier (some-> (namespace sym) symbol)]
+    (and qualifier
+         (str/starts-with? (str (get aliases qualifier qualifier)) "veil."))))
 
-(defn- valid-guard-test? [test alias-map]
-  "Check if a test form is allowed in a guard.
-  Allowed: bare symbol, keyword lookup of one symbol, or veil.* function call with simple args."
-  (cond
-    (symbol? test) true
-    (keyword? test) false
-    (list? test)
-    (let [head (first test)
-          args (rest test)]
+(defn- keyword-lookup? [form]
+  (and (seq? form) (= 2 (count form)) (keyword? (first form)) (symbol? (second form))))
+
+(defn- simple-value? [form]
+  (or (symbol? form) (keyword-lookup? form)))
+
+(defn- veil-call? [form aliases]
+  (and (seq? form)
+       (symbol? (first form))
+       (veil-namespace? (first form) aliases)
+       (every? simple-value? (rest form))))
+
+(defn- allowed-guard-test?
+  "A guard may test one already-computed value: a name, a keyword lookup of a
+  name, or a veil.* function called on such values."
+  [test aliases]
+  (or (simple-value? test) (veil-call? test aliases)))
+
+(defn- own-finding
+  "The message for form itself (not its children), or nil."
+  [form aliases]
+  (when (seq? form)
+    (let [head (first form)]
       (cond
-        ; Keyword lookup like (:error launched)
-        (and (keyword? head) (= (count args) 1) (symbol? (first args))) true
-        ; Function call - must be veil.* namespace
-        (and (symbol? head) (veil-ns? head alias-map))
-        ; All args must be symbols or keyword lookups of symbols
-        (every? (fn [arg]
-                  (or (symbol? arg)
-                      (and (list? arg) (keyword? (first arg)) (= (count arg) 2) (symbol? (second arg)))))
-                args)
-        :else false))
-    :else false))
+        (and (guard-heads head)
+             (some? (second form))
+             (not (allowed-guard-test? (second form) aliases))) "a guard on an expression"
+        (calculation-ops head) (str "calculation with " head)
+        (branch-heads head) "a multi-way branch"))))
 
-(defn- find-violations-in-form [form alias-map]
-  "Find all violations (guards, calculations, branches) in a form.
-  Returns vector of [line message] pairs."
-  (let [violations (atom [])]
-    (letfn [(walk [f]
-              (cond
-                (list? f)
-                (let [head (first f)
-                      line (:line (meta f))]
-                  (cond
-                    ; Check for guard violations (but don't recurse into the test)
-                    (contains? guard-heads head)
-                    (let [test (second f)]
-                      (if (and test (not (valid-guard-test? test alias-map)))
-                        (swap! violations conj [line "a guard on an expression"])))
+(defn- children
+  "What to look inside. A guard's test is skipped: it is reported (or allowed)
+  as a whole, and looking inside would report the same expression twice."
+  [form]
+  (cond
+    (and (seq? form) (guard-heads (first form))) (drop 2 form)
+    (coll? form) (seq form)))
 
-                    ; Check for calculations
-                    (contains? calculation-ops head)
-                    (swap! violations conj [line (str "calculation with " (name head))])
+(defn- form-findings
+  "[{:line n :message m}] for form and everything inside it."
+  [form aliases]
+  (let [message (own-finding form aliases)]
+    (concat (when message [{:line (:line (meta form)) :message message}])
+            (mapcat #(form-findings % aliases) (children form)))))
 
-                    ; Check for branches
-                    (contains? branch-heads head)
-                    (swap! violations conj [line "a multi-way branch"]))
-
-                  ; Recurse into children (but skip the test of a guard to avoid double-reporting)
-                  (if (not (contains? guard-heads head))
-                    (run! walk (rest f))
-                    (run! walk (drop 2 f))))
-
-                (vector? f) (run! walk f)
-                (map? f) (run! walk (vals f))
-                :else nil))]
-      (walk form)
-      @violations)))
-
-(defn- analyze-source [path source-text]
-  "Analyze a single source file and return findings (including missing-file finding)."
+(defn- file-findings [path source-text]
   (if (nil? source-text)
-    [[path nil "file not found"]]
+    [{:path path :message "file not found"}]
     (try
-      (let [forms (read-all-forms source-text)
-            ns-form (first (filter #(and (list? %) (= (first %) 'ns)) forms))
-            alias-map (parse-ns-aliases ns-form)]
-        (vec (mapcat #(find-violations-in-form % alias-map) forms)))
+      (let [forms (read-forms source-text)
+            aliases (require-aliases forms)]
+        (vec (for [form forms
+                   finding (form-findings form aliases)]
+               (assoc finding :path path))))
       (catch Exception _
-        [[path nil "could not be read"]]))))
+        [{:path path :message "could not be read"}]))))
+
+(defn- render [{:keys [path line message]}]
+  (if line
+    (str path " line " line ": " message)
+    (str path ": " message)))
 
 (defn check
-  "Pure core: check files for shell violations.
-  files is a map path -> source text (nil means file not found).
-  Returns {:findings [strings] :exit-status 0-or-1}"
+  "files is a map of path -> source text. Only the shell files are looked at; a
+  missing one is itself a finding, so renaming a shell file can't switch the
+  check off. Returns {:findings [\"<path> line <n>: <message>\" ...]
+  :exit-status 0-or-1}, findings ordered by path, then line."
   [files]
-  (let [all-violations (atom [])]
-    (doseq [path shell-files]
-      (let [source (get files path)
-            violations (analyze-source path source)]
-        (run! #(swap! all-violations conj (vec (cons path %))) violations)))
-
-    (let [sorted-findings
-          (->> @all-violations
-               (sort-by (fn [[path line _]]
-                          [path (or line 0)]))
-               (map (fn [[path line message]]
-                      (if (nil? line)
-                        (str path ": " message)
-                        (str path " line " line ": " message))))
-               vec)]
-      {:findings sorted-findings
-       :exit-status (if (empty? sorted-findings) 0 1)})))
+  (let [findings (->> shell-files
+                      (mapcat #(file-findings % (get files %)))
+                      (sort-by (juxt :path #(or (:line %) 0)))
+                      (mapv render))]
+    {:findings findings
+     :exit-status (if (seq findings) 1 0)}))

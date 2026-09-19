@@ -329,6 +329,15 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 9. The Quil shell decides nothing (veil-tools.shell-check)
+# ---------------------------------------------------------------------------
+
+hr
+echo "9. No decisions or calculations in veil.main / veil.ui.draw (bb shell-check)"
+hr
+gate "no decisions or calculations in the Quil shell" shell-check 'line|not found|could not' bb shell-check
+
+# ---------------------------------------------------------------------------
 # Verdict
 # ---------------------------------------------------------------------------
 

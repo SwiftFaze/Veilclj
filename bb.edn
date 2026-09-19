@@ -73,6 +73,13 @@
   {:doc      "APS acceptance mutation: do the features notice changed examples?"
    :requires ([veil-tools.acceptance :as acceptance])
    :task     (System/exit (apply acceptance/mutate *command-line-args*))}
+  shell-check
+  {:doc      "Fail if veil.main or veil.ui.draw decides or calculates anything (the Quil shell rule)"
+   :requires ([veil-tools.shell-check :as shell-check])
+   :task     (let [present (filter babashka.fs/exists? shell-check/shell-files)
+                   {:keys [findings exit-status]} (shell-check/check (zipmap present (map slurp present)))]
+               (run! println findings)
+               (System/exit exit-status))}
   gate-ratchet
   {:doc      "Fail if a quality gate was loosened vs a base ref (default origin/develop)"
    :requires ([veil-tools.gate-ratchet :as ratchet])
