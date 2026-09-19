@@ -19,14 +19,18 @@ Feature: Themes
   Supersedes: the hard-coded colors in veil.ui.view/command-color (selected
     255,255,100 / normal 220,220,220) and the literal black background in
     veil.ui.draw. Both are replaced by theme lookups, so the menu's colors
-    change: see "The main menu draws in the active theme's colors".
+    change: see "The main menu draws in the active theme's colors". The menu
+    is now drawn through the cell grid (terminal-cell-grid.feature), so the
+    selected item shows as reverse video: SELECTED_TEXT on SELECTED_HIGHLIGHT,
+    where it was once text in SELECTED_HIGHLIGHT.
   Out of scope: the mod loader machinery itself (mod-loader.feature) - the
     content-ID pattern, collisions, "overrides", dependency ordering and the
     "all problems reported together" rule apply to themes exactly as to any
     other content type and are not re-specified here. Also out: choosing a
     theme in Options, persisting the choice, and the core:amber/core:green
-    themes (#17); the cell-grid renderer that will replace this drawing code
-    (#9); and the widgets that will use the optional keys (#12, #15).
+    themes (#17); how the cell grid is laid out (terminal-cell-grid.feature,
+    which the two "what the player sees" scenarios observe through); and the
+    widgets that will use the optional keys (#12, #15).
   QA: none - colors don't appear in a key script's event log, so the human
     playtest is the check for what the menu looks like.
 
@@ -191,21 +195,28 @@ Feature: Themes
     Given mod "core" has the theme file "core/themes/default.json" ported from Java Veil
     When the mods are loaded
     And the starting state is built from the loaded mods
+    And the screen is rendered into a grid of 80 columns by 24 rows
+    And the buffer is turned into draw commands for cells 12 by 25 pixels
     Then the frame's background color is 0,0,0
-    And the selected menu item "New Game" is drawn in 192,192,192
-    And the menu item "Options" is drawn in 255,255,255
-    And the menu item "Quit" is drawn in 255,255,255
+    And the rectangle command behind "New Game" has the color 192,192,192
+    And the glyph commands for "New Game" have the color 0,0,0
+    And the glyph commands for "Options" have the color 255,255,255
+    And the glyph commands for "Quit" have the color 255,255,255
 
   Scenario: Recoloring the theme recolors the menu
     Given mod "core" has a theme "core:default" with every required color
     And its SELECTED_HIGHLIGHT is 255,176,0
+    And its SELECTED_TEXT is 20,30,40
     And its NORMAL_TEXT is 120,60,0
     And its BACKGROUND is 5,5,5
     When the mods are loaded
     And the starting state is built from the loaded mods
+    And the screen is rendered into a grid of 80 columns by 24 rows
+    And the buffer is turned into draw commands for cells 12 by 25 pixels
     Then the frame's background color is 5,5,5
-    And the selected menu item "New Game" is drawn in 255,176,0
-    And the menu item "Options" is drawn in 120,60,0
+    And the rectangle command behind "New Game" has the color 255,176,0
+    And the glyph commands for "New Game" have the color 20,30,40
+    And the glyph commands for "Options" have the color 120,60,0
 
 # Non-goals:
 #   - Re-specifying the loader: the namespaced ID pattern, collisions,
@@ -249,9 +260,9 @@ Feature: Themes
 #     or the projection could drop or rename a key unnoticed.
 #   - veil.ui.draw must decide nothing (bb shell-check, enforced). The
 #     background color therefore has to arrive from veil.ui.view, not be
-#     computed in draw!, which means view/frame either returns the background
-#     alongside the commands or gains a second entry point. The scenario says
-#     "the frame's background color" and leaves the shape to the coder.
+#     computed in draw!. The scenarios say "the frame's background color" and
+#     leave the shape to the coder; terminal-cell-grid.feature now pins it
+#     next to the draw commands built from the cell buffer.
 #   - The 0-255 range is stricter than Java Veil's theme.schema.json, which
 #     only requires an integer. No shipped Java theme is out of range, so
 #     "loads unchanged" still holds, but a hand-edited Java theme with 300 in

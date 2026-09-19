@@ -7,7 +7,9 @@ Feature: Game window
   The game opens a single window titled Veil at a fixed default size.
 
   Covers: the window's title and default size.
-  Out of scope: fullscreen, resizing, and anything drawn inside the window.
+  Out of scope: fullscreen, and anything drawn inside the window, including how
+    the grid of character cells follows a resized window (the window is
+    resizable; terminal-cell-grid.feature).
 
   Scenario: The window is titled Veil
     Given the game is launched
