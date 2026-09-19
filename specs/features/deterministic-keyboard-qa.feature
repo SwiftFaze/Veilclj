@@ -18,9 +18,11 @@ Feature: Deterministic keyboard QA run
   Supersedes: nothing.
   Out of scope: seeded randomness (--seed; the game draws no random numbers
     yet), pixel or screenshot comparison, mouse input, and how any screen is
-    drawn. Opening the real window, quitting the process when the script ends
-    and reading files from disk are I/O in veil.main and are covered by the
-    human playtest and a manual `bb qa` run, not by these steps.
+    drawn. Opening the real window, the q/exit call that quits the process when
+    the script ends and reading files from disk are I/O in veil.main and are
+    covered by the human playtest and a manual `bb qa` run, not by these steps.
+    The decision to quit is not among them: it is mode/frame's :exit?, covered
+    by unit specs (see thin-quil-shell.feature).
 
   Background:
     Given the game has just started

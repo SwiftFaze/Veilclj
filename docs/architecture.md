@@ -26,7 +26,7 @@ Dependencies point one way, downward. Nothing may depend on a layer above it.
 
 | Layer | Namespaces | Holds | May call Quil? |
 |---|---|---|---|
-| Entry | `veil.main` | `-main`, launch steps, sketch assembly, the per-frame and per-key callbacks | yes |
+| Entry | `veil.main` | `-main`, launch steps, sketch assembly, the per-frame and per-key callbacks: Quil calls and passing data along, no decisions (`bb shell-check`) | yes |
 | UI | `veil.ui.*` | drawing state as glyphs, mapping key events to game inputs, the QA tooling (`veil.ui.qa.*`) | yes |
 | Game | `veil.game.*` | rules: screens, menus, world, entities, the events a state change caused | **no** |
 
@@ -82,15 +82,45 @@ field (0-based index) tracks which is active, with wrapping at both ends.
 (`:up`, `:down`, `:confirm`, `:back`, or `nil`). It has no dependency on Quil,
 so specs and acceptance steps can use it directly without opening a window.
 
-`veil.ui.draw` is the only Quil-touching UI namespace. `event->input` is kept
-pure (no Quil required) so game input logic can be tested in isolation.
+`veil.ui.input/escape?` answers "is this the raw Escape key?", so the shell only
+has to act on the answer (next section). `veil.ui.draw` is the only
+Quil-touching UI namespace. `event->input` and `escape?` are kept pure (no Quil
+required) so game input logic can be tested in isolation.
+
+## The Quil shell decides nothing
+
+`veil.main` and `veil.ui.draw` call Quil and Processing and pass data along;
+every decision and calculation is a specced pure function, so the only lines no
+spec runs are the ones that need a live window. The rule and the mechanical
+check (`bb shell-check`, a blocking section of the gate) are in
+`docs/testing.md`, "The Quil shell rule". Where each decision lives:
+
+| Decision the shell used to make | Now answered by | Layer |
+|---|---|---|
+| Did the mods load, and what does a failure say and exit with? | `veil.mods.loader/startup` (registry, or error report plus exit status 1) | mods |
+| What state does the game start in? | `veil.game.state/starting` | game |
+| Does the launch start the game or stop it with a message? | `veil.ui.qa.launch/outcome` | ui |
+| Is this key the raw Escape that Processing would treat as quit? | `veil.ui.input/escape?` | ui |
+| Where and in what colour is each line of text drawn? | `veil.ui.view/frame` (`state`, window `width`) returns `:x`, `:y` and `:color` on every command | ui |
+| Is it time to quit? | `veil.ui.qa.mode/frame`'s `:exit?` | ui |
+
+The startup decision is split at its two seams so that no layer gained a
+dependency: `startup` needs only `veil.mods.loader`, `starting` only
+`veil.game.state`; `veil.main` reads the mods directory (`veil.mods.disk`),
+calls `startup`, and hands the registry to `starting` when the sketch sets up.
+`dependency-checker.edn` did not change. `draw!` passes `(q/width)` to
+`view/frame` rather than the view knowing the window, so a resizable window
+would still lay out correctly.
 
 ## The Esc/Processing gotcha
 
 Processing calls `exit()` if its `key` field == 27 (ESC char) after `keyPressed`
-returns. To make Esc mean `:back` (not quit), `veil.main/handle-key` zeros that
-field when a raw Escape is detected. This prevents the unintended
-exit and allows menu and screen navigation to handle Esc as :back input.
+returns. To make Esc mean `:back` (not quit), `veil.main/handle-key` calls
+`prevent-processing-exit`, which zeros that field when `input/escape?` says the
+event is a raw Escape. This prevents the unintended exit and allows menu and
+screen navigation to handle Esc as :back input. The `set!` on the applet needs a
+live window, so it is the one part of this that only the QA run and the
+playtest exercise.
 
 ## QA runs: scripted input through the real key path
 

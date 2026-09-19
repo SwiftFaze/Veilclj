@@ -1,6 +1,7 @@
 (ns veil.ui.draw
-  "Quil drawing layer. Kept thin: only this ns touches Quil.
-  No specs possible here. It must stay trivial."
+  "Quil drawing layer: hands each draw command from veil.ui.view to Quil and
+  decides nothing (bb shell-check fails the build if it does). It has no specs
+  because it needs a live window; the QA run and the playtest cover it."
   (:require [quil.core :as q]
             [veil.ui.view :as view]))
 

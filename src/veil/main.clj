@@ -1,6 +1,7 @@
 (ns veil.main
   "Entry point: opens the Quil window. Kept thin on purpose - game rules live
-  in pure namespaces under veil.game, drawing under veil.ui."
+  in pure namespaces under veil.game, drawing under veil.ui. It calls Quil and
+  passes data along; bb shell-check fails the build if it decides anything."
   (:require [quil.core :as q]
             [quil.middleware :as m]
             [quil.applet :as qa]
