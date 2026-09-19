@@ -44,7 +44,7 @@ Feature: Deterministic keyboard QA run
       |                            | no keys    |
       | # open Options             | no keys    |
       | Down # move to Options     | Down       |
-      | Down / / # gap / Enter     | Down Enter |
+      | Down /  / # gap / Enter    | Down Enter |
 
   Scenario Outline: Keys take consecutive ticks and a wait skips ticks
     When the key script "<script>" is parsed
