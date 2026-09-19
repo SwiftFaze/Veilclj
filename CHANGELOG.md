@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-beta.6](https://github.com/SwiftFaze/Veilclj/compare/v0.1.0-beta.5...v0.1.0-beta.6) (2026-09-19)
+
+
+### Features
+
+* move decisions out of veil.main and draw!, gate the shell with bb shell-check ([#48](https://github.com/SwiftFaze/Veilclj/issues/48)) ([03d5fe0](https://github.com/SwiftFaze/Veilclj/commit/03d5fe0eccf7faf39ef0a63c902762619ead6bac))
+
 ## [0.1.0-beta.5](https://github.com/SwiftFaze/Veilclj/compare/v0.1.0-beta.4...v0.1.0-beta.5) (2026-09-19)
 
 
