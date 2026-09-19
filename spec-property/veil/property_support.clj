@@ -10,12 +10,7 @@
   "Read the VEIL_PROPERTY_SEED env var, parsing it to a long.
    Returns nil if unset, blank, or unparseable."
   []
-  (let [s (System/getenv "VEIL_PROPERTY_SEED")]
-    (when (and s (not (empty? (.trim ^String s))))
-      (try
-        (parse-long s)
-        (catch Exception _
-          nil)))))
+  (some-> (System/getenv "VEIL_PROPERTY_SEED") parse-long))
 
 (defn run
   "Run a property spec, returning nil if the property holds, else a message string.
@@ -34,11 +29,9 @@
    (run property (env-seed)))
   ([property seed]
    (let [result (tc/quick-check default-trials property :seed seed)
-         {:keys [pass? num-tests failed shrunk]} result]
+         {:keys [pass? num-tests] actual-seed :seed} result]
      (when-not pass?
-       (let [actual-seed (:seed result)
-             shrunk-example (get-in result [:shrunk :smallest])]
-         (str "Property failed after " num-tests " trials.\n"
-              "Seed: " actual-seed "\n"
-              "Shrunk counterexample: " shrunk-example "\n"
-              "Rerun: VEIL_PROPERTY_SEED=" actual-seed " bb property"))))))
+       (str "Property failed after " num-tests " trials.\n"
+            "Seed: " actual-seed "\n"
+            "Shrunk counterexample: " (get-in result [:shrunk :smallest]) "\n"
+            "Rerun: VEIL_PROPERTY_SEED=" actual-seed " bb property")))))
