@@ -154,31 +154,6 @@
           (fail (str "no menu item " item)))))]
 
 
-   [#"the command on row (\d+) is drawn at x (\d+) and y (\d+)"
-    (fn [world [_ row-str x-str y-str]]
-      (let [row (Integer/parseInt row-str)
-            expected-x (Integer/parseInt x-str)
-            expected-y (Integer/parseInt y-str)
-            commands (:draw-commands @world)
-            cmd (first (filter #(= row (:row %)) commands))]
-        (check (and cmd (= expected-x (:x cmd)) (= expected-y (:y cmd)))
-               (str "row " row " at (" expected-x " " expected-y ")"))))]
-
-   [#"there is at least one command"
-    (fn [world _]
-      (let [commands (:draw-commands @world)]
-        (check (seq commands) "at least one command")))]
-
-   [#"every command has a colour, an x and a y"
-    (fn [world _]
-      (let [commands (:draw-commands @world)
-            all-have-data (every? (fn [cmd]
-                                   (and (contains? cmd :color)
-                                        (contains? cmd :x)
-                                        (contains? cmd :y)))
-                                 commands)]
-        (check all-have-data "every command has color, x, and y")))]
-
    [#"the game is on the (.+) screen"
     (fn [world [_ screen-name]]
       (let [start (state/starting {:load-order ["core"] :content {}}
