@@ -8,7 +8,7 @@
  :aliases
  {:run   {:main-opts ["-m" "veil.main"]}
 
-  :spec  {:extra-paths ["spec"]
+  :spec  {:extra-paths ["spec" "tools"]
           :extra-deps  {speclj/speclj {:mvn/version "3.13.0"}}
           :main-opts   ["-m" "speclj.main" "-c" "spec"]}
 
@@ -22,7 +22,7 @@
 
   ;; Acceptance pipeline runtime: generated entry points + step handlers.
   ;; "spec" is here only for veil.mods.fixtures, the fixture content types.
-  :acceptance {:extra-paths ["acceptance" "spec" "build/acceptance/generated"]}
+  :acceptance {:extra-paths ["acceptance" "spec" "build/acceptance/generated" "tools"]}
 
   ;; QA procedure runner (bb qa <slug>)
   :qa {:main-opts ["-m" "veil.ui.qa.runner"]}
