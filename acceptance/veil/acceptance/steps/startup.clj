@@ -1,15 +1,14 @@
 (ns veil.acceptance.steps.startup
   "Acceptance steps for startup, starting state, and draw commands."
-  (:require [veil.acceptance.step-support :refer [ok check fail]]
+  (:require [clojure.string :as str]
+            [veil.acceptance.step-support :refer [ok check fail]]
             [veil.game.state :as state]
             [veil.ui.input :as input]
             [veil.ui.view :as view]
             [veil.ui.qa.launch :as launch]
             [veil.ui.qa.mode :as mode]
-            [veil.ui.qa.files :as files]
             [veil.mods.fixtures :as f]
-            [veil.mods.loader :as loader]
-            [veil.mods.disk :as disk]))
+            [veil.mods.loader :as loader]))
 
 (def handlers
   [[#"the mods directory holds mod \"([^\"]+)\" with no dependencies"
@@ -24,9 +23,9 @@
 
    [#"the mods directory holds mod \"([^\"]+)\" with widget files (.+) that are both missing their label"
     (fn [world [_ mod-id files-str]]
-      (let [files (clojure.string/split files-str #" and ")
+      (let [files (str/split files-str #" and ")
             file-specs (mapv (fn [f]
-                              (clojure.string/replace f #"\"" ""))
+                              (str/replace f #"\"" ""))
                             files)
             widget-files (mapv (fn [f]
                                 [f "{\"id\": \"core:widget\"}"])
@@ -62,15 +61,8 @@
     (fn [world [_ prefix]]
       (let [startup (:startup @world)
             error (:error startup)]
-        (check (.startsWith error prefix)
+        (check (and error (.startsWith error prefix))
                (str "error starts with \"" prefix "\""))))]
-
-   [#"the startup error names \"([^\"]+)\" and \"([^\"]+)\""
-    (fn [world [_ name1 name2]]
-      (let [startup (:startup @world)
-            error (:error startup)]
-        (check (and (.contains error name1) (.contains error name2))
-               (str "error names both \"" name1 "\" and \"" name2 "\""))))]
 
    [#"the startup exit status is (\d+)"
     (fn [world [_ status-str]]
@@ -98,12 +90,6 @@
             screen (state/screen s)]
         (check (= :main-menu screen) "screen is main menu")))]
 
-   [#"the game is not over"
-    (fn [world _]
-      (let [s (:state @world)
-            over (state/over? s)]
-        (check (not over) "game is not over")))]
-
    [#"the starting state carries that registry"
     (fn [world _]
       (let [s (:state @world)
@@ -114,14 +100,14 @@
 
    [#"a key event arrives with raw key (.+)"
     (fn [world [_ key-name]]
-      (let [event (case key-name
-                    "Escape" {:raw-key (char 27)}
-                    "Enter" {:raw-key \newline}
-                    "a" {:raw-key \a}
-                    "no raw key" {}
-                    (fail (str "unknown key: " key-name)))]
-        (swap! world assoc :event event))
-      (ok))]
+      (if-let [event (get {"Escape" {:raw-key (char 27)}
+                           "Enter" {:raw-key \newline}
+                           "a" {:raw-key \a}
+                           "no raw key" {}}
+                          key-name)]
+        (do (swap! world assoc :event event)
+            (ok))
+        (fail (str "unknown key: " key-name))))]
 
    [#"the event is a raw Escape"
     (fn [world _]
@@ -137,16 +123,14 @@
 
    [#"the main menu with (.+) selected"
     (fn [world [_ item]]
-      (let [s (state/initial)
-            s (loop [s s count 0]
-                (if (>= count 10)
-                  (fail (str "Could not find menu item: " item))
-                  (let [selected (state/selected-item s)]
-                    (if (= selected item)
-                      s
-                      (recur (state/handle-input s :down) (inc count))))))]
-        (swap! world assoc :state s))
-      (ok))]
+      (let [reached (->> (iterate #(state/handle-input % :down) (state/initial))
+                         (take (count (state/menu-items (state/initial))))
+                         (filter #(= item (state/selected-item %)))
+                         first)]
+        (if reached
+          (do (swap! world assoc :state reached)
+              (ok))
+          (fail (str "no menu item " item)))))]
 
    [#"the draw commands are built for a window (\d+) pixels wide"
     (fn [world [_ width-str]]
@@ -156,7 +140,7 @@
         (swap! world assoc :draw-commands commands))
       (ok))]
 
-   [#"the command for (.+) has the colour (\d+) (\d+) (\d+)"
+   [#"the command for \"?([^\"]+?)\"? has the colour (\d+) (\d+) (\d+)"
     (fn [world [_ item r-str g-str b-str]]
       (let [expected-color [(Integer/parseInt r-str)
                            (Integer/parseInt g-str)
@@ -193,27 +177,22 @@
 
    [#"the game is on the (.+) screen"
     (fn [world [_ screen-name]]
-      (let [s (case screen-name
-                "main menu" (state/initial)
-                "map" (-> (state/initial) (state/handle-input :confirm))
-                "options" (-> (state/initial) (state/handle-input :down) (state/handle-input :confirm))
-                (fail (str "unknown screen: " screen-name)))]
-        (swap! world assoc :state s))
-      (ok))]
+      (let [start (state/initial)
+            screens {"main menu" start
+                     "map" (state/handle-input start :confirm)
+                     "options" (-> start (state/handle-input :down) (state/handle-input :confirm))}]
+        (if-let [s (get screens screen-name)]
+          (do (swap! world assoc :state s)
+              (ok))
+          (fail (str "unknown screen: " screen-name)))))]
 
    [#"the game is started with arguments \"(.*)\""
     (fn [world [_ args-str]]
-      (let [args (if (empty? args-str) [] (clojure.string/split args-str #" "))
-            plan-step (fn [ctx]
-                       (let [parsed-args (launch/parse-args (:args ctx))]
-                         (if (:error parsed-args)
-                           {:error (:error parsed-args)}
-                           {:qa (mode/plan (:keys parsed-args) files/read-script)})))
-            load-step (fn [ctx]
-                       (loader/startup (or (:mods-data @world) (f/mods (f/manifest "core"))) f/content-types))
-            launched (launch/run-steps {:args args} [plan-step load-step])
-            outcome (launch/outcome launched)]
-        (swap! world assoc :launched outcome))
+      (let [args (if (str/blank? args-str) [] (str/split args-str #" "))
+            plan-step (fn [{:keys [args]}] (mode/plan args (constantly {:steps []})))
+            load-step (fn [_] (loader/startup (:mods-data @world) f/content-types))
+            launched (launch/run-steps {:args args} [plan-step load-step])]
+        (swap! world assoc :launched (launch/outcome launched)))
       (ok))]
 
    [#"the game does not start"
@@ -230,17 +209,16 @@
 
    [#"the game starts with the mods registry"
     (fn [world _]
-      (let [outcome (:launched @world)
-            started (:start outcome)
-            s (if started started (state/initial))
-            registry (state/mods s)]
-        (check (and started (some? registry)) "game starts with mods registry")))]
+      (let [expected (:registry (loader/startup (:mods-data @world) f/content-types))
+            actual (get-in @world [:launched :start :registry])]
+        (check (and (some? expected) (= expected actual))
+               (str "game starts with the mods registry, got " (pr-str actual)))))]
 
    [#"the launch message starts with \"([^\"]+)\""
     (fn [world [_ prefix]]
       (let [outcome (:launched @world)
             error (:error outcome)]
-        (check (.startsWith error prefix)
+        (check (and error (.startsWith error prefix))
                (str "launch message starts with \"" prefix "\""))))]
 
    [#"the launch exit status is (\d+)"
