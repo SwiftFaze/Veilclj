@@ -78,8 +78,8 @@
 
    [#"mod \"([^\"]+)\" has the theme file \"([^\"]+)\" ported from Java Veil"
     (fn [world [_ mod path]]
-      (let [java-veil-path (str "C:/Users/Rob/IdeaProjects/Veil/mods/" path)
-            content (slurp java-veil-path)]
+      (let [shipped-path (str "mods/" path)
+            content (slurp shipped-path)]
         (swap! world assoc-in [:files path] content)
         (swap! world assoc :current-theme {:mod mod :path path :data (json/read-str content :key-fn keyword)})
         (ok)))]
