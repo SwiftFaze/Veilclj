@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-beta.8](https://github.com/SwiftFaze/Veilclj/compare/v0.1.0-beta.7...v0.1.0-beta.8) (2026-09-19)
+
+
+### Features
+
+* terminal cell-grid renderer with a bundled monospace font ([#52](https://github.com/SwiftFaze/Veilclj/issues/52)) ([05f1c7a](https://github.com/SwiftFaze/Veilclj/commit/05f1c7aa3104a1e056c4de46580e8dde16f6551d))
+
 ## [0.1.0-beta.7](https://github.com/SwiftFaze/Veilclj/compare/v0.1.0-beta.6...v0.1.0-beta.7) (2026-09-19)
 
 
