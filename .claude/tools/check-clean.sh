@@ -379,6 +379,9 @@ one clause of evidence. "All good" is not an answer; name the file.
                   order, with no assertion before the act.
   [ ] No new debt I introduced no code path that exists only for tests, and no
                   abstraction with a single caller added "for later".
+  [ ] Single answer (only if I changed veil.ui) For each thing a changed veil.ui
+                  fn shows or decides, veil.game already supplies it and veil.ui
+                  calls that. Evidence: name the veil.ui fn and the veil.game fn.
 
 Criteria and worked examples: docs/clean-code-gate.md
 EOF

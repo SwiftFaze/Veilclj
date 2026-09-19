@@ -38,8 +38,8 @@ run never counts as passing the gate. A full run takes about 30 seconds.
 ## Judgment checklist
 
 After the mechanical checks pass, the script prints a checklist that cannot be
-automated: SLAP, SRP, Purity, Naming, Why-not-what, Test intent, AAA, and No new
-debt. Each line needs PASS/FAIL **plus evidence naming a file, function or
+automated: SLAP, SRP, Purity, Naming, Why-not-what, Test intent, AAA, No new
+debt, and Single answer. Each line needs PASS/FAIL **plus evidence naming a file, function or
 spec**. A checklist without evidence counts as a skipped step.
 
 Worked examples for the Clojure-specific lines:
@@ -50,6 +50,15 @@ Worked examples for the Clojure-specific lines:
 - **SLAP** - a `key-pressed` handler that calls `(move-selection menu :down)`
   is orchestration; one that does `(mod (inc idx) (count items))` inline mixes
   in detail. Extract the detail into a named function.
+
+<!-- added 2026-09-19: dependency-checker cannot see veil.ui re-deriving a veil.game rule (#25) -->
+One more line is owed whenever the change touches `veil.ui`:
+
+- **Single answer** - for each thing a changed `veil.ui` function shows or
+  decides, name the `veil.game` function that supplies it. `veil.ui` working it
+  out itself is a FAIL, with evidence naming both functions; the fix is to call
+  `veil.game`, not to move the copy. Rule:
+  [`docs/architecture.md`](architecture.md#layers).
 
 ## If you can't pass it
 

@@ -35,6 +35,17 @@ and mutation testing concentrate. The direction is enforced by
 dependency-checker (`dependency-checker.edn`, `bb layers`), and the UML viewer
 (`bb uml`) draws any violating edge red.
 
+<!-- added 2026-09-19: dependency-checker sees only the direction of an arrow, not a rule worked out twice (#25) -->
+**`veil.ui` translates; it doesn't decide.** When `veil.game` already answers a
+question (is this tile walkable, which menu item is next), `veil.ui` calls it
+and translates the result into glyphs or game inputs. Working out the same
+answer again from the raw facts is a defect even though every arrow points
+down: the rule now exists twice and the copies drift apart. Fix it by calling
+`veil.game`, not by moving the duplicate to another namespace. The converse is
+also a defect: a `veil.game` function that only specs call while `veil.ui`
+reimplements it. Wire `veil.ui` to it, or delete it. No tool detects this; it
+is a judgment-checklist line (`docs/clean-code-gate.md`).
+
 ## Where state lives
 
 - Game state: the fun-mode state map, nowhere else. No atoms in `veil.game`.
