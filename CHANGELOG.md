@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-beta.5](https://github.com/SwiftFaze/Veilclj/compare/v0.1.0-beta.4...v0.1.0-beta.5) (2026-09-19)
+
+
+### Features
+
+* property tests for game-state invariants with test.check ([#46](https://github.com/SwiftFaze/Veilclj/issues/46)) ([d3b1592](https://github.com/SwiftFaze/Veilclj/commit/d3b159280a10e41e86def4fe57899993efc17f28))
+
 ## [0.1.0-beta.4](https://github.com/SwiftFaze/Veilclj/compare/v0.1.0-beta.3...v0.1.0-beta.4) (2026-09-19)
 
 
