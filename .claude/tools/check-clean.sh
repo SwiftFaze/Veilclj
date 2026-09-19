@@ -250,16 +250,23 @@ if [ -z "$added_features_list" ]; then
   echo "  PASS  no features added"
 else
   # Build the feature maps (path + text) and call the check
+  # Create temp files for feature paths and procedure paths
+  mkdir -p target/clean-code
+  feature_list_file="target/clean-code/added-features.txt"
+  procedure_list_file="target/clean-code/procedures.txt"
+  echo "$added_features_list" > "$feature_list_file"
+  echo "$existing_procedures" > "$procedure_list_file"
+
   bb -e "
     (require '[clojure.string :as str]
               '[veil-tools.docs-check :as check])
     (let [bb-edn-text (slurp \"bb.edn\")
           testing-md-text (slurp \"docs/testing.md\")
-          added-features-raw \"$(echo \"$added_features_list\" | tr '\n' '|')\"
-          added-features (vec (for [f (str/split (str/trim added-features-raw) #\"[|]?\")
-                                    :when (not (str/blank? f))]
-                                {:path f :text (slurp f)}))
-          procedures #{$(echo \"$existing_procedures\" | sed 's|^|\"|; s|$|\" |' | tr '\n' ' ' | sed 's| $||')}]
+          feature-files (str/split-lines (slurp \"$feature_list_file\"))
+          added-features (vec (for [path feature-files :when (not (str/blank? path))]
+                                {:path path :text (slurp path)}))
+          procedure-files (str/split-lines (slurp \"$procedure_list_file\"))
+          procedures (set procedure-files)]
       (System/exit (check/run bb-edn-text testing-md-text added-features procedures)))
   " || true
   advisory=$((advisory + 1))
