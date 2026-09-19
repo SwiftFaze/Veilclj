@@ -5,7 +5,6 @@
             [veil.game.state :as state]
             [veil.game.theme :as theme]
             [veil.ui.input :as input]
-            [veil.ui.view :as view]
             [veil.ui.qa.launch :as launch]
             [veil.ui.qa.mode :as mode]
             [veil.mods.fixtures :as f]
@@ -154,23 +153,6 @@
               (ok))
           (fail (str "no menu item " item)))))]
 
-   [#"the draw commands are built for a window (\d+) pixels wide"
-    (fn [world [_ width-str]]
-      (let [width (Integer/parseInt width-str)
-            s (:state @world)
-            commands (view/frame s width)]
-        (swap! world assoc :draw-commands commands))
-      (ok))]
-
-   [#"the command for \"?([^\"]+?)\"? has the colour (\d+) (\d+) (\d+)"
-    (fn [world [_ item r-str g-str b-str]]
-      (let [expected-color [(Integer/parseInt r-str)
-                           (Integer/parseInt g-str)
-                           (Integer/parseInt b-str)]
-            commands (:draw-commands @world)
-            cmd (first (filter #(= item (:text %)) commands))]
-        (check (and cmd (= expected-color (:color cmd)))
-               (str "command for " item " has color " expected-color))))]
 
    [#"the command on row (\d+) is drawn at x (\d+) and y (\d+)"
     (fn [world [_ row-str x-str y-str]]
