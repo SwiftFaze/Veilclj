@@ -2,193 +2,162 @@
   "Acceptance steps for the advisory docs check."
   (:require [clojure.string :as str]
             [veil-tools.docs-check :as docs-check]
-            [veil.acceptance.step-support :refer [ok check fail]]))
+            [veil.acceptance.step-support :refer [ok check]]))
 
-(defn- parse-task-list [text]
-  "Parse comma-separated task names from text like 'play', 'spec' and 'qa'"
-  (let [parts (str/split text #",\s*|\s+and\s+")]
-    (mapv #(str/replace (str/trim %) #"[\"']" "") parts)))
+(defn- split-list
+  "Split step text like `\"play\", \"spec\" and \"qa\"` into bare items."
+  [text]
+  (mapv #(str/replace (str/trim %) #"[\"'<>]" "")
+        (str/split (str/trim text) #",\s*|\s+and\s+")))
 
-(defn- parse-key-list [text]
-  "Parse comma-separated keys from text like ':init', ':requires' and 'play'"
-  (let [parts (str/split text #",\s*|\s+and\s+")]
-    (mapv #(str/replace (str/trim %) #"[\"']" "") parts)))
+(defn- bb-edn-text
+  "A bb.edn whose tasks map has one empty entry per key."
+  [task-keys]
+  (str "{:tasks {" (str/join " " (map #(str % " {}") task-keys)) "}}"))
+
+(defn- arrange
+  "Store the given world entries; the step itself always succeeds."
+  [world & entries]
+  (apply swap! world assoc entries)
+  (ok))
+
+(defn- add-feature [features path]
+  (conj (or features []) {:path path :description [] :after-scenario []}))
+
+(defn- update-last-feature
+  "Apply f to the feature the most recent step added."
+  [features f & args]
+  (apply update features (dec (count features)) f args))
+
+(defn- indented [lines]
+  (map #(str "  " %) lines))
+
+(defn- feature-text
+  "The feature file's text: description lines under Feature:, then the first
+   Scenario, then any lines that belong after it."
+  [{:keys [path description after-scenario]}]
+  (let [slug (-> path (str/replace #"\.feature$" "") (str/replace #"^specs/features/" ""))]
+    (str/join "\n" (concat [(str "Feature: " slug)]
+                           (indented description)
+                           ["Scenario: first"]
+                           (indented after-scenario)))))
+
+(defn- all-findings [world]
+  (concat (:task-findings @world) (:qa-findings @world)))
+
+(defn- has-finding [world expected]
+  (let [findings (all-findings world)]
+    (check (contains? (set findings) expected)
+           (str "expected finding '" expected "', got: " findings))))
+
+(defn- task-finding [task-name]
+  (str "task \"" task-name "\" is not mentioned in docs/testing.md"))
+
+;; The check is only ever handed features the branch added (the shell wrapper
+;; works that out from git), so there is nothing to arrange for a feature that
+;; already exists on develop, or for a procedure or key script that is absent.
+(defn- nothing-to-arrange [_world _match]
+  (ok))
 
 (def ^:private step-handlers
   [[#"bb\.edn defines the tasks? \"(.+)\""
     (fn [world [_ tasks-text]]
-      (let [task-names (parse-task-list tasks-text)
-            bb-edn-text (str "{:tasks {" (str/join " " (map #(str (symbol %) " {}") task-names)) "}}")
-            ]
-        (swap! world assoc :bb-edn-text bb-edn-text)
-        (ok)))]
+      (arrange world :bb-edn-text (bb-edn-text (split-list tasks-text))))]
 
    [#"bb\.edn's tasks map has the keys \"(.+)\""
     (fn [world [_ keys-text]]
-      (let [keys (parse-key-list keys-text)
-            bb-edn-text (str "{:tasks {" (str/join " " (map #(str (symbol %) " {}") keys)) "}}")
-            ]
-        (swap! world assoc :bb-edn-text bb-edn-text)
-        (ok)))]
+      (arrange world :bb-edn-text (bb-edn-text (split-list keys-text))))]
 
-   [#"docs/testing\.md mentions?(.*)(?:\s+only)?"
+   [#"docs/testing\.md mentions? (.*?)(?:\s+only)?"
     (fn [world [_ mentions-text]]
-      (let [mentions (str/split (str/trim mentions-text) #",\s*|\s+and\s+")
-            md-lines (mapv #(str/replace (str/trim %) #"[\"<>]" "") mentions)
-            md-text (str/join "\n" md-lines)]
-        (swap! world assoc :testing-md-text md-text)
-        (ok)))]
+      (arrange world :testing-md-text (str/join "\n" (split-list mentions-text))))]
 
    [#"docs/testing\.md contains the line \"(.+)\""
     (fn [world [_ line-text]]
-      (let [current-md (or (:testing-md-text @world) "")
-            updated-md (if (str/blank? current-md)
-                         line-text
-                         (str current-md "\n" line-text))]
-        (swap! world assoc :testing-md-text updated-md)
-        (ok)))]
+      (swap! world update :testing-md-text #(str/join "\n" (remove str/blank? [% line-text])))
+      (ok))]
 
    [#"the branch adds the feature file \"(.+)\""
     (fn [world [_ path]]
-      ;; Initialize a basic feature structure if not already set
-      (when-not (:feature-text @world)
-        (let [slug (-> path (str/replace #".feature$" "") (str/replace #"^specs/features/" ""))]
-          (swap! world assoc :feature-text (str "Feature: " slug "\n"))))
-      ;; Add to added-features list with current feature-text
-      (swap! world update :added-features
-             (fn [features]
-               (vec (conj (or features []) {:path path :text (or (:feature-text @world) "")}))))
+      (swap! world update :added-features add-feature path)
       (ok))]
 
    [#"the procedure \"([^\"]+)\" exists"
     (fn [world [_ path]]
-      (swap! world update :procedures
-             (fn [procs]
-               (set (conj (or procs #{}) path))))
+      (swap! world update :procedures (fnil conj #{}) path)
       (ok))]
 
    [#"no (?:key script|procedure) \"([^\"]+)\" exists"
-    (fn [world [_ path]]
-      ;; Procedures are implicitly tracked; we just don't add this one
-      (ok))]
+    nothing-to-arrange]
 
    [#"its Feature: description block has the line \"(.+)\""
     (fn [world [_ line]]
-      (let [current-text (or (:feature-text @world) "Feature: test\n")]
-        ;; Ensure there's a Scenario line for the description block to work
-        (let [with-scenario (if (str/includes? current-text "Scenario:")
-                             current-text
-                             (str current-text "\nScenario: test"))
-              with-line (str/replace-first with-scenario
-                                           #"(Feature:[^\n]*\n)"
-                                           (str "$1  " line "\n"))]
-          (swap! world assoc :feature-text with-line)))
+      (swap! world update :added-features update-last-feature update :description conj line)
       (ok))]
 
    [#"its Feature: description block has no \"QA: none\" line"
-    (fn [world _]
-      ;; Ensure feature text is set but has no QA: none line
-      (swap! world assoc :feature-text (or (:feature-text @world) "Feature: test\nScenario: test\n"))
-      (ok))]
+    nothing-to-arrange]
 
    [#"the line \"(.*)\" appears only after its first Scenario"
     (fn [world [_ line]]
-      (let [current-text (or (:feature-text @world) "Feature: test\n")
-            ;; Ensure there's a Scenario line if not already present
-            with-scenario (if (str/includes? current-text "Scenario:")
-                            current-text
-                            (str current-text "\nScenario: first"))
-            ;; Append the line AFTER the Scenario line (not in the description block)
-            with-line (str/replace-first with-scenario
-                                         #"(Scenario:[^\n]*\n)"
-                                         (str "$1  " line "\n"))]
-        (swap! world assoc :feature-text with-line))
+      (swap! world update :added-features update-last-feature update :after-scenario conj line)
       (ok))]
 
    [#"the feature file \"([^\"]+)\" already exists on develop"
-    (fn [world [_ path]]
-      (swap! world update :existing-features
-             (fn [existing]
-               (vec (conj (or existing []) path))))
-      (ok))]
+    nothing-to-arrange]
 
    [#"the branch changes it"
-    (fn [world _]
-      (ok))]
+    nothing-to-arrange]
 
    [#"the docs check runs"
     (fn [world _]
-      (let [bb-edn-text (or (:bb-edn-text @world) "{:tasks {}}")
-            testing-md-text (or (:testing-md-text @world) "")
-            feature-text (or (:feature-text @world) "")
-            added-features (or (:added-features @world) [])
-            procedures (or (:procedures @world) #{})
-            existing (or (:existing-features @world) [])
-            ;; Update the last added feature with the current feature-text
-            updated-added (if (and (seq added-features) (seq feature-text))
-                            (assoc (vec added-features)
-                                   (dec (count added-features))
-                                   (assoc (last added-features) :text feature-text))
-                            added-features)
-            filtered-added (vec (filter (fn [{:keys [path]}]
-                                          (not (some #(str/starts-with? path %) existing)))
-                                        updated-added))]
-        (swap! world assoc
-               :findings (docs-check/qa-findings filtered-added procedures)
-               :task-findings (docs-check/task-findings bb-edn-text testing-md-text)))
-      (ok))]
+      (let [{:keys [bb-edn-text testing-md-text added-features procedures]}
+            (merge {:bb-edn-text "{:tasks {}}" :testing-md-text ""
+                    :added-features [] :procedures #{}}
+                   @world)]
+        (arrange world
+                 :task-findings (docs-check/task-findings bb-edn-text testing-md-text)
+                 :qa-findings (docs-check/qa-findings
+                               (map #(assoc % :text (feature-text %)) added-features)
+                               procedures))))]
 
    [#"it reports no findings"
     (fn [world _]
-      (let [findings (vec (concat (:task-findings @world) (:findings @world)))]
+      (let [findings (all-findings world)]
         (check (empty? findings)
                (str "expected no findings, got: " findings))))]
 
    [#"it reports (\d+) finding(?:s)?"
     (fn [world [_ count-str]]
-      (let [findings (concat (:task-findings @world) (:findings @world))
-            expected-count (Long/parseLong count-str)]
+      (let [expected-count (Long/parseLong count-str)
+            findings (all-findings world)]
         (check (= expected-count (count findings))
                (str "expected " expected-count " findings, got " (count findings)))))]
 
    [#"the finding says task \"([^\"]*)\" is not mentioned in docs/testing\.md"
     (fn [world [_ task-name]]
-      (let [findings (:task-findings @world)
-            expected (str "task \"" task-name "\" is not mentioned in docs/testing.md")]
-        (check (some #(= % expected) findings)
-               (str "expected finding '" expected "', got: " findings))))]
+      (has-finding world (task-finding task-name)))]
 
    [#"it reports findings for the tasks? \"(.*)\", in that order"
     (fn [world [_ tasks-text]]
-      (let [task-names (parse-task-list tasks-text)
-            findings (:task-findings @world)
-            expected (vec (map #(str "task \"" % "\" is not mentioned in docs/testing.md")
-                               task-names))]
+      (let [expected (mapv task-finding (split-list tasks-text))
+            findings (vec (all-findings world))]
         (check (= expected findings)
                (str "expected " expected ", got " findings))))]
 
    [#"task \"([^\"]*)\" is (mentioned|not mentioned)"
     (fn [world [_ task-name verdict-text]]
-      (let [findings (:task-findings @world)
-            finding-str (str "task \"" task-name "\" is not mentioned in docs/testing.md")
-            is-mentioned (not (some #(= % finding-str) findings))
-            expected-mentioned (= "mentioned" verdict-text)]
-        (check (= expected-mentioned is-mentioned)
+      (let [is-mentioned (not (contains? (set (all-findings world)) (task-finding task-name)))]
+        (check (= (= "mentioned" verdict-text) is-mentioned)
                (str "task \"" task-name "\" is " (if is-mentioned "mentioned" "not mentioned")
                     " but verdict is " verdict-text))))]
 
    [#"the finding says feature \"([^\"]*)\" has no QA procedure and no \"QA: none\" line"
     (fn [world [_ slug]]
-      (let [findings (:findings @world)
-            expected (str "feature \"" slug "\" has no QA procedure and no \"QA: none\" line")]
-        (check (some #(= % expected) findings)
-               (str "expected finding '" expected "', got: " findings))))]
+      (has-finding world (str "feature \"" slug "\" has no QA procedure and no \"QA: none\" line")))]
 
    [#"the finding says feature \"([^\"]*)\" has a \"QA: none\" opt-out with no reason"
     (fn [world [_ slug]]
-      (let [findings (:findings @world)
-            expected (str "feature \"" slug "\" has a \"QA: none\" opt-out with no reason")]
-        (check (some #(= % expected) findings)
-               (str "expected finding '" expected "', got: " findings))))]])
+      (has-finding world (str "feature \"" slug "\" has a \"QA: none\" opt-out with no reason")))]])
 
 (def handlers step-handlers)
