@@ -2,13 +2,7 @@
   "Acceptance steps for the CRAP gate."
   (:require [crap4clj.crap :as crap]
             [veil-tools.crap-gate :as crap-gate]
-            [veil.acceptance.step-support :refer [ok check fail]]))
-
-(defn- arrange
-  "Store the given world entries; the step itself always succeeds."
-  [world & entries]
-  (apply swap! world assoc entries)
-  (ok))
+            [veil.acceptance.step-support :refer [ok check fail arrange]]))
 
 (defn- validate-offender-count-and-order
   [world expected-count]

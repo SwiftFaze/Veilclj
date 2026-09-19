@@ -9,3 +9,9 @@
 
 (defn check [passed? message]
   (if passed? (ok) (fail message)))
+
+(defn arrange
+  "Store the given world entries; the step itself always succeeds."
+  [world & entries]
+  (apply swap! world assoc entries)
+  (ok))
