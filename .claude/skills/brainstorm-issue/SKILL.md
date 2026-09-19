@@ -144,20 +144,13 @@ issue(s) to the project board:
 ## Step 5 — Add to the project board and set priority
 
 Every issue created this way goes on the VEILCLJ project board — this is a
-standing repo convention, not optional:
+standing repo convention, not optional. Add it and set its `Priority` field
+(`P0`, `P1` or `P2`, whatever was settled in Step 2) with the snippet in
+[`docs/project-board.md`](../../../docs/project-board.md) — `FIELD="Priority"`,
+`OPTION="<P0|P1|P2>"` — and run its read-back check before reporting: the
+priority must actually show on the board.
 
-```
-gh project item-add 3 --owner SwiftFaze --url <issue-url>
-```
-
-Then set the `Priority` field to whatever was settled in Step 2 (exact
-option names are `P0`, `P1`, `P2`):
-
-```
-gh project item-edit 3 --owner SwiftFaze --url <issue-url> --field "Priority" --value "<P0|P1|P2>"
-```
-
-Do both for each issue created in Step 3 — the primary and any follow-up,
+Do this for each issue created in Step 3 — the primary and any follow-up,
 using each one's own agreed priority.
 
 ## Step 6 — Report back

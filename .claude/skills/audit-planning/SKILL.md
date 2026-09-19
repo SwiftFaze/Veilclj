@@ -152,8 +152,11 @@ Apply approved fixes:
 
 ```
 gh issue edit <n> --repo SwiftFaze/Veilclj --add-label "<label>"
-gh project item-edit 3 --owner SwiftFaze --url <issue-url> --field "Priority" --value "<P0|P1|P2>"
 ```
+
+For a missing Priority, set it with the snippet in
+[`docs/project-board.md`](../../../docs/project-board.md) and run its read-back
+check — a fix that didn't land must not be reported as applied.
 
 ## Step 5 — Resolve milestone assignment and fit, one call at a time
 
