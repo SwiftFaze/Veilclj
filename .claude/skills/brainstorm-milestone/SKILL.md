@@ -1,5 +1,6 @@
 ---
 name: brainstorm-milestone
+model: opus
 description: Plan a big feature out loud, split it into a sequence of GitHub issues, and file them together under one new numbered milestone, skipping specs/intent/ entirely — the multi-issue sibling of brainstorm-issue. Use when the user wants to plan a feature arc big enough to need several issues, not spec it through the full intent -> .feature -> approval pipeline.
 ---
 

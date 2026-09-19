@@ -122,6 +122,12 @@ the intent doc contradicts what's on the branch (implementation diverged from
 scope — reconcile the doc first, per Step 1 of the workflow), or the branch is
 mid-conflict.
 
+<!-- added 2026-09-19: spec-feature's `model: opus` pin lasts one turn, so its multi-turn grilling loop falls back to the session model -->
+**Resume point is Step 2 → hand back instead of running `/spec-feature`.** Its
+`model: opus` pin covers only the invoking turn; every grilling round after the
+user's first answer would run on this session's model. Tell the user to switch
+with `/model opus` and run `/spec-feature <slug>` themselves.
+
 Checkpoint at each step boundary and suggest clearing, per
 `.claude/workflow.md`'s session-management notes — a resumed session is already
 carrying the reconciliation you just did.

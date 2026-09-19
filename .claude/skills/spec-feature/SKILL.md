@@ -1,5 +1,6 @@
 ---
 name: spec-feature
+model: opus
 description: Turn an approved intent doc into a reviewable Gherkin acceptance spec, looping between specs/intent/<slug>.md and specs/features/<slug>.feature until nothing's left ambiguous. Use for Step 2 of the spec-first workflow — after an intent doc exists (hand-written, or via spec-intent), before any implementation code is written.
 ---
 
