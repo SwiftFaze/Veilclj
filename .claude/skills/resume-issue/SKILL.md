@@ -106,8 +106,8 @@ Before resuming, state in a few lines:
 
 Unless `--report-only` was passed, continue the pipeline from the resume point,
 following `.claude/workflow.md` for that step exactly as a fresh run would —
-including `.claude/orchestrator.md` before dispatching the `coder` or
-`hardener` agent for Steps 4-7, and the blocking `check-clean.sh` gate.
+including the `implement-issue` skill for Steps 4-7 (`--from-hardener <sha>` if
+the coder's commit already exists), and the blocking `check-clean.sh` gate.
 
 Two things to get right on a resume specifically:
 

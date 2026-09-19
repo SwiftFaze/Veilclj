@@ -1,9 +1,50 @@
-# Orchestrator rules
+---
+name: implement-issue
+description: Run Steps 4-7 of the spec-first pipeline on the current feature branch — dispatch the coder, verify it, run bb qa, stop for the human playtest, dispatch the hardener, verify it (gate, mutation scope, behavior diff, docs decision), and only then open the PR. Use once a .feature is committed; --from-hardener <sha> starts at hardening. Not for writing the spec (spec-feature) or resuming a dead session (resume-issue).
+---
 
-For the session running the pipeline: handing Steps 4-7 of `.claude/workflow.md`
-to the `coder` and `hardener` subagents, and checking what comes back. Read
-before dispatching or resuming either one, or a fork. Each role's model, tools,
-ownership and reading scope live in `.claude/agents/`; don't restate them.
+The entry point for Steps 4-7 of `.claude/workflow.md`: implementation,
+hardening and the PR. Counterpart to `/spec-intent` and `/spec-feature`, which
+own Steps 1-2. It owns the **sequence** and the **verification**. The work stays
+in `.claude/agents/coder.md` and `hardener.md`, and the mechanical gates stay in
+`check-clean.sh` and the `bb` tasks: name them here, never restate their
+thresholds or how to pass them. Each agent's model, tools, ownership and
+reading scope live in `.claude/agents/`; don't restate them.
+
+Takes no required input. It works on the checked-out branch: the slug is the
+branch name minus its `feat/`/`fix/`/`docs/` prefix, the issue number comes from
+that slug's `specs/intent/<slug>.md` `source:` line. If either can't be read,
+ask — don't guess. Optional `--from-hardener <sha>`: skip to step 5 with `<sha>`
+as the baseline (a hand-written commit, or one already built and playtested).
+
+## Sequence
+
+<!-- added 2026-09-19: nothing fixed where the PR sits in the pipeline; a PR proposed after a spec-only push would have closed #24 on an unbuilt feature (#38) -->
+1. **Refuse without a committed spec.** `specs/features/<slug>.feature` must be
+   committed on this branch (`git ls-files --error-unmatch`, clean in
+   `git status`). If not, stop and point to `/spec-feature`. Don't write the
+   feature yourself.
+2. **Dispatch `coder`, verify its commit.** Run `bb spec` and `bb acceptance`
+   yourself (below).
+3. **QA run.** If `specs/qa/<slug>.edn` exists, run `bb qa <slug>` yourself; a
+   failing run goes back to the coder like any failed verification. If it
+   doesn't exist: a `QA: none - <reason>` line in the `.feature`'s `Feature:`
+   block means skip this step; otherwise the spec is incomplete, so send it
+   back to `/spec-feature`, not the coder. Formats: `docs/testing.md`, "QA runs".
+4. **Stop for the Step 4.5 human playtest** (`CLAUDE.md`). Say which screens
+   changed (the coder's note) and what a QA pass doesn't cover. It narrows the
+   playtest to feel and rendering; it doesn't replace it. Wait for the human.
+5. **Dispatch `hardener`** with the coder's sha, then verify it (below),
+   including the docs decision. Re-run `bb qa <slug>` after its refactor where
+   a procedure exists: it's the one check that observable input→event behavior
+   survived.
+6. **Open the PR, only here.** Base `develop`. The body has `Closes #N` (the
+   `CLAUDE.md` rule), the `bb qa` result (or that the feature opted out), and
+   what the human playtest covered, in the human's words: ask, don't invent it.
+   Never mention or open a PR before this step, including after a spec-only
+   push. Merging is the human's (`CLAUDE.md`: squash).
+
+With `--from-hardener`, do steps 5-6 only; every hardener verification still runs.
 
 ## Dispatching
 
@@ -65,6 +106,18 @@ Specific checks:
 - **A green acceptance suite doesn't prove on-screen behavior.** Acceptance
   steps drive the pure game state, never the Quil window, so rendering and
   input wiring are only proven by the human playtest (`CLAUDE.md`).
+- **The docs decision is checked against the diff, not the report.** Read
+  `git diff <coder-sha>..HEAD --stat` and the diff itself, and hold the report
+  to these; a miss goes back to the hardener naming the specific doc:
+  - A `bb` task added or renamed → `docs/testing.md` describes it.
+  - A contract between namespaces or layers changed → `docs/architecture.md`
+    (and `docs/uml/` if affected) is updated.
+  - A `.feature` added or changed → its `Feature:` block still says what it
+    covers, supersedes and excludes.
+  - A QA procedure added or changed → `docs/testing.md`'s "QA runs" still
+    matches its format.
+  - "Nothing user-facing or architecturally significant changed" → the diff
+    must actually show that. It's the one claim you can't take on trust.
 
 ## Escalation when verification finds a real problem
 

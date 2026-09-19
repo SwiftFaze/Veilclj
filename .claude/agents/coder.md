@@ -1,6 +1,6 @@
 ---
 name: coder
-description: Step 4-5 implementer for Veil's spec-first pipeline. Builds one ticket test-first and wires its .feature into the acceptance pipeline, then commits and hands off to the hardener. Dispatched by the orchestrating session per .claude/orchestrator.md, never on its own initiative.
+description: Step 4-5 implementer for Veil's spec-first pipeline. Builds one ticket test-first and wires its .feature into the acceptance pipeline, then commits and hands off to the hardener. Dispatched by the orchestrating session via the implement-issue skill, never on its own initiative.
 tools: Read, Edit, Write, Glob, Grep, Bash, PowerShell
 model: haiku
 ---

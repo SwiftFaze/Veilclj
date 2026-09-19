@@ -85,22 +85,20 @@ high-risk-path only) — move straight to implementation.
 
 ## Step 4 — Implementation, then hardening: coder → commit → hardener
 
-Follow `.claude/orchestrator.md`'s dispatching rules exactly: dispatch the
-`coder` agent (Steps 4-5), verify its commit, then dispatch the `hardener`
-agent (gate, judgment checklist, Steps 6-7) with the coder's sha. Each
-agent's model, tools, ownership and "don't explore" constraint are pinned in
-`.claude/agents/`; your prompt carries only the ticket's context: explicit
-file paths with line numbers, the actual referenced code (not just names),
-and the reasoning already settled in `intent.md` and the `.feature` file.
+Run the `implement-issue` skill's sequence (`.claude/skills/implement-issue/`):
+its steps 1-3 (coder, verify, `bb qa`) and step 5 (hardener, verify). Your
+prompt carries only the ticket's context: explicit file paths with line
+numbers, the actual referenced code (not just names), and the reasoning
+already settled in `intent.md` and the `.feature` file.
 
-**Skip repo CLAUDE.md's Step 4.5 mid-pipeline playtest entirely — do not
-have the agent or yourself pause for it here.** That's the one step this
-skill deliberately relocates; it happens once, at the very end (Step 6
-below), not here.
+**Skip that skill's step 4 playtest stop and its step 6 PR — do not have the
+agent or yourself pause for the playtest here.** This skill deliberately
+relocates the playtest: it happens once, at the very end (Step 6 below), and
+the PR is opened by this skill's Step 7.
 
 ## Step 5 — Verify each handoff yourself
 
-Per "Verifying what comes back" in `.claude/orchestrator.md`: do not
+Per "Verifying what comes back" in the `implement-issue` skill: do not
 relay either agent's "done" report as fact. Check the coder's commit before
 dispatching the hardener; after the hardener, independently open the files
 it changed, re-run `bash .claude/tools/check-clean.sh` yourself, and

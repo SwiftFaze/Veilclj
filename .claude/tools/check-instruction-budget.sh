@@ -7,7 +7,6 @@
 #
 #   every session      CLAUDE.md                     tightest budget
 #   every pipeline step .claude/workflow.md
-#   on dispatch        .claude/orchestrator.md
 #   every agent run    .claude/agents/*.md
 #   on skill use      .claude/skills/*/SKILL.md
 #   on demand          docs/*.md                     loosest budget
@@ -40,7 +39,6 @@ VERBOSE=0
 BUDGETS=(
   "CLAUDE.md:100"
   ".claude/workflow.md:150"
-  ".claude/orchestrator.md:90"
   # Baselined 2026-09-19 at the larger agent file (hardener.md) when added.
   ".claude/agents/*.md:61"
   ".claude/skills/*/SKILL.md:215"
