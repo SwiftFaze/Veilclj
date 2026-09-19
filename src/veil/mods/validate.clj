@@ -132,7 +132,8 @@
    "int?"     "an integer"
    "integer?" "an integer"
    "boolean?" "true or false"
-   "number?"  "a number"})
+   "number?"  "a number"
+   "channel?" "an integer from 0 to 255"})
 
 (defn- collection-phrase [pred]
   (let [names (set (map #(when (symbol? %) (name %)) (flatten [pred])))]
@@ -143,10 +144,12 @@
 (defn- phrase
   "What a failed predicate expected, in words a modder reads."
   [problem phrases]
-  (let [pred (:pred problem)]
+  (let [pred (:pred problem)
+        last-via (last (:via problem))]
     (or (when (symbol? pred) (scalar-phrases (name pred)))
         (when (collection-phrase pred)
-          (get phrases (last (:via problem)) (collection-phrase pred)))
+          (get phrases last-via (collection-phrase pred)))
+        (get phrases last-via)
         (str "a value matching " pred))))
 
 (defn- id-problem? [problem]

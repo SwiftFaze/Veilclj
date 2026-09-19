@@ -44,7 +44,7 @@
 (defn- read-entry
   "{:entry e} or {:errors [...]} for one content file."
   [{:keys [mod content-type file text]}]
-  (let [{:keys [data errors]} (validate/validate file text (:spec content-type))
+  (let [{:keys [data errors]} (validate/validate file text (:spec content-type) (:phrases content-type {}))
         {:keys [id overrides]} data]
     (cond
       errors                            {:errors errors}
@@ -139,6 +139,13 @@
                        (registry/with-load-order (registry/empty-registry) load-order)
                        (sort-by (registration-order load-order content-types) entries))]
     (if (:errors result) result {:registry result})))
+
+;; --- Utility functions ---
+
+(defn mods-dir
+  "The mods directory path: the property if it's set and non-blank, else 'mods'."
+  [property]
+  (if (clojure.string/blank? property) "mods" property))
 
 ;; --- Entry points ---
 

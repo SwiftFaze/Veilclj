@@ -8,7 +8,7 @@
 (defn draw!
   "Draw the current game state using Quil. Called once per frame."
   [state]
-  (q/background 0)
+  (apply q/background (view/background state))
   (q/text-align :center :center)
   (doseq [{:keys [text x y color]} (view/frame state (q/width))]
     (q/fill color)

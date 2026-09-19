@@ -132,6 +132,7 @@ jobs:
         run: |
           mkdir -p target/jpackage-input
           cp target/veil-*.jar target/jpackage-input/
+          cp -r mods target/jpackage-input/mods
 
       - name: Determine version
         shell: bash
@@ -188,6 +189,7 @@ jobs:
             --vendor SwiftFaze \
             --main-jar "$jar_name" \
             --main-class veil.main \
+            --java-options '-Dveil.mods.dir=$APPDIR/mods' \
             "${extra_args[@]}"
 
       - name: Normalize installer filename
