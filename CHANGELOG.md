@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.1-beta.2](https://github.com/SwiftFaze/Veilclj/compare/v0.0.1-beta.1...v0.0.1-beta.2) (2026-09-19)
+
+
+### Bug Fixes
+
+* squash-merge the beta release PR into develop ([#34](https://github.com/SwiftFaze/Veilclj/issues/34)) ([03965ac](https://github.com/SwiftFaze/Veilclj/commit/03965ac6721c40de710b6f70cb4bbba565880234))
+
 ## 0.0.1-beta.1 (2026-09-18)
 
 
