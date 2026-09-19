@@ -1,6 +1,13 @@
 (ns veil-tools.docs-check-spec
-  (:require [speclj.core :refer :all]
+  (:require [clojure.string :as str]
+            [speclj.core :refer :all]
             [veil-tools.docs-check :as docs-check]))
+
+(defn- run-quietly
+  "Call docs-check/run with its printing discarded; returns its result."
+  [& args]
+  (binding [*out* (java.io.StringWriter.)]
+    (apply docs-check/run args)))
 
 (describe "extract-tasks"
   (it "extracts symbol keys from bb.edn tasks map"
@@ -207,3 +214,27 @@
           procedures #{}
           result (docs-check/qa-findings added-features procedures)]
       (should= ["feature \"save\" has no QA procedure and no \"QA: none\" line"] result))))
+
+(describe "run"
+  (it "prints one PASS line when nothing is stale"
+    (let [bb-edn "{:tasks {play {}}}"
+          output (with-out-str (docs-check/run bb-edn "bb play" [] #{}))]
+      (should= ["  PASS  no unmentioned tasks or orphaned features"]
+               (str/split-lines output))))
+
+  (it "prints a count and one indented line per finding, task findings first"
+    (let [bb-edn "{:tasks {play {} uber {}}}"
+          features [{:path "specs/features/door.feature" :text "Feature: door"}]
+          output (with-out-str (docs-check/run bb-edn "bb play" features #{}))]
+      (should= ["  ADVISORY  2 finding(s):"
+                "    task \"uber\" is not mentioned in docs/testing.md"
+                "    feature \"door\" has no QA procedure and no \"QA: none\" line"]
+               (str/split-lines output))))
+
+  (it "returns 0 when there are no findings"
+    (let [result (run-quietly "{:tasks {play {}}}" "bb play" [] #{})]
+      (should= 0 result)))
+
+  (it "returns 0 when there are findings, because the check only advises"
+    (let [result (run-quietly "{:tasks {uber {}}}" "" [] #{})]
+      (should= 0 result))))
