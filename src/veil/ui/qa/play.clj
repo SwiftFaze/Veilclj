@@ -3,19 +3,29 @@
   (:require [veil.ui.qa.script :as script]
             [veil.game.events :as events]))
 
+(defn- send-event
+  "Send event through handle, returning {:state new-state :entries [...]}: the
+   key entry (logged as key-kw), then the events derived from the state change,
+   all stamped with tick."
+  [handle state tick event key-kw]
+  (let [new-state (handle state event)
+        stamp #(assoc % :tick tick)]
+    {:state new-state
+     :entries (into [{:tick tick :key key-kw}]
+                    (map stamp (events/between state new-state)))}))
+
 (defn press
   "Press a key once, returning {:state new-state :entries [...]}.
    Each entry has :tick and :key, plus any events from events/between."
   [handle state tick key-name]
-  (let [event (script/key->event key-name)
-        new-state (handle state event)
-        events-list (events/between state new-state)
-        key-kw (script/key-keyword key-name)
-        key-entry {:tick tick :key key-kw}
-        event-entries (map #(assoc % :tick tick) events-list)
-        entries (conj event-entries key-entry)]
-    {:state new-state
-     :entries (vec (concat [key-entry] event-entries))}))
+  (send-event handle state tick
+              (script/key->event key-name)
+              (script/key-keyword key-name)))
+
+(defn handle-event
+  "Like press, for a live Quil-shaped event rather than a scripted key name."
+  [handle state tick event]
+  (send-event handle state tick event (script/event->key-keyword event)))
 
 (defn play
   "Play a sequence of steps through the game, returning
@@ -23,9 +33,9 @@
   [handle initial-state steps]
   (let [result (reduce
                  (fn [acc step]
-                   (let [press-result (press handle (:state acc) (:tick step) (:key step))]
-                     {:state (:state press-result)
-                      :entries (vec (concat (:entries acc) (:entries press-result)))}))
+                   (let [pressed (press handle (:state acc) (:tick step) (:key step))]
+                     {:state (:state pressed)
+                      :entries (into (:entries acc) (:entries pressed))}))
                  {:state initial-state :entries []}
                  steps)]
     (assoc result :finished? true)))

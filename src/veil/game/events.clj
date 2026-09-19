@@ -1,12 +1,17 @@
 (ns veil.game.events
   "Derive events by diffing game states."
-  (:require [veil.game.state :as state]))
+  (:require [clojure.string :as str]
+            [veil.game.state :as state]))
+
+(defn- item->keyword
+  "\"New Game\" -> :new-game"
+  [item]
+  (keyword (str/replace (str/lower-case item) " " "-")))
 
 (defn- selection-event [before after]
-  (let [before-item (state/selected-item before)
-        after-item (state/selected-item after)]
-    (when (not= before-item after-item)
-      {:event :menu/selection-changed :to (keyword (clojure.string/replace (clojure.string/lower-case after-item) " " "-"))})))
+  (let [after-item (state/selected-item after)]
+    (when (not= (state/selected-item before) after-item)
+      {:event :menu/selection-changed :to (item->keyword after-item)})))
 
 (defn- screen-event [before after]
   (let [before-screen (state/screen before)
@@ -22,7 +27,6 @@
   "Return a vector of events derived by diffing two game states, in order:
    selection, screen, over."
   [before after]
-  (cond-> []
-    (selection-event before after) (conj (selection-event before after))
-    (screen-event before after) (conj (screen-event before after))
-    (over-event before after) (conj (over-event before after))))
+  (vec (remove nil? [(selection-event before after)
+                     (screen-event before after)
+                     (over-event before after)])))

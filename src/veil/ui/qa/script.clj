@@ -1,83 +1,70 @@
 (ns veil.ui.qa.script
-  "Parse key scripts: sequences of key names, waits, and comments.")
+  "Parse key scripts: sequences of key names, waits, and comments."
+  (:require [clojure.string :as str]))
 
-(def ^:private special-keys #{"Up" "Down" "Left" "Right" "Enter" "Esc" "Space"})
+(def ^:private special-keys #{"Down" "Up" "Left" "Right" "Enter" "Esc" "Space"})
 
-(defn- is-valid-key? [text]
+(defn- valid-key? [text]
   (or (contains? special-keys text)
       (and (= 1 (count text)) (Character/isLetterOrDigit (first text)))))
 
 (defn- parse-wait [text]
-  (if-let [match (re-matches #"(\d+)" text)]
-    (let [n (Long/parseLong (second match))]
-      {:wait n})
-    nil))
+  (when-let [[_ n] (re-matches #"(\d+)" text)]
+    {:wait (Long/parseLong n)}))
+
+(defn- strip-comment [line]
+  (str/trim (str/replace (str/trim line) #"#.*" "")))
+
+(defn- parse-wait-line [line-num clean]
+  (let [arg (or (second (str/split clean #"\s+" 2)) "")]
+    (or (parse-wait arg)
+        {:error (str "line " line-num ": wait needs a whole number")})))
 
 (defn- parse-line [line-num line]
-  (let [trimmed (clojure.string/trim line)
-        without-comment (clojure.string/replace trimmed #"#.*" "")
-        clean (clojure.string/trim without-comment)]
+  (let [clean (strip-comment line)]
     (cond
-      (empty? clean) {:blank? true}
-      (clojure.string/starts-with? clean "wait")
-      (let [parts (clojure.string/split clean #"\s+" 2)
-            wait-arg (or (second parts) "")]
-        (if-let [wait-val (parse-wait wait-arg)]
-          wait-val
-          {:error (str "line " line-num ": wait needs a whole number")}))
-      (is-valid-key? clean) {:key clean}
+      (empty? clean) {}
+      (str/starts-with? clean "wait") (parse-wait-line line-num clean)
+      (valid-key? clean) {:key clean}
       :else {:error (str "line " line-num ": unknown key \"" clean "\"")})))
+
+(defn- place
+  "Fold one parsed line into {:steps [...] :tick n}: a key takes the current
+   tick and advances it by one, a wait skips ticks, a blank line does nothing."
+  [{:keys [steps tick] :as acc} item]
+  (cond
+    (:key item) {:steps (conj steps {:tick tick :key (:key item)}) :tick (inc tick)}
+    (:wait item) (assoc acc :tick (+ tick (:wait item)))
+    :else acc))
 
 (defn parse
   "Parse a script text into steps or an error.
    Returns {:steps [...]} or {:error \"...\"}."
   [text]
-  (let [lines (clojure.string/split text #"\r?\n")
-        parsed (map-indexed (fn [idx line] (parse-line (inc idx) line)) lines)
-        error (first (filter :error parsed))]
-    (if error
-      error
-      (let [steps (loop [parsed parsed
-                        steps []
-                        tick 1]
-             (if (empty? parsed)
-               steps
-               (let [item (first parsed)
-                     rest (rest parsed)]
-                 (cond
-                   (:blank? item) (recur rest steps tick)
-                   (:key item) (recur rest (conj steps {:tick tick :key (:key item)}) (inc tick))
-                   (:wait item) (recur rest steps (+ tick (:wait item)))
-                   :else (recur rest steps tick)))))]
-        {:steps steps}))))
+  (let [parsed (map-indexed (fn [idx line] (parse-line (inc idx) line))
+                            (str/split text #"\r?\n"))]
+    (or (first (filter :error parsed))
+        {:steps (:steps (reduce place {:steps [] :tick 1} parsed))})))
+
+(def ^:private named-events
+  {"Down"  {:key :down  :key-code 40 :raw-key (char 65535)}
+   "Up"    {:key :up    :key-code 38 :raw-key (char 65535)}
+   "Left"  {:key :left  :key-code 37 :raw-key (char 65535)}
+   "Right" {:key :right :key-code 39 :raw-key (char 65535)}
+   "Enter" {:raw-key \newline}
+   "Esc"   {:raw-key (char 27)}
+   "Space" {:key :space :raw-key \space}})
+
+(defn key-keyword
+  "Get the keyword used in log entries for a key name: its lower-cased name."
+  [key-name]
+  (keyword (str/lower-case key-name)))
 
 (defn key->event
   "Build a Quil-shaped event map for a key name."
   [key-name]
-  (case key-name
-    "Down" {:key :down :key-code 40 :raw-key (char 65535)}
-    "Up" {:key :up :key-code 38 :raw-key (char 65535)}
-    "Left" {:key :left :key-code 37 :raw-key (char 65535)}
-    "Right" {:key :right :key-code 39 :raw-key (char 65535)}
-    "Enter" {:raw-key \newline}
-    "Esc" {:raw-key (char 27)}
-    "Space" {:key :space :raw-key \space}
-    (let [c (first key-name)]
-      {:key (keyword (clojure.string/lower-case key-name))
-       :raw-key c})))
-
-(defn key-keyword
-  "Get the keyword used in log entries for a key name."
-  [key-name]
-  (case key-name
-    "Down" :down
-    "Up" :up
-    "Left" :left
-    "Right" :right
-    "Enter" :enter
-    "Esc" :esc
-    "Space" :space
-    (keyword (clojure.string/lower-case key-name))))
+  (or (named-events key-name)
+      {:key (key-keyword key-name) :raw-key (first key-name)}))
 
 (defn event->key-keyword
   "Convert a Quil-shaped event to the keyword used in log entries.

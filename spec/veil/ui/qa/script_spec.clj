@@ -162,3 +162,25 @@
 
   (it "handles digit key"
     (should= :7 (script/event->key-keyword {:key :7 :raw-key \7}))))
+
+(describe "key->event for every named key"
+  (it "carries the raw-key Processing reports for each"
+    (should= [(char 65535) (char 65535) (char 65535) (char 65535) \newline (char 27) \space]
+             (mapv (comp :raw-key script/key->event)
+                   ["Down" "Up" "Left" "Right" "Enter" "Esc" "Space"])))
+
+  (it "round-trips every valid key name to the keyword a live press logs"
+    (doseq [name ["Down" "Up" "Left" "Right" "Enter" "Esc" "Space" "S" "7"]]
+      (should= (script/key-keyword name)
+               (script/event->key-keyword (script/key->event name))))))
+
+(describe "parse layout"
+  (it "counts a wait on the first line before any key"
+    (should= [{:tick 3 :key "Down"}] (:steps (script/parse "wait 2\nDown"))))
+
+  (it "reads CRLF scripts"
+    (should= [{:tick 1 :key "Down"} {:tick 2 :key "Enter"}]
+             (:steps (script/parse "Down\r\nEnter\r\n"))))
+
+  (it "accepts a trailing comment after a wait"
+    (should= [{:tick 4 :key "Down"}] (:steps (script/parse "wait 3 # let it settle\nDown")))))

@@ -40,3 +40,41 @@
   (it "rejects unknown flag"
     (let [result (launch/parse-args ["--bogus"])]
       (should= "unknown argument --bogus" (:error result)))))
+
+(describe "parse-args flags"
+  (it "rejects a stray word that is not a flag"
+    (should= "unknown argument stray" (:error (launch/parse-args ["stray"]))))
+
+  (it "rejects an unknown flag after valid ones"
+    (should= "unknown argument --bogus"
+             (:error (launch/parse-args ["--keys" "a.keys" "--bogus"]))))
+
+  (it "keeps the last value when a flag repeats"
+    (should= "b.keys" (:keys (launch/parse-args ["--keys" "a.keys" "--keys" "b.keys"]))))
+
+  (it "accepts a path that merely contains dashes"
+    (should= "my-script.keys" (:keys (launch/parse-args ["--keys" "my-script.keys"])))))
+
+(describe "run-steps"
+  (it "merges each step's result into the context"
+    (should= {:a 1 :b 2 :c 3}
+             (launch/run-steps {:a 1} [(fn [_] {:b 2}) (fn [ctx] {:c (+ (:a ctx) (:b ctx))})])))
+
+  (it "passes the context through untouched when a step returns nil"
+    (should= {:a 1} (launch/run-steps {:a 1} [(fn [_] nil)])))
+
+  (it "stops at the first error and runs no later step"
+    (let [ran (atom [])
+          step (fn [label result] (fn [_] (swap! ran conj label) result))]
+      (should= {:error "boom"}
+               (launch/run-steps {} [(step :one {:x 1}) (step :two {:error "boom"}) (step :three {:y 2})]))
+      (should= [:one :two] @ran)))
+
+  (it "returns the context when there are no steps"
+    (should= {:a 1} (launch/run-steps {:a 1} []))))
+
+(describe "command"
+  (it "builds the child JVM command line for a script and its log"
+    (should= ["java" "-cp" "cp" "clojure.main" "-m" "veil.main"
+              "--keys" "s.keys" "--log" "l.edn"]
+             (launch/command "java" "cp" "s.keys" "l.edn"))))

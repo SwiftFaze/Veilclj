@@ -50,3 +50,22 @@
     (let [text "{:log/version 1}\n{:tick 1 :key :down}\n{:tick 2 :key :enter}\n"
           result (log/parse text)]
       (should= 2 (count (:entries result))))))
+
+(describe "parse rejections"
+  (it "rejects a first line that is not EDN"
+    (should= "log has no version line" (:error (log/parse "not edn ((\n"))))
+
+  (it "rejects a first line that is not a map"
+    (should= "log has no version line" (:error (log/parse "[1 2]\n"))))
+
+  (it "rejects a header map without a version"
+    (should= "log has no version line" (:error (log/parse "{:other 1}\n"))))
+
+  (it "ignores blank lines and reads CRLF line endings"
+    (let [result (log/parse "\r\n{:log/version 1}\r\n\r\n{:tick 1 :key :down}\r\n")]
+      (should= [{:tick 1 :key :down}] (:entries result))))
+
+  (it "round-trips what render writes"
+    (let [entries [{:tick 1 :key :down} {:tick 1 :event :screen/changed :from :main-menu :to :map}]
+          text (log/render (cons (log/header) entries))]
+      (should= entries (:entries (log/parse text))))))

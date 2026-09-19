@@ -1,98 +1,44 @@
 (ns veil.ui.qa.runner
-  "QA procedure runner: spawns the game with a script and checks the log."
+  "Entry point for `bb qa`: the real process, file and console I/O behind
+  veil.ui.qa.session. Nothing here decides anything; it is not specced, since
+  the one thing it does that matters is opening the game window."
   (:require [clojure.java.io :as io]
-            [veil.ui.qa.procedure :as procedure]
-            [veil.ui.qa.log :as log])
+            [veil.ui.qa.launch :as launch]
+            [veil.ui.qa.session :as session])
+  (:import [java.util.concurrent TimeUnit])
   (:gen-class))
 
-(defn run-one
-  "Run a single QA procedure and return its exit status (0 for pass, 1 for fail).
-   Prints report lines and final result to stdout. Errors go to stderr."
-  [slug]
-  (let [proc-path (procedure/path slug)
-        proc-file (io/file proc-path)]
-    (if-not (.exists proc-file)
-      (do
-        (binding [*out* *err*]
-          (println (procedure/unknown-error slug)))
-        1)
+(def ^:private timeout-seconds 60)
 
-      (let [proc-text (slurp proc-path)
-            proc-result (procedure/parse proc-text)]
-        (if (:error proc-result)
-          (do
-            (binding [*out* *err*]
-              (println (:error proc-result)))
-            1)
+(defn- spawn!
+  "Run the game in a child JVM on script-path, logging to log-path. Returns
+   {:exit code}, or {:timed-out? true} after killing it."
+  [script-path log-path]
+  (let [command (launch/command (str (System/getProperty "java.home") "/bin/java")
+                                (System/getProperty "java.class.path")
+                                script-path
+                                log-path)
+        child (.start (.inheritIO (ProcessBuilder. ^java.util.List command)))]
+    (if (.waitFor child timeout-seconds TimeUnit/SECONDS)
+      {:exit (.exitValue child)}
+      (do (.destroyForcibly child)
+          {:timed-out? true}))))
 
-          (let [script-path (:script proc-result)
-                log-path (str "target/qa/" slug ".log.edn")
-                java-home (System/getProperty "java.home")
-                java-exe (str java-home "/bin/java")
-                cp (System/getProperty "java.class.path")
-                proc (-> (ProcessBuilder. [java-exe "-cp" cp "clojure.main" "-m" "veil.main" "--keys" script-path "--log" log-path])
-                         (.inheritIO)
-                         (.start))
-                timed-out? (not (.waitFor proc 60 java.util.concurrent.TimeUnit/SECONDS))]
+(defn- list-procedures
+  "File names in specs/qa; empty when the directory is missing (.list gives nil)."
+  []
+  (vec (.list (io/file "specs/qa"))))
 
-            (if timed-out?
-              (do
-                (.destroyForcibly proc)
-                (binding [*out* *err*]
-                  (println "game did not finish within 60s"))
-                1)
+(defn- emit! [{:keys [out err]}]
+  (run! println out)
+  (binding [*out* *err*]
+    (run! println err)))
 
-              (let [exit-code (.exitValue proc)]
-                (if-not (zero? exit-code)
-                  (do
-                    (binding [*out* *err*]
-                      (println (str "game exited with code " exit-code)))
-                    1)
-
-                  (let [log-text (slurp log-path)
-                        log-result (log/parse log-text)]
-                    (if (:error log-result)
-                      (do
-                        (binding [*out* *err*]
-                          (println (:error log-result)))
-                        1)
-
-                      (let [entries (:entries log-result)
-                            expected (:expect proc-result)
-                            check-result (procedure/check entries expected)
-                            report (:report check-result)
-                            status (:status check-result)]
-                        (doseq [line (procedure/report-lines expected report)]
-                          (println line))
-                        (if (zero? status)
-                          (println (str "QA " slug ": PASS"))
-                          (let [missing-count (count (filter #{:missing} report))]
-                            (println (str "QA " slug ": FAIL (" missing-count " missing)"))))
-                        status))))))))))))
+(def ^:private real-io
+  {:exists?         #(.exists (io/file %))
+   :slurp           slurp
+   :spawn           spawn!
+   :list-procedures list-procedures})
 
 (defn -main [& args]
-  (let [arg (first args)]
-    (cond
-      (= arg "--all")
-      (let [qa-dir (io/file "specs/qa")
-            file-names (if (.exists qa-dir) (.list qa-dir) [])
-            slugs-result (procedure/slugs file-names)]
-        (if (:error slugs-result)
-          (do
-            (binding [*out* *err*]
-              (println (:error slugs-result)))
-            (System/exit 1))
-          (let [slugs-list (:slugs slugs-result)
-                results (mapv (fn [slug] [slug (run-one slug)]) slugs-list)
-                summary-result (procedure/summary results)]
-            (println (:line summary-result))
-            (System/exit (:status summary-result)))))
-
-      (and arg (not (.startsWith arg "--")))
-      (System/exit (run-one arg))
-
-      :else
-      (do
-        (binding [*out* *err*]
-          (println "Usage: bb qa <slug> | bb qa --all"))
-        (System/exit 1)))))
+  (System/exit (session/run real-io emit! args)))

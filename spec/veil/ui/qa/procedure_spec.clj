@@ -126,3 +126,67 @@
     (let [results [["a" 1] ["b" 0]]
           result (procedure/summary results)]
       (should= 1 (:status result)))))
+
+(describe "log-path"
+  (it "returns target/qa/<slug>.log.edn"
+    (should= "target/qa/main-menu.log.edn" (procedure/log-path "main-menu"))))
+
+(describe "report-lines"
+  (it "labels seen and missing entries, one line per expectation"
+    (should= ["seen     {:key :down}"
+              "MISSING {:event :game/over}"]
+             (procedure/report-lines [{:key :down} {:event :game/over}] [:seen :missing])))
+
+  (it "prints entries with namespaced keys as plain maps, not namespace maps"
+    (should= ["seen     {:log/version 1}"]
+             (procedure/report-lines [{:log/version 1}] [:seen]))))
+
+(describe "verdict"
+  (it "ends a fully seen procedure with a PASS line and status 0"
+    (should= {:out ["seen     {:key :down}" "QA menu: PASS"] :err [] :status 0}
+             (procedure/verdict "menu" [{:key :down}] {:report [:seen] :status 0})))
+
+  (it "ends a procedure with missing entries with a FAIL line counting them"
+    (should= {:out ["seen     {:key :down}" "MISSING {:key :up}" "MISSING {:key :x}"
+                    "QA menu: FAIL (2 missing)"]
+              :err []
+              :status 1}
+             (procedure/verdict "menu" [{:key :down} {:key :up} {:key :x}]
+                                {:report [:seen :missing :missing] :status 1}))))
+
+(describe "child-error"
+  (it "reports a timeout"
+    (should= "game did not finish within 60s" (procedure/child-error {:timed-out? true})))
+
+  (it "reports a non-zero exit code"
+    (should= "game exited with code 3" (procedure/child-error {:exit 3})))
+
+  (it "reports nothing for a clean exit"
+    (should-be-nil (procedure/child-error {:exit 0}))))
+
+(describe "check ordering and matching"
+  (it "matches a later entry when an earlier one is skipped"
+    (let [log-entries [{:tick 1 :key :down} {:tick 2 :key :up} {:tick 3 :key :enter}]
+          result (procedure/check log-entries [{:key :down} {:key :enter}])]
+      (should= [:seen :seen] (:report result))))
+
+  (it "keeps searching after a missing expectation"
+    (let [log-entries [{:tick 1 :key :down} {:tick 2 :key :enter}]
+          result (procedure/check log-entries [{:key :down} {:key :x} {:key :enter}])]
+      (should= [:seen :missing :seen] (:report result))
+      (should= 1 (:status result))))
+
+  (it "requires every expected key to match"
+    (let [log-entries [{:tick 1 :event :screen/changed :to :map}]
+          result (procedure/check log-entries [{:event :screen/changed :to :options}])]
+      (should= [:missing] (:report result))))
+
+  (it "passes with nothing expected"
+    (should= {:report [] :status 0} (procedure/check [{:tick 1 :key :down}] []))))
+
+(describe "parse errors"
+  (it "rejects text that is not EDN"
+    (should= "parse error" (:error (procedure/parse "{:script"))))
+
+  (it "rejects EDN that has no :script"
+    (should= "missing :script" (:error (procedure/parse "[1 2]")))))

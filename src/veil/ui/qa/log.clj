@@ -1,5 +1,9 @@
 (ns veil.ui.qa.log
-  "Log format: version line + EDN maps, one per line.")
+  "Log format: version line + EDN maps, one per line."
+  (:require [clojure.edn :as edn]
+            [clojure.string :as str]))
+
+(def ^:private no-version-error "log has no version line")
 
 (defn header
   "Return the log header map."
@@ -10,30 +14,27 @@
   "Render entries as pr-str, one per line, newline-terminated."
   [entries]
   (binding [*print-namespace-maps* false]
-    (str (clojure.string/join "\n" (map pr-str entries)) "\n")))
+    (str (str/join "\n" (map pr-str entries)) "\n")))
+
+(defn- read-header
+  "The header map from the log's first line, or nil if it isn't one."
+  [line]
+  (try
+    (let [header (edn/read-string line)]
+      (when (map? header) header))
+    (catch Exception _ nil)))
 
 (defn parse
   "Parse log text into {:entries [...]} or {:error \"...\"}."
   [text]
-  (let [lines (clojure.string/split text #"\r?\n")
-        non-empty-lines (filter (fn [line] (not (clojure.string/blank? line))) lines)]
+  (let [lines (remove str/blank? (str/split text #"\r?\n"))
+        version (:log/version (some-> (first lines) read-header))]
     (cond
-      (empty? non-empty-lines)
-      {:error "log has no version line"}
+      (nil? version)
+      {:error no-version-error}
+
+      (not= version 1)
+      {:error (str "unsupported log version " version " (this runner reads 1)")}
 
       :else
-      (let [first-line (first non-empty-lines)]
-        (try
-          (let [header-map (clojure.edn/read-string first-line)]
-            (if (map? header-map)
-              (let [version (:log/version header-map)]
-                (if (nil? version)
-                  {:error "log has no version line"}
-                  (if (= version 1)
-                    (let [rest-lines (rest non-empty-lines)
-                          entries (map clojure.edn/read-string rest-lines)]
-                      {:entries entries})
-                    {:error (str "unsupported log version " version " (this runner reads 1)")})))
-              {:error "log has no version line"}))
-          (catch Exception _
-            {:error "log has no version line"}))))))
+      {:entries (map edn/read-string (drop 1 lines))})))
