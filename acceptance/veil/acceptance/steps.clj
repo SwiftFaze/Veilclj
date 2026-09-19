@@ -7,10 +7,11 @@
             [veil.acceptance.steps.mods :as mods]
             [veil.acceptance.steps.qa :as qa]
             [veil.acceptance.steps.docs-check :as docs-check]
-            [veil.acceptance.steps.crap-gate :as crap-gate]))
+            [veil.acceptance.steps.crap-gate :as crap-gate]
+            [veil.acceptance.steps.startup :as startup]))
 
 (def step-handlers
-  (concat window/handlers menu/handlers mods/handlers qa/handlers docs-check/handlers crap-gate/handlers))
+  (concat window/handlers menu/handlers mods/handlers qa/handlers docs-check/handlers crap-gate/handlers startup/handlers))
 
 (defn handle-step [world text]
   (if-let [[handler match] (some (fn [[pattern handler]]
