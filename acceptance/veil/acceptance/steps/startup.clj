@@ -4,6 +4,9 @@
             [veil.game.state :as state]
             [veil.ui.input :as input]
             [veil.ui.view :as view]
+            [veil.ui.qa.launch :as launch]
+            [veil.ui.qa.mode :as mode]
+            [veil.ui.qa.files :as files]
             [veil.mods.fixtures :as f]
             [veil.mods.loader :as loader]
             [veil.mods.disk :as disk]))
@@ -132,7 +135,7 @@
             is-escape (input/escape? event)]
         (check (not is-escape) "event is not raw Escape")))]
 
-   [#"the main menu with ([^ ]+) selected"
+   [#"the main menu with (.+) selected"
     (fn [world [_ item]]
       (let [s (state/initial)
             s (loop [s s]
@@ -151,7 +154,7 @@
         (swap! world assoc :draw-commands commands))
       (ok))]
 
-   [#"the command for ([^ ]+) has the colour (\d+) (\d+) (\d+)"
+   [#"the command for (.+) has the colour (\d+) (\d+) (\d+)"
     (fn [world [_ item r-str g-str b-str]]
       (let [expected-color [(Integer/parseInt r-str)
                            (Integer/parseInt g-str)
@@ -186,7 +189,7 @@
                                  commands)]
         (check all-have-data "every command has color, x, and y")))]
 
-   [#"the game is on the ([^ ]+) screen"
+   [#"the game is on the (.+) screen"
     (fn [world [_ screen-name]]
       (let [s (case screen-name
                 "main menu" (state/initial)
@@ -194,4 +197,69 @@
                 "options" (-> (state/initial) (state/handle-input :down) (state/handle-input :confirm))
                 (fail (str "unknown screen: " screen-name)))]
         (swap! world assoc :state s))
-      (ok))]])
+      (ok))]
+
+   [#"the game is started with arguments \"(.*)\""
+    (fn [world [_ args-str]]
+      (let [args (if (empty? args-str) [] (clojure.string/split args-str #" "))
+            plan-step (fn [ctx]
+                       (let [parsed-args (launch/parse-args (:args ctx))]
+                         (if (:error parsed-args)
+                           {:error (:error parsed-args)}
+                           {:qa (mode/plan (:keys parsed-args) files/read-script)})))
+            load-step (fn [ctx]
+                       (loader/startup (or (:mods-data @world) (f/mods (f/manifest "core"))) f/content-types))
+            launched (launch/run-steps {:args args} [plan-step load-step])
+            outcome (launch/outcome launched)]
+        (swap! world assoc :launched outcome))
+      (ok))]
+
+   [#"the game does not start"
+    (fn [world _]
+      (let [outcome (:launched @world)
+            has-error (contains? outcome :error)]
+        (check has-error "game does not start")))]
+
+   [#"the game starts"
+    (fn [world _]
+      (let [outcome (:launched @world)
+            started (contains? outcome :start)]
+        (check started "game starts")))]
+
+   [#"the game starts with the mods registry"
+    (fn [world _]
+      (let [outcome (:launched @world)
+            started (:start outcome)
+            s (if started started (state/initial))
+            registry (state/mods s)]
+        (check (and started (some? registry)) "game starts with mods registry")))]
+
+   [#"the launch message starts with \"([^\"]+)\""
+    (fn [world [_ prefix]]
+      (let [outcome (:launched @world)
+            error (:error outcome)]
+        (check (.startsWith error prefix)
+               (str "launch message starts with \"" prefix "\""))))]
+
+   [#"the launch exit status is (\d+)"
+    (fn [world [_ status-str]]
+      (let [outcome (:launched @world)
+            expected (Integer/parseInt status-str)
+            actual (:exit-status outcome)]
+        (check (= expected actual)
+               (str "launch exit status is " actual))))]
+
+   [#"the startup error names \"([^\"]+)\" and \"([^\"]+)\""
+    (fn [world [_ name1 name2]]
+      (let [startup (:startup @world)
+            error (:error startup)]
+        (check (and error (.contains error name1) (.contains error name2))
+               (str "error names both \"" name1 "\" and \"" name2 "\""))))]
+
+   [#"the startup error names \"([^\"]+)\""
+    (fn [world [_ name]]
+      (let [startup (:startup @world)
+            error (:error startup)]
+        (check (and error (.contains error name))
+               (str "error names \"" name "\""))))]
+   ])

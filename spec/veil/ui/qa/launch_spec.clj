@@ -90,4 +90,8 @@
 
   (it "preserves other keys in a successful launch"
     (let [launched {:registry "r" :qa "q" :extra "value"}]
-      (should= {:start launched} (launch/outcome launched)))))
+      (should= {:start launched} (launch/outcome launched))))
+
+  (it "adds exit-status 1 to a bad-argument error that has no exit-status"
+    (let [launched {:error "unknown argument --bogus"}]
+      (should= {:error "unknown argument --bogus" :exit-status 1} (launch/outcome launched)))))

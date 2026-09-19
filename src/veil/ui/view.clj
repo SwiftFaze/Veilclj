@@ -2,8 +2,9 @@
   "Pure view rendering: translates game state to draw commands. No Quil."
   (:require [veil.game.state :as state]))
 
-(defn- add-position-and-color [width commands]
+(defn- add-position-and-color
   "Add :x, :y, and :color to each command based on width and row."
+  [width commands]
   (mapv (fn [cmd]
           (let [row (:row cmd)
                 x (/ width 2)
@@ -14,7 +15,7 @@
 
 (defn- frame-main-menu
   "Render the main menu screen."
-  [state width]
+  [state]
   (let [items (state/menu-items state)
         selected-label (state/selected-item state)]
     (vec
@@ -29,7 +30,7 @@
 
 (defn- frame-map
   "Render the map screen."
-  [state width]
+  [state]
   (vec
     (concat
       [{:text "@" :row 6}
@@ -37,7 +38,7 @@
 
 (defn- frame-options
   "Render the options screen."
-  [state width]
+  [state]
   (vec
     (concat
       [{:text "Options" :row 4}
@@ -49,8 +50,8 @@
   :x (pixel x position), :y (pixel y position), and :color (RGB vector)."
   [state width]
   (let [commands (case (state/screen state)
-                   :main-menu (frame-main-menu state width)
-                   :map (frame-map state width)
-                   :options (frame-options state width)
+                   :main-menu (frame-main-menu state)
+                   :map (frame-map state)
+                   :options (frame-options state)
                    [])]
     (add-position-and-color width commands)))
