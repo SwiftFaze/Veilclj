@@ -26,43 +26,51 @@
 (describe "mentioned-tasks"
   (it "finds tasks mentioned as 'bb <task>'"
     (let [md-text "Run bb play first. Then bb spec."
-          result (docs-check/mentioned-tasks md-text)]
+          tasks ["play" "spec"]
+          result (docs-check/mentioned-tasks md-text tasks)]
       (should= #{"play" "spec"} result)))
 
   (it "finds tasks at end of sentence with period"
     (let [md-text "Finish with bb play."
-          result (docs-check/mentioned-tasks md-text)]
+          tasks ["play"]
+          result (docs-check/mentioned-tasks md-text tasks)]
       (should= #{"play"} result)))
 
   (it "finds tasks in backticks"
     (let [md-text "Run `bb qa` first."
-          result (docs-check/mentioned-tasks md-text)]
+          tasks ["qa"]
+          result (docs-check/mentioned-tasks md-text tasks)]
       (should= #{"qa"} result)))
 
   (it "finds tasks at end of line"
     (let [md-text "bb qa"
-          result (docs-check/mentioned-tasks md-text)]
+          tasks ["qa"]
+          result (docs-check/mentioned-tasks md-text tasks)]
       (should= #{"qa"} result)))
 
-  (it "extracts hyphenated names like 'bb qa-all'"
-    (let [md-text "Run bb qa-all first."
-          result (docs-check/mentioned-tasks md-text)]
-      (should= #{"qa-all"} result)))
+  (it "finds hyphenated tasks like 'bb update-tools'"
+    (let [md-text "Run bb update-tools first."
+          tasks ["update-tools"]
+          result (docs-check/mentioned-tasks md-text tasks)]
+      (should= #{"update-tools"} result)))
 
-  (it "rejects digit suffixes like 'bb qa2'"
-    (let [md-text "Run bb qa2 first."
-          result (docs-check/mentioned-tasks md-text)]
+  (it "rejects non-matching task names"
+    (let [md-text "Run bb qa-all first."
+          tasks ["qa"]
+          result (docs-check/mentioned-tasks md-text tasks)]
       (should= #{} result)))
 
   (it "rejects prose like 'The qa step'"
     (let [md-text "The qa step runs before play."
-          result (docs-check/mentioned-tasks md-text)]
+          tasks ["qa"]
+          result (docs-check/mentioned-tasks md-text tasks)]
       (should= #{} result)))
 
-  (it "deduplicates mentions"
-    (let [md-text "bb spec and bb spec again"
-          result (docs-check/mentioned-tasks md-text)]
-      (should= #{"spec"} result))))
+  (it "finds multiple different tasks"
+    (let [md-text "bb play and bb spec and bb qa"
+          tasks ["play" "spec" "qa"]
+          result (docs-check/mentioned-tasks md-text tasks)]
+      (should= #{"play" "spec" "qa"} result))))
 
 (describe "task-findings"
   (it "reports no findings when all tasks are mentioned"
@@ -116,7 +124,12 @@
   (it "handles feature with no description"
     (let [feature "Feature: test\nScenario: s"
           result (docs-check/extract-feature-description feature)]
-      (should= "" result))))
+      (should= "" result)))
+
+  (it "stops at Scenario Outline:"
+    (let [feature "Feature: x\n  d\n  QA: none - why\n  Scenario Outline: o\n    Given a"
+          result (docs-check/extract-feature-description feature)]
+      (should= "d\nQA: none - why" result))))
 
 (describe "extract-qa-none-line"
   (it "extracts 'QA: none' line with reason from description"
@@ -137,7 +150,12 @@
   (it "handles case with extra whitespace"
     (let [feature "Feature: test\n  QA:  none  -  reason\nScenario: s"
           result (docs-check/extract-qa-none-line feature)]
-      (should= "QA: none - reason" result))))
+      (should= "QA: none - reason" result)))
+
+  (it "matches QA: none as a whole word, not 'QA: nonexistent'"
+    (let [feature "Feature: test\n  QA: nonexistent\nScenario: s"
+          result (docs-check/extract-qa-none-line feature)]
+      (should-be-nil result))))
 
 (describe "qa-findings"
   (it "reports no findings when feature has procedure"

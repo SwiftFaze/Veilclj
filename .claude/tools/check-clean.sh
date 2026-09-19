@@ -246,30 +246,36 @@ fi
 # Collect existing procedure files
 existing_procedures=$(find specs/qa -name "*.edn" -type f 2>/dev/null || true)
 
-if [ -z "$added_features_list" ]; then
-  echo "  PASS  no features added"
-else
-  # Build the feature maps (path + text) and call the check
-  # Create temp files for feature paths and procedure paths
-  mkdir -p target/clean-code
-  feature_list_file="target/clean-code/added-features.txt"
-  procedure_list_file="target/clean-code/procedures.txt"
-  echo "$added_features_list" > "$feature_list_file"
-  echo "$existing_procedures" > "$procedure_list_file"
+# Always run the check: task-findings runs regardless of added features
+mkdir -p target/clean-code
+feature_list_file="target/clean-code/added-features.txt"
+procedure_list_file="target/clean-code/procedures.txt"
+echo "$added_features_list" > "$feature_list_file"
+echo "$existing_procedures" > "$procedure_list_file"
 
-  bb -e "
-    (require '[clojure.string :as str]
-              '[veil-tools.docs-check :as check])
-    (let [bb-edn-text (slurp \"bb.edn\")
-          testing-md-text (slurp \"docs/testing.md\")
-          feature-files (str/split-lines (slurp \"$feature_list_file\"))
-          added-features (vec (for [path feature-files :when (not (str/blank? path))]
-                                {:path path :text (slurp path)}))
-          procedure-files (str/split-lines (slurp \"$procedure_list_file\"))
-          procedures (set procedure-files)]
-      (System/exit (check/run bb-edn-text testing-md-text added-features procedures)))
-  " || true
-  advisory=$((advisory + 1))
+bb -e "
+  (require '[clojure.string :as str]
+            '[veil-tools.docs-check :as check])
+  (let [bb-edn-text (slurp \"bb.edn\")
+        testing-md-text (slurp \"docs/testing.md\")
+        feature-files (str/split-lines (slurp \"$feature_list_file\"))
+        added-features (vec (for [path feature-files :when (not (str/blank? path))]
+                              {:path path :text (slurp path)}))
+        procedure-files (str/split-lines (slurp \"$procedure_list_file\"))
+        procedures (set procedure-files)]
+    (check/run bb-edn-text testing-md-text added-features procedures))
+" > "$WORK/docs-check.txt" 2>&1
+check_exit=$?
+
+if [ $check_exit -eq 0 ]; then
+  cat "$WORK/docs-check.txt"
+  finding_count=$(grep -c "^    " "$WORK/docs-check.txt" || true)
+  advisory=$((advisory + finding_count))
+else
+  echo "  FAIL  docs check failed to load:"
+  head -1 "$WORK/docs-check.txt" | sed 's/^/    /'
+  blocking=$((blocking + 1))
+  sections_failed="$sections_failed docs-check"
 fi
 
 # ---------------------------------------------------------------------------

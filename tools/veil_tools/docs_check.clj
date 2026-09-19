@@ -14,9 +14,11 @@
                           (range (count lines)))
         scenario-idx (when feature-idx
                        (some (fn [i]
-                               (when (or (str/starts-with? (str/trim (nth lines i)) "Background:")
-                                         (str/starts-with? (str/trim (nth lines i)) "Scenario:"))
-                                 i))
+                               (let [trimmed (str/trim (nth lines i))]
+                                 (when (or (str/starts-with? trimmed "Background:")
+                                           (str/starts-with? trimmed "Scenario Outline:")
+                                           (str/starts-with? trimmed "Scenario:"))
+                                   i)))
                              (range (inc feature-idx) (count lines))))
         desc-lines (if feature-idx
                      (if scenario-idx
@@ -40,20 +42,22 @@
     task-names))
 
 (defn mentioned-tasks
-  "Extract task names mentioned in testing-md-text as 'bb <task>' where the char
-   after the task name can't be part of a task name. Returns set of task name strings."
-  [testing-md-text]
-  (let [pattern #"bb\s+([a-z]+(?:-[a-z]+)?)(?![a-z0-9_-])"]
-    (->> (re-seq pattern testing-md-text)
-         (map second)
-         set)))
+  "Check which known tasks are mentioned in testing-md-text as 'bb <task>'
+   where the char after the task name can't be part of a task name.
+   Returns set of task name strings that are mentioned."
+  [testing-md-text task-names]
+  (let [mentioned (set (for [task task-names
+                             :when (re-find (re-pattern (str "bb\\s+" (java.util.regex.Pattern/quote task) "(?![A-Za-z0-9_-])"))
+                                           testing-md-text)]
+                        task))]
+    mentioned))
 
 (defn task-findings
   "Compare tasks in bb.edn with mentions in testing.md. Returns vector of
    finding strings, one per unmentioned task, ordered alphabetically by task name."
   [bb-edn-text testing-md-text]
   (let [tasks (extract-tasks bb-edn-text)
-        mentioned (mentioned-tasks testing-md-text)
+        mentioned (mentioned-tasks testing-md-text tasks)
         unmentioned (filter (fn [t] (not (mentioned t))) tasks)]
     (vec (map (fn [t] (str "task \"" t "\" is not mentioned in docs/testing.md"))
               unmentioned))))
@@ -65,7 +69,7 @@
   [feature-text]
   (let [desc (extract-feature-description feature-text)
         lines (str/split desc #"\n")
-        qa-line (some #(when (re-matches #"QA:\s*none.*" (str/trim %))
+        qa-line (some #(when (re-matches #"QA:\s*none(?:\s.*)?$" (str/trim %))
                          (str/trim %))
                       lines)]
     (when qa-line
@@ -104,15 +108,16 @@
 (defn run
   "Orchestrate the check: read bb.edn and docs/testing.md from disk, get added
    features and procedure paths from arguments (shell wrapper's job), print findings
-   to stdout, return exit code (0 = pass/advisory only, 1 = findings exist)."
+   to stdout, always return 0 (advisory only, never blocks)."
   [bb-edn-text testing-md-text added-features procedure-paths]
   (let [task-finding-list (task-findings bb-edn-text testing-md-text)
         qa-finding-list (qa-findings added-features procedure-paths)
-        all-findings (concat task-finding-list qa-finding-list)]
-    (if (empty? all-findings)
+        all-findings (concat task-finding-list qa-finding-list)
+        finding-count (count all-findings)]
+    (if (zero? finding-count)
       (do (println "  PASS  no unmentioned tasks or orphaned features")
           0)
-      (do (println (str "  ADVISORY  " (count all-findings) " finding(s):"))
+      (do (println (str "  ADVISORY  " finding-count " finding(s):"))
           (doseq [finding all-findings]
             (println (str "    " finding)))
           0))))
