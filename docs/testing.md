@@ -101,11 +101,9 @@ Exit 3 means surviving or uncovered mutants: a behavior no spec pins down.
 Target `src/veil/game/**`, `src/veil/mods/**` and `src/veil/ui/**`, plus the
 two `tools/` namespaces the coverage run instruments (`veil-tools.docs-check`,
 `veil-tools.shell-check`; the `:cov` alias in `deps.edn` says why only those).
-Skip the Quil shell (`veil.main`, `veil.ui.draw`: by the rule below they hold no
-decision to mutate) and the I/O files `veil.mods.disk`, `veil.ui.font` (it
-opens a font file, is specced against real and temp files, and has no
-mutation sites) and `veil.ui.qa.runner`.
-Snapshots in `.metrics/mutate/` are committed, so later runs are differential.
+Skip the Quil shell (`veil.main`, `veil.ui.draw`: see the rule below) and the
+I/O files `veil.mods.disk`, `veil.ui.font` and `veil.ui.qa.runner`. Snapshots in
+`.metrics/mutate/` are committed, so later runs are differential.
 
 ## The Quil shell rule (`bb shell-check`)
 
