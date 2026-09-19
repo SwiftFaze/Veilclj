@@ -16,6 +16,12 @@
    :expected expected
    :message  (str file ": " path " expected " expected)})
 
+(defn field-error
+  "Build an error map for a content type's check function.
+   Same shape as a validation failure: {:kind :invalid :file :path :expected :message}."
+  [file path expected]
+  (error file path expected))
+
 (defn parse
   "JSON text -> {:data map-with-keyword-keys} or {:errors [invalid-json]}."
   [file text]

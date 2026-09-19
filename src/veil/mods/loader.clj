@@ -27,11 +27,12 @@
 
 (defn- content-files [files content-types manifests]
   (let [types-by-folder (into {} (map (juxt :folder identity) content-types))
-        mod-ids (set (map :id manifests))]
+        mod-ids (set (map :id manifests))
+        paths (set (keys files))]
     (for [[path text] (sort-by key files)
           :let [content-type (claimed-type types-by-folder mod-ids path)]
           :when content-type]
-      {:mod (first (str/split path #"/")) :content-type content-type :file path :text text})))
+      {:mod (first (str/split path #"/")) :content-type content-type :file path :text text :paths paths})))
 
 (defn- overrides-mismatch [file id overrides]
   {:kind      :overrides-mismatch
@@ -43,11 +44,14 @@
 
 (defn- read-entry
   "{:entry e} or {:errors [...]} for one content file."
-  [{:keys [mod content-type file text]}]
+  [{:keys [mod content-type file text paths]}]
   (let [{:keys [data errors]} (validate/validate file text (:spec content-type) (:phrases content-type {}))
-        {:keys [id overrides]} data]
+        {:keys [id overrides]} data
+        check-fn (:check content-type)
+        check-errors (when (and (not errors) check-fn) (check-fn {:data data :mod mod :file file :paths paths}))]
     (cond
       errors                            {:errors errors}
+      (seq check-errors)                {:errors check-errors}
       (and overrides (not= overrides id)) {:errors [(overrides-mismatch file id overrides)]}
       :else {:entry {:mod       mod
                      :type      (:type content-type)

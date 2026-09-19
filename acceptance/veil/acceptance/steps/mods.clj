@@ -6,6 +6,7 @@
             [clojure.string :as str]
             [veil.acceptance.step-support :refer [ok check fail]]
             [veil.mods.fixtures :as fixtures]
+            [veil.mods.fonts :as fonts]
             [veil.mods.loader :as loader]
             [veil.mods.registry :as registry]
             [veil.mods.themes :as themes]))
@@ -56,7 +57,7 @@
         top-folder (comp first #(str/split % #"/"))
         mods-data {:folders (into (set folders) (map top-folder (keys files)))
                    :files   (or files {})}
-        content-types (into fixtures/content-types [themes/content-type])]
+        content-types (into fixtures/content-types [themes/content-type fonts/content-type])]
     (swap! world assoc :result (loader/load-mods mods-data content-types))
     (ok)))
 
