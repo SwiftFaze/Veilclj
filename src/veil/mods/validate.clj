@@ -132,8 +132,7 @@
    "int?"     "an integer"
    "integer?" "an integer"
    "boolean?" "true or false"
-   "number?"  "a number"
-   "channel?" "an integer from 0 to 255"})
+   "number?"  "a number"})
 
 (defn- collection-phrase [pred]
   (let [names (set (map #(when (symbol? %) (name %)) (flatten [pred])))]

@@ -140,3 +140,22 @@
       (should (contains? result :error))
       (should= 1 (:exit-status result))
       (should (.contains (:error result) "core:default")))))
+
+(describe "validation error messages"
+  (it "channel validation for 12.5 says 'an integer from 0 to 255'"
+    (let [mods-data (f/mods
+                      (f/manifest "core")
+                      ["core/themes/default.json" "{\"id\": \"core:default\", \"colors\": {\"SELECTED_HIGHLIGHT\": {\"r\": 1, \"g\": 2, \"b\": 3}, \"SELECTED_TEXT\": {\"r\": 4, \"g\": 5, \"b\": 6}, \"NORMAL_TEXT\": {\"r\": 7, \"g\": 8, \"b\": 9}, \"DIMMED_TEXT\": {\"r\": 10, \"g\": 11, \"b\": 12}, \"BACKGROUND\": {\"r\": 13, \"g\": 14, \"b\": 15}, \"INVALID_HIGHLIGHT\": {\"r\": 16, \"g\": 17, \"b\": 18}, \"VALID_HIGHLIGHT\": {\"r\": 19, \"g\": 20, \"b\": 21}, \"BORDER\": {\"r\": 12.5, \"g\": 26, \"b\": 27}, \"SCROLLBAR_THUMB\": {\"r\": 28, \"g\": 29, \"b\": 30}, \"ACCENT\": {\"r\": 31, \"g\": 32, \"b\": 33}, \"WINDOW_BORDER\": {\"r\": 34, \"g\": 35, \"b\": 36}, \"TABLE_HEADER_TEXT\": {\"r\": 37, \"g\": 38, \"b\": 39}, \"TABLE_HEADER_BACKGROUND\": {\"r\": 22, \"g\": 23, \"b\": 24}}}"]
+                      )
+          result (loader/load-mods mods-data [themes/content-type])
+          error-msg (first (map :message (:errors result)))]
+      (should (.contains error-msg "an integer from 0 to 255"))))
+
+  (it "color object validation for array says 'an object with r, g and b'"
+    (let [mods-data (f/mods
+                      (f/manifest "core")
+                      ["core/themes/default.json" "{\"id\": \"core:default\", \"colors\": {\"SELECTED_HIGHLIGHT\": {\"r\": 1, \"g\": 2, \"b\": 3}, \"SELECTED_TEXT\": {\"r\": 4, \"g\": 5, \"b\": 6}, \"NORMAL_TEXT\": {\"r\": 7, \"g\": 8, \"b\": 9}, \"DIMMED_TEXT\": {\"r\": 10, \"g\": 11, \"b\": 12}, \"BACKGROUND\": {\"r\": 13, \"g\": 14, \"b\": 15}, \"INVALID_HIGHLIGHT\": {\"r\": 16, \"g\": 17, \"b\": 18}, \"VALID_HIGHLIGHT\": {\"r\": 19, \"g\": 20, \"b\": 21}, \"BORDER\": [1, 2, 3], \"SCROLLBAR_THUMB\": {\"r\": 28, \"g\": 29, \"b\": 30}, \"ACCENT\": {\"r\": 31, \"g\": 32, \"b\": 33}, \"WINDOW_BORDER\": {\"r\": 34, \"g\": 35, \"b\": 36}, \"TABLE_HEADER_TEXT\": {\"r\": 37, \"g\": 38, \"b\": 39}, \"TABLE_HEADER_BACKGROUND\": {\"r\": 22, \"g\": 23, \"b\": 24}}}"]
+                      )
+          result (loader/load-mods mods-data [themes/content-type])
+          error-msg (first (map :message (:errors result)))]
+      (should (.contains error-msg "an object with r, g and b")))))

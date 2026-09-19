@@ -17,7 +17,7 @@
   [x]
   (and (int? x) (>= x 0) (<= x 255)))
 
-(s/def ::channel (s/and int? channel?))
+(s/def ::channel channel?)
 
 (s/def :color/r ::channel)
 (s/def :color/g ::channel)
@@ -71,7 +71,9 @@
                        :opt-un [:veil.mods.ids/overrides]))
 
 (def phrases
-  {::colors "an object with r, g and b"})
+  {::channel "an integer from 0 to 255"
+   ::color "an object with r, g and b"
+   ::colors "an object with r, g and b"})
 
 (defn- color->vector [{:keys [r g b]}]
   [r g b])
