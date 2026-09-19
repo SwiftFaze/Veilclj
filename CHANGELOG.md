@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-beta.4](https://github.com/SwiftFaze/Veilclj/compare/v0.1.0-beta.3...v0.1.0-beta.4) (2026-09-19)
+
+
+### Features
+
+* raise CRAP limit from 8 to 10 and ban boolean-flag splits ([#44](https://github.com/SwiftFaze/Veilclj/issues/44)) ([113b3da](https://github.com/SwiftFaze/Veilclj/commit/113b3da75995b30859526cffd9bce01b03fb3c6d))
+
 ## [0.1.0-beta.3](https://github.com/SwiftFaze/Veilclj/compare/v0.1.0-beta.2...v0.1.0-beta.3) (2026-09-19)
 
 
