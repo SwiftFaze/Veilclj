@@ -21,7 +21,8 @@
                         "--" "-p" "src" "-s" "spec" "--lcov"]}
 
   ;; Acceptance pipeline runtime: generated entry points + step handlers.
-  :acceptance {:extra-paths ["acceptance" "build/acceptance/generated"]}
+  ;; "spec" is here only for veil.mods.fixtures, the fixture content types.
+  :acceptance {:extra-paths ["acceptance" "spec" "build/acceptance/generated"]}
 
   ;; SCRAP: speclj structure errors (blocking) + spec quality advice.
   :scrap {:extra-deps {io.github.unclebob/scrap

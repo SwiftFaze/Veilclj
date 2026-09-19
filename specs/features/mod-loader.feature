@@ -1,3 +1,7 @@
+# acceptance-mutation-manifest-begin
+# {"version":1,"tested_at":"2026-09-19T08:34:00.841853300Z","feature_name":"Mod loader","feature_path":"specs/features/mod-loader.feature","background_hash":"74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b","implementation_hash":"unknown","scenarios":[{"index":11,"name":"A content ID must match the namespace:name pattern","scenario_hash":"593e18dd201984f1a3d200ca20be1e17dab7dd8b992b467c059203f3fef2f802","mutation_count":16,"result":{"Total":16,"Killed":16,"Survived":0,"Errors":0},"tested_at":"2026-09-19T08:33:28.747925500Z"}]}
+# acceptance-mutation-manifest-end
+
 Feature: Mod loader
   At startup the game discovers every mod under mods/, orders the mods by
   their dependencies, validates every manifest and content file, and builds

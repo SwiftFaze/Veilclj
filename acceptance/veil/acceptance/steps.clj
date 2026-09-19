@@ -3,10 +3,11 @@
   veil.acceptance.steps.*; add a new concept's handlers to `step-handlers`."
   (:require [veil.acceptance.step-support :refer [fail]]
             [veil.acceptance.steps.window :as window]
-            [veil.acceptance.steps.menu :as menu]))
+            [veil.acceptance.steps.menu :as menu]
+            [veil.acceptance.steps.mods :as mods]))
 
 (def step-handlers
-  (concat window/handlers menu/handlers))
+  (concat window/handlers menu/handlers mods/handlers))
 
 (defn handle-step [world text]
   (if-let [[handler match] (some (fn [[pattern handler]]
