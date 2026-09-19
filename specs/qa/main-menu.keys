@@ -1,0 +1,8 @@
+# Main menu QA script
+# Navigate down to Options, enter, back to menu, down to Quit, enter
+
+Down    # Select Options
+Enter   # Open Options screen
+Esc     # Back to menu (should select Options)
+Down    # Select Quit
+Enter   # Game over

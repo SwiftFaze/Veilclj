@@ -164,12 +164,10 @@ gh issue edit <number> --repo SwiftFaze/Veilclj --milestone "<n>. <Title>"
 
 ## Step 5 — Add each to the project board and set priority
 
-Same as `brainstorm-issue` Step 4, for every issue created in Step 4:
-
-```
-gh project item-add 3 --owner SwiftFaze --url <issue-url>
-gh project item-edit 3 --owner SwiftFaze --url <issue-url> --field "Priority" --value "<P0|P1|P2>"
-```
+Same as `brainstorm-issue` Step 5, for every issue created in Step 4: add it
+to the board and set `Priority` with the snippet in
+[`docs/project-board.md`](../../../docs/project-board.md), and run its
+read-back check before reporting.
 
 ## Step 6 — Report back
 

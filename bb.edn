@@ -20,8 +20,10 @@
 
  :tasks
  {;; --- build & run ---------------------------------------------------------
-  play  {:doc  "Launch the game"
+  play  {:doc  "Launch the game (accepts --keys, --log)"
          :task (apply clojure "-M:run" *command-line-args*)}
+  qa    {:doc  "Run a QA procedure: bb qa <slug>, or every procedure: bb qa --all (opens the game window)"
+         :task (apply clojure "-M:qa" *command-line-args*)}
   uber  {:doc  "Build the runnable jar -> target/veil-<version>.jar"
          :task (clojure "-T:build" "uber")}
   clean {:doc  "Delete target/ and build/"
@@ -86,11 +88,13 @@
                     (clojure "-M:uml-ir"))}
   uml    {:doc  "Open the live UML viewer (run bb uml-ir and bb crap first)"
           :task (clojure "-M:uml")}
-  ;; The Quil shell and the mods/ directory walk aren't mutation targets (see
-  ;; docs/testing.md). :continue because bb mutate exits 3 on survivors.
+  ;; The Quil shell, the mods/ directory walk and the QA runner's process spawn
+  ;; aren't mutation targets (see docs/testing.md). :continue because bb mutate
+  ;; exits 3 on survivors.
   uml-data
   {:doc  "Refresh every UML overlay (CRAP + mutation of all of src), then bb uml-ir; follow with bb uml"
-   :task (let [skip #{"src/veil/main.clj" "src/veil/ui/draw.clj" "src/veil/mods/disk.clj"}]
+   :task (let [skip #{"src/veil/main.clj" "src/veil/ui/draw.clj" "src/veil/mods/disk.clj"
+                      "src/veil/ui/qa/runner.clj"}]
            (run 'crap)
            (doseq [f (sort (map (comp babashka.fs/unixify str) (babashka.fs/glob "src" "**.clj")))
                    :when (not (skip f))]

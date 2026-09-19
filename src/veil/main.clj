@@ -7,6 +7,9 @@
             [veil.game.state :as state]
             [veil.ui.draw :as draw]
             [veil.ui.input :as input]
+            [veil.ui.qa.files :as files]
+            [veil.ui.qa.launch :as launch]
+            [veil.ui.qa.mode :as mode]
             [veil.mods.disk :as disk]
             [veil.mods.loader :as loader])
   (:gen-class))
@@ -28,30 +31,56 @@
     (set! (.-key ^processing.core.PApplet (qa/current-applet)) (char 0)))
   event)
 
-(defn- update-state [state]
-  (if (state/over? state)
-    (do
-      (q/exit)
-      state)
-    state))
-
-(defn- key-pressed [state event]
+(defn- handle-key
+  "The one path a key takes into the game, whether it was typed or scripted."
+  [state event]
   (prevent-processing-exit event)
   (state/handle-input state (input/event->input event)))
 
-(defn -main [& _args]
-  (let [load-result (loader/load-mods (disk/read-mods-dir "mods") [])]
-    (if (contains? load-result :errors)
-      (do
-        (binding [*out* *err*]
-          (println (loader/error-report (:errors load-result))))
-        (System/exit 1))
-      (q/sketch
-        :title      (:title window)
-        :size       (:size window)
-        :setup      #(setup (:registry load-result))
-        :draw       draw/draw!
-        :update     update-state
-        :key-pressed key-pressed
-        :features   [:exit-on-close]
-        :middleware [m/fun-mode]))))
+(defn- update-state [qa-state state]
+  (let [{:keys [qa entries exit?] new-state :state} (mode/frame @qa-state handle-key state)]
+    (reset! qa-state qa)
+    (files/append-log! (:log-path qa) entries)
+    (when exit? (q/exit))
+    new-state))
+
+(defn- key-pressed [qa-state state event]
+  (let [{:keys [entries] new-state :state} (mode/on-key @qa-state handle-key state (q/frame-count) event)]
+    (files/append-log! (:log-path @qa-state) entries)
+    new-state))
+
+(defn- plan-step [{:keys [args]}]
+  (mode/plan args files/read-script))
+
+(defn- load-mods-step [_]
+  (let [result (loader/load-mods (disk/read-mods-dir "mods") [])]
+    (if (contains? result :errors)
+      {:error (loader/error-report (:errors result))}
+      {:registry (:registry result)})))
+
+(defn- start-log-step [{:keys [qa]}]
+  (files/start-log! (:log-path qa)))
+
+(defn- die [message]
+  (binding [*out* *err*]
+    (println message))
+  (System/exit 1))
+
+(defn- open-window [{:keys [registry qa]}]
+  (let [qa-state (atom qa)]
+    (q/sketch
+      :title       (:title window)
+      :size        (:size window)
+      :setup       #(setup registry)
+      :draw        draw/draw!
+      :update      (fn [state] (update-state qa-state state))
+      :key-pressed (fn [state event] (key-pressed qa-state state event))
+      :features    [:exit-on-close]
+      :middleware  [m/fun-mode])))
+
+(defn -main [& args]
+  (let [launched (launch/run-steps {:args args}
+                                   [plan-step load-mods-step start-log-step])]
+    (if (:error launched)
+      (die (:error launched))
+      (open-window launched))))

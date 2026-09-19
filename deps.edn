@@ -24,6 +24,9 @@
   ;; "spec" is here only for veil.mods.fixtures, the fixture content types.
   :acceptance {:extra-paths ["acceptance" "spec" "build/acceptance/generated"]}
 
+  ;; QA procedure runner (bb qa <slug>)
+  :qa {:main-opts ["-m" "veil.ui.qa.runner"]}
+
   ;; SCRAP: speclj structure errors (blocking) + spec quality advice.
   :scrap {:extra-deps {io.github.unclebob/scrap
                        {:git/url "https://github.com/unclebob/scrap"
