@@ -132,7 +132,7 @@
         (check (and error (.contains error id))
                (str "starting fails naming the missing font " id))))]
 
-   [#"the shipped font file \"([^\"]+)\" has a glyph for every code point from U\\+([0-9A-Fa-f]+) to U\\+([0-9A-Fa-f]+)"
+   [#"the shipped font file \"([^\"]+)\" has a glyph for every code point from U\+([0-9A-Fa-f]+) to U\+([0-9A-Fa-f]+)"
     (fn [world [_ path start-hex end-hex]]
       (let [shipped-path (str "mods/" path)
             start-code (Integer/parseInt start-hex 16)
