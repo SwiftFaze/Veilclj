@@ -263,7 +263,8 @@ bb -e "
                               {:path path :text (slurp path)}))
         procedure-files (str/split-lines (slurp \"$procedure_list_file\"))
         procedures (set procedure-files)]
-    (check/run bb-edn-text testing-md-text added-features procedures))
+    (check/run bb-edn-text testing-md-text added-features procedures)
+    nil)
 " > "$WORK/docs-check.txt" 2>&1
 check_exit=$?
 
