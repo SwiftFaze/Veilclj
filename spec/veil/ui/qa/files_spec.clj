@@ -60,7 +60,7 @@
       (should= {:error (str "cannot write log " path)} (files/start-log! path))))
 
   (it "writes to a bare relative filename (no directory) in the working directory"
-    (let [bare-name "veil-qa-test-temp.log.edn"]
+    (let [bare-name (str "veil-qa-test-" (System/nanoTime) ".log.edn")]
       (try
         (should-be-nil (files/start-log! bare-name))
         (should= "{:log/version 1}\n" (slurp bare-name))
@@ -87,6 +87,9 @@
 
   (it "does not need a log path when there is nothing to write"
     (should-be-nil (files/append-log! nil [])))
+
+  (it "writes nothing, and does not throw, when entries arrive but no log was asked for"
+    (should-be-nil (files/append-log! nil [{:tick 1 :key :down}])))
 
   (it "reports a log that cannot be written"
     (let [path (path-in @root "no-such-dir" "x.log.edn")]
