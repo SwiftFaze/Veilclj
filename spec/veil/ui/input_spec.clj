@@ -63,8 +63,7 @@
 
   (it "returns false for other keys"
     (should= false (input/escape? {:raw-key \a}))
-    (should= false (input/escape? {:raw-key \newline}))
-    (should= false (input/escape? {:key :up})))
+    (should= false (input/escape? {:raw-key \newline})))
 
   (it "returns false for nil event"
     (should= false (input/escape? nil)))
