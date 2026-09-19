@@ -235,31 +235,4 @@
         (check (and error (.contains error id))
                (str "starting fails naming the missing theme " id))))]
 
-   [#"the frame's background color is (\d+),(\d+),(\d+)"
-    (fn [world [_ r g b]]
-      (let [expected [(Integer/parseInt r) (Integer/parseInt g) (Integer/parseInt b)]
-            s (:state @world)
-            actual (try (view/background s) (catch Exception _ nil))]
-        (check (= expected actual)
-               (str "frame's background color is " expected ", got " actual))))]
-
-   [#"the selected menu item \"([^\"]+)\" is drawn in (\d+),(\d+),(\d+)"
-    (fn [world [_ label r g b]]
-      (let [expected [(Integer/parseInt r) (Integer/parseInt g) (Integer/parseInt b)]
-            s (:state @world)
-            commands (try (view/frame s 960) (catch Exception _ []))
-            cmd (first (filter #(and (= label (:text %)) (:selected? %)) commands))
-            actual (:color cmd)]
-        (check (and cmd (= expected actual))
-               (str "selected item " label " is drawn in " expected ", got " actual))))]
-
-   [#"the menu item \"([^\"]+)\" is drawn in (\d+),(\d+),(\d+)"
-    (fn [world [_ label r g b]]
-      (let [expected [(Integer/parseInt r) (Integer/parseInt g) (Integer/parseInt b)]
-            s (:state @world)
-            commands (try (view/frame s 960) (catch Exception _ []))
-            cmd (first (filter #(and (= label (:text %)) (not (:selected? %))) commands))
-            actual (:color cmd)]
-        (check (and cmd (= expected actual))
-               (str "item " label " is drawn in " expected ", got " actual))))]
    ])

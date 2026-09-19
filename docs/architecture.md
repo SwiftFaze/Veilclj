@@ -27,9 +27,9 @@ Dependencies point one way, downward. Nothing may depend on a layer above it.
 | Layer | Namespaces | Holds | May call Quil? |
 |---|---|---|---|
 | Entry | `veil.main` | `-main`, launch steps, sketch assembly, the per-frame and per-key callbacks: Quil calls and passing data along, no decisions (`bb shell-check`) | yes |
-| UI | `veil.ui.*` | drawing state as glyphs, mapping key events to game inputs, the QA tooling (`veil.ui.qa.*`) | yes |
+| UI | `veil.ui.*` | drawing state as a grid of character cells ("The cell grid" below), mapping key events to game inputs, the QA tooling (`veil.ui.qa.*`) | yes |
 | Game | `veil.game.*` | rules: screens, menus, world, entities, the events a state change caused, the color lookup (`veil.game.theme`) | **no** |
-| Mods | `veil.mods.*` | reading `mods/` and building the registry, content types and their validation (themes: `veil.mods.themes`); file format: `mod-format.md` | no; only `veil.mods.disk` does I/O |
+| Mods | `veil.mods.*` | reading `mods/` and building the registry, content types and their validation (themes: `veil.mods.themes`, fonts: `veil.mods.fonts`); file format: `mod-format.md` | no; only `veil.mods.disk` does I/O |
 
 `veil.game` must stay free of Quil and I/O; it is where the specs, CRAP score
 and mutation testing concentrate. The direction is enforced by
@@ -52,7 +52,9 @@ is a judgment-checklist line (`docs/clean-code-gate.md`).
 - Game state: the fun-mode state map, nowhere else. No atoms in `veil.game`.
   Besides the screen, menu and player it holds the mods registry (`:mods`), the
   loaded themes (`:themes`, theme id -> its 19 colors) and the id of the active
-  one (`:active-theme`).
+  one (`:active-theme`). The font is not in the state: only the sketch's setup
+  needs it, so `veil.main` opens it once at launch and passes its path and size
+  to `setup`.
 - Settings persisted between runs (`settings.json` in the working directory)
   are runtime output and are git-ignored.
 
@@ -91,6 +93,49 @@ has to act on the answer (next section). `veil.ui.draw` is the only
 Quil-touching UI namespace. `event->input` and `escape?` are kept pure (no Quil
 required) so game input logic can be tested in isolation.
 
+## The cell grid: state to buffer to draw commands to pixels
+
+The game draws like a terminal: a grid of character cells, as many whole cells
+as fit the window and never fewer than 80 columns by 24 rows. Rendering is a
+pure pipeline over data, and only its last step touches Quil:
+
+```
+state --view/buffer--> buffer --commands/frame--> draw commands --draw!--> pixels
+        (which text,             (pixel position,      (rect / text calls,
+         which cells)             RGB colors)           no decisions)
+```
+
+| Namespace | Holds |
+|---|---|
+| `veil.ui.buffer` | the buffer, `{:cols :rows :cells}`: a vector of rows of cells, each `{:glyph :fg :bg}`. `blank`, `cell`, `row-text`, `write-text`, `fill-rect` and `draw-box` return new buffers; anything outside the grid is clipped |
+| `veil.ui.grid` | `size`: whole cells that fit a window in pixels, with the 80x24 minimum; `cell-size`: a cell's pixel size from a character's measured width and the font's ascent and descent |
+| `veil.ui.commands` | `frame`: a buffer to `{:background :rects :glyphs}`, the pixel-positioned commands |
+| `veil.ui.view` | what each screen shows: `buffer` writes a screen's lines into a buffer (centered across, at their rows, reverse video on the selected menu item, a single-line border around the whole grid); `scene` composes cell size, grid size, buffer and commands |
+| `veil.ui.font` | opens the font file (I/O; see below) |
+| `veil.ui.draw` | carries the commands out with Quil; no decisions |
+
+**Cells hold theme keys, not colors.** A cell's `:fg` and `:bg` are keys such
+as `:BORDER`. `commands/frame` resolves them to RGB through `veil.game.theme/color`
+when it builds the commands, so a recolored theme changes the next frame and
+never the buffer, and a key the theme lacks throws there, loudly. A cell whose
+background is the frame's `:BACKGROUND` adds no rectangle and a space adds no
+glyph, so a blank buffer draws only the background.
+
+**Cell size comes from the font, measured by the shell.** `draw!` reads the
+window's pixel size, the width of one "M" and the font's ascent and descent
+from Quil and hands them to `view/scene`; every calculation on them
+(`grid/cell-size`, `grid/size`, pixel positions) is a pure function. The
+window is resizable, and each frame recomputes the grid from the current
+window, so the grid follows a resize with no resize handler. The font is
+`core:default`, a mod's content (`mod-format.md`, "Fonts"), loaded once at
+launch. `veil.ui.font/open` is the one place a font file is read: it returns
+`{:font-path :size}` for `q/create-font`, or an error naming the file. It is
+I/O, so it is specced against real and temp files and is not a mutation target.
+
+**Single answer.** `view/buffer` asks `veil.game.state` (`screen`,
+`menu-items`, `selected-item`) what to show and never works out the selection
+itself; the colors are `veil.game.theme/color`'s.
+
 ## The Quil shell decides nothing
 
 `veil.main` and `veil.ui.draw` call Quil and Processing and pass data along;
@@ -108,20 +153,39 @@ check (`bb shell-check`, a blocking section of the gate) are in
 | Which color is drawn? | `veil.game.theme/color` (a key looked up in the active theme in the state); `veil.ui.view` only asks, `veil.mods.themes/construct` resolved every optional key's fallback at load | game |
 | Does the launch start the game or stop it with a message? | `veil.ui.qa.launch/outcome` | ui |
 | Is this key the raw Escape that Processing would treat as quit? | `veil.ui.input/escape?` | ui |
-| Where and in what colour is each line of text drawn? | `veil.ui.view/frame` (`state`, window `width`) returns `:x`, `:y` and `:color` on every command | ui |
+| Which font does the game draw in, and does the launch stop without it? | `veil.mods.fonts/startup` (`{:font ..}`, or error report plus exit status 1 when `core:default` isn't registered) | mods |
+| Can the font file be opened, and at what size? | `veil.ui.font/open` (`{:font-path :size}`, or an error naming the file, which stops the launch with exit status 1) | ui |
+| How many cells fit the window, and how big is one? | `veil.ui.grid/size` and `grid/cell-size`; `draw!` only passes `(q/width)`, `(q/height)` and the text metrics in | ui |
+| What does each screen show, and where? | `veil.ui.view/buffer` (state, columns, rows -> a buffer) | ui |
+| Where and in what colour is each cell drawn? | `veil.ui.commands/frame` (buffer, cell size -> `:rects` and `:glyphs` with `:x`, `:y`, `:w`, `:h` and RGB `:color`); `veil.ui.view/scene` composes the pipeline | ui |
 | Is it time to quit? | `veil.ui.qa.mode/frame`'s `:exit?` | ui |
 
 The startup decision is split at its seams so that no layer gained a
 dependency: `loader/startup` needs only `veil.mods.loader`, `themes/startup`
-only `veil.mods.themes`, `starting` only `veil.game.state`. `veil.main` reads
-the mods directory (`veil.mods.disk`, at the path `loader/mods-dir` chose),
-calls `loader/startup` with the content types (`themes/content-type`), then
-`themes/startup` on the registry it got back, and hands the registry and
-`themes/all`'s theme map to `starting` when the sketch sets up. `veil.game.theme`
-knows nothing of `veil.mods.*`: the theme map reaches it only as data in the
-state. `dependency-checker.edn` did not change. `draw!` passes `(q/width)` to
-`view/frame` rather than the view knowing the window, so a resizable window
-would still lay out correctly.
+only `veil.mods.themes`, `fonts/startup` only `veil.mods.fonts`, `starting`
+only `veil.game.state`. `veil.main` runs the launch as a list of steps, each
+taking what the earlier ones produced and stopping the launch at the first
+`{:error ..}`: plan the launch arguments; read the mods directory
+(`veil.mods.disk`, at the path `loader/mods-dir` chose) and call
+`loader/startup` with the content types (`themes/content-type`,
+`fonts/content-type`); `themes/startup` on the registry it got back;
+`fonts/startup` on the same registry; `veil.ui.font/open` on the font it chose
+(relative to the mods directory); start the log. It hands the registry and
+`themes/all`'s theme map to `starting`, and the opened font's path and size to
+`q/create-font`, when the sketch sets up. `veil.game.theme` knows nothing of
+`veil.mods.*`: the theme map reaches it only as data in the state.
+`dependency-checker.edn` did not change. `draw!` passes the window's pixel size
+and text metrics to `view/scene` rather than the view knowing the window, so
+the resizable window lays out correctly on every frame.
+
+**Content types with a check.** A content type is `{:type :folder :spec
+:phrases :construct}` and, optionally, `:check`. Themes need only their spec;
+a font also has to name a file that exists, which a spec over one JSON file
+cannot see. `veil.mods.loader` therefore calls a type's `:check` with
+`{:data :mod :file :paths}` (`:paths` is every file path the mods data holds,
+so the check stays pure) once the file satisfies its spec, and reports the
+error maps it returns with the other load problems, in
+`veil.mods.validate/field-error`'s shape.
 
 ## The Esc/Processing gotcha
 

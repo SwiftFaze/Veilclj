@@ -1,72 +1,58 @@
 (ns veil.ui.view
-  "Pure view rendering: translates game state to draw commands. No Quil."
+  "Pure view rendering: translates game state to a buffer, then to draw commands.
+   No Quil, no decisions - pure data pipeline."
   (:require [veil.game.state :as state]
-            [veil.game.theme :as theme]))
+            [veil.ui.buffer :as buffer]
+            [veil.ui.grid :as grid]
+            [veil.ui.commands :as commands]))
 
-(defn- row->y
-  "Pixel y of a logical row: a 50 pixel top margin, then 40 pixels per row."
-  [row]
-  (+ 50 (* row 40)))
+(defn- main-menu-lines
+  "The main menu's lines; only the selected menu item is :selected?."
+  [game-state]
+  (let [selected (state/selected-item game-state)]
+    (concat [{:text "VEIL" :row 2}]
+            (map-indexed (fn [i item]
+                           {:text item :row (+ 4 (* i 2)) :selected? (= item selected)})
+                         (state/menu-items game-state))
+            [{:text "Use Up/Down or W/S to move, Enter to select" :row 12}])))
 
-(defn- command-color
-  "The selected item is highlighted; everything else is plain. Colors come from the active theme."
-  [state {:keys [selected?]}]
-  (if selected?
-    (theme/color state :SELECTED_HIGHLIGHT)
-    (theme/color state :NORMAL_TEXT)))
+(defn- lines-for-screen
+  "The lines of the current screen: maps of :text, :row and, on the main menu, :selected?."
+  [game-state]
+  (case (state/screen game-state)
+    :main-menu (main-menu-lines game-state)
+    :map [{:text "@" :row 6}
+          {:text "Esc: menu" :row 20}]
+    :options [{:text "Options" :row 4}
+              {:text "Esc: back" :row 20}]
+    []))
 
-(defn- lay-out
-  "Give each command its pixel position and colour. This is here, not in the
-  Quil layer, so the drawing code has nothing left to decide or calculate."
-  [state width commands]
-  (mapv (fn [cmd]
-          (assoc cmd :x (/ width 2) :y (row->y (:row cmd)) :color (command-color state cmd)))
-        commands))
+(defn- write-line
+  "buf with one screen line written centered across cols. The selected line is
+   drawn in reverse video, every other line in normal text."
+  [cols buf {:keys [text row selected?]}]
+  (let [col (quot (- cols (count text)) 2)
+        [fg bg] (if selected?
+                  [:SELECTED_TEXT :SELECTED_HIGHLIGHT]
+                  [:NORMAL_TEXT :BACKGROUND])]
+    (buffer/write-text buf col row text fg bg)))
 
-(defn- frame-main-menu
-  "Render the main menu screen."
-  [state]
-  (let [items (state/menu-items state)
-        selected-label (state/selected-item state)]
-    (vec
-      (concat
-        [{:text "VEIL" :row 2}]
-        (map-indexed (fn [idx label]
-                       {:text label
-                        :row (+ 4 (* idx 2))
-                        :selected? (= label selected-label)})
-                     items)
-        [{:text "Use Up/Down or W/S to move, Enter to select" :row 12}]))))
+(defn buffer
+  "Render the game state into a cell buffer.
+   Writes each screen line centered horizontally, preserving its row position.
+   The selected menu item is drawn in reverse video; every other line in normal text.
+   Draws a single-line border around the whole grid's edges."
+  [state cols rows]
+  (let [lines-drawn (reduce (partial write-line cols)
+                            (buffer/blank cols rows)
+                            (lines-for-screen state))]
+    (buffer/draw-box lines-drawn 0 0 cols rows :WINDOW_BORDER :BACKGROUND)))
 
-(defn- frame-map
-  "Render the map screen."
-  [state]
-  (vec
-    (concat
-      [{:text "@" :row 6}
-       {:text "Esc: menu" :row 20}])))
-
-(defn- frame-options
-  "Render the options screen."
-  [state]
-  (vec
-    (concat
-      [{:text "Options" :row 4}
-       {:text "Esc: back" :row 20}])))
-
-(defn background
-  "The background color for the current screen from the active theme."
-  [state]
-  (theme/color state :BACKGROUND))
-
-(defn frame
-  "Generate draw commands for the current state. Each command is a map with
-  :text (string), :row (logical line number), optionally :selected? (bool),
-  :x (pixel x position), :y (pixel y position), and :color (RGB vector)."
-  [state width]
-  (let [commands (case (state/screen state)
-                   :main-menu (frame-main-menu state)
-                   :map (frame-map state)
-                   :options (frame-options state)
-                   [])]
-    (lay-out state width commands)))
+(defn scene
+  "Compose the full rendering pipeline: state -> buffer -> commands.
+   Returns the draw commands ready for Quil."
+  [state win-w win-h text-w ascent descent]
+  (let [cell-size (grid/cell-size text-w ascent descent)
+        grid-size (grid/size win-w win-h (:w cell-size) (:h cell-size))
+        buf (buffer state (:cols grid-size) (:rows grid-size))]
+    (commands/frame state buf (:w cell-size) (:h cell-size))))

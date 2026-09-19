@@ -8,11 +8,13 @@
             [veil.game.state :as state]
             [veil.game.theme :as theme]
             [veil.ui.draw :as draw]
+            [veil.ui.font :as font]
             [veil.ui.input :as input]
             [veil.ui.qa.files :as files]
             [veil.ui.qa.launch :as launch]
             [veil.ui.qa.mode :as mode]
             [veil.mods.disk :as disk]
+            [veil.mods.fonts :as fonts]
             [veil.mods.loader :as loader]
             [veil.mods.themes :as themes])
   (:gen-class))
@@ -21,9 +23,9 @@
   {:title "Veil"
    :size  [960 600]})
 
-(defn- setup [registry themes]
+(defn- setup [registry themes font-path size]
   (q/frame-rate 30)
-  (q/text-font (q/create-font "Monospaced" 32))
+  (q/text-font (q/create-font font-path size true))
   (state/starting registry themes))
 
 (defn- prevent-processing-exit
@@ -56,11 +58,21 @@
   (mode/plan args files/read-script))
 
 (defn- load-mods-step [_]
-  (let [mods-dir (loader/mods-dir (System/getProperty "veil.mods.dir"))]
-    (loader/startup (disk/read-mods-dir mods-dir) [themes/content-type])))
+  (let [mods-dir (loader/mods-dir (System/getProperty "veil.mods.dir"))
+        result (loader/startup (disk/read-mods-dir mods-dir)
+                               [themes/content-type fonts/content-type])]
+    (if (:error result)
+      result
+      (assoc result :mods-dir mods-dir))))
 
 (defn- themes-step [{:keys [registry]}]
   (themes/startup registry theme/default-id))
+
+(defn- fonts-step [{:keys [registry]}]
+  (fonts/startup registry fonts/default-id))
+
+(defn- open-font-step [{:keys [mods-dir font]}]
+  (font/open mods-dir font))
 
 (defn- start-log-step [{:keys [qa]}]
   (files/start-log! (:log-path qa)))
@@ -70,21 +82,21 @@
     (println (:error outcome)))
   (System/exit (:exit-status outcome)))
 
-(defn- open-window [{:keys [registry themes qa]}]
+(defn- open-window [{:keys [registry themes font-path size qa]}]
   (let [qa-state (atom qa)]
     (q/sketch
       :title       (:title window)
       :size        (:size window)
-      :setup       #(setup registry themes)
+      :setup       #(setup registry themes font-path size)
       :draw        draw/draw!
       :update      (fn [state] (update-state qa-state state))
       :key-pressed (fn [state event] (key-pressed qa-state state event))
-      :features    [:exit-on-close]
+      :features    [:exit-on-close :resizable]
       :middleware  [m/fun-mode])))
 
 (defn -main [& args]
   (let [launched (launch/run-steps {:args args}
-                                   [plan-step load-mods-step themes-step start-log-step])
+                                   [plan-step load-mods-step themes-step fonts-step open-font-step start-log-step])
         outcome (launch/outcome launched)]
     (if (:error outcome)
       (die outcome)

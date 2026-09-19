@@ -8,7 +8,7 @@ where the startup decisions live) is in [architecture.md](architecture.md).
 The rules below are enforced by specs, not by JSON Schema files: the code is
 the schema. The mod machinery (manifests, IDs, ordering, overrides) is
 `veil.mods.loader`, `.manifest`, `.ids`, `.order`; the theme content type is
-`veil.mods.themes`. A file that breaks a rule fails the launch with every
+`veil.mods.themes` and the font content type is `veil.mods.fonts`. A file that breaks a rule fails the launch with every
 problem listed (file, JSON path, what was expected) under "Failed to load
 mods:". Unknown fields are errors, not ignored.
 
@@ -20,14 +20,18 @@ mods/
     mod.json             the manifest
     themes/
       default.json       one file per content item, in the content type's folder
+    fonts/
+      default.json       a font's descriptor ...
+      JetBrainsMono-Regular.ttf   ... and the font file it names, beside it
   goblin-pack/
     mod.json
     themes/...
 ```
 
 A folder inside a mod that no content type claims, and a file in a claimed
-folder that isn't `*.json`, are ignored. Today the only content type is
-`themes`.
+folder that isn't `*.json`, are ignored (a font file is data a descriptor
+names, not content of its own). Today the content types are `themes` and
+`fonts`.
 
 ## mod.json
 
@@ -61,7 +65,9 @@ one mod replaces another's content by adding `"overrides": "<the id>"` to the
 file, where the value must equal the file's own `"id"`. The mod must depend,
 directly or transitively, on the mod that owns the id, and the id must already
 exist. Because the overriding mod loads later, its version is the one the game
-uses. This is how a mod recolors the game: override `core:default`.
+uses. This is how a mod recolors the game: override `core:default` in
+`themes`; to change its font, override `core:default` in `fonts`. The two are
+separate content types, so the same id in each does not collide.
 
 ## Themes (`mods/<mod>/themes/<name>.json`)
 
@@ -109,6 +115,57 @@ leaves it out:
 Any other key is rejected. The fallbacks are resolved once, at load
 (`veil.mods.themes/construct`), so the registered theme always has all 19 keys
 as `[r g b]`, and the game never has to ask which key to fall back to.
+
+## Fonts (`mods/<mod>/fonts/<name>.json`)
+
+A font is a font file plus the pixel size to draw it at. The game draws
+everything in one font, always `core:default` for now (picking one is a later
+feature). It refuses to start unless `core:default` is registered, and refuses
+to start if that font's file can't be opened as a font, naming the file.
+
+The descriptor and the font file it names sit side by side in the mod's
+`fonts/` folder:
+
+```
+mods/core/fonts/
+  default.json                 the descriptor
+  JetBrainsMono-Regular.ttf    the font file
+  OFL.txt                      its license
+```
+
+```json
+{
+  "id": "core:default",
+  "file": "JetBrainsMono-Regular.ttf",
+  "size": 20
+}
+```
+
+- `id` (required) and `overrides` (optional): as above.
+- `file` (required): a bare file name ending in `.ttf` or `.otf`, with no slash or
+  backslash in it. The file must exist in the **same mod's** `fonts/` folder
+  (`mods/<mod>/fonts/<file>`); a file of that name in another mod's `fonts/`
+  folder, or in another folder of the same mod, doesn't count. This is checked
+  at load (`veil.mods.fonts/check`), so a missing file is reported with the
+  other load problems, as `expected the font file "<file>" in "<mod>/fonts"`.
+- `size` (required): a positive integer, the size in pixels the font is drawn
+  at. The game measures one character at that size to get the width and
+  height of a grid cell (`veil.ui.grid/cell-size`), so `size` sets how many
+  columns and rows fit the window; it is tuned by eye, not derived.
+
+No other field is allowed. The game does not check that a font is monospace:
+the grid assumes it, so a proportional font draws with uneven spacing.
+
+**Replacing the font.** A mod that depends on `core` adds a font file and a
+descriptor with `"id": "core:default"` and `"overrides": "core:default"`
+(same rules as any override), and its version is the one the game draws in.
+A font with any other id is loaded and registered but not used yet.
+
+**The shipped font** is JetBrains Mono Regular at size 20 (about a 12 by 25 pixel
+cell), chosen because it covers printable ASCII and the box-drawing and block
+element characters (U+2500 to U+259F) the grid draws with. It is the only font
+file `mods/core/fonts/` ships, under the SIL Open Font License 1.1, whose text
+(`OFL.txt`) ships beside it: keep it there when redistributing.
 
 ## Where the mods directory is read from
 

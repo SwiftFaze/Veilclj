@@ -9,6 +9,15 @@
 (defn- paths-and-expectations [text]
   (set (map (juxt :path :expected) (errors-for text))))
 
+(describe "field-error"
+  (it "builds an invalid-field error naming the file, path and expectation"
+    (should= {:kind :invalid
+              :file "core/fonts/default.json"
+              :path "/file"
+              :expected "the font file"
+              :message "core/fonts/default.json: /file expected the font file"}
+             (validate/field-error "core/fonts/default.json" "/file" "the font file"))))
+
 (describe "validate"
   (it "returns the parsed data for a valid file"
     (should= {:data {:id "core:lever" :label "L"}}

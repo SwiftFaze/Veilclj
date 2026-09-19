@@ -1,9 +1,8 @@
 (ns veil.ui.view-spec
   (:require [speclj.core :refer :all]
-            [clojure.string :as string]
             [veil.ui.view :as view]
-            [veil.game.state :as state]
-            [veil.game.theme :as theme]))
+            [veil.ui.buffer :as buffer]
+            [veil.game.state :as state]))
 
 (defn- themed-state
   "Build a state with the default theme loaded."
@@ -30,119 +29,152 @@
                       :FOCUSED_BORDER [238 179 146]
                       :SHADOW [0 0 0]}}))
 
-(describe "main menu frame"
-  (it "includes a title"
-    (let [commands (view/frame (themed-state) 960)]
-      (should (some #(= "VEIL" (:text %)) commands))))
+(defn- options-screen [s]
+  (-> s (state/handle-input :down) (state/handle-input :confirm)))
 
-  (it "includes all three menu items"
-    (let [commands (view/frame (themed-state) 960)]
-      (should (some #(= "New Game" (:text %)) commands))
-      (should (some #(= "Options" (:text %)) commands))
-      (should (some #(= "Quit" (:text %)) commands))))
+(defn- map-screen [s]
+  (state/handle-input s :confirm))
 
-  (it "marks the first item as selected when New Game is selected"
-    (let [s (themed-state)
-          commands (view/frame s 960)
-          new-game-cmd (first (filter #(= "New Game" (:text %)) commands))]
-      (should= true (:selected? new-game-cmd))))
+(defn- text-at
+  "The glyphs of n cells of row starting at col."
+  [buf col row n]
+  (apply str (map #(:glyph (buffer/cell buf % row)) (range col (+ col n)))))
 
-  (it "marks the second item as selected when Options is selected"
-    (let [s (-> (themed-state) (state/handle-input :down))
-          commands (view/frame s 960)
-          options-cmd (first (filter #(= "Options" (:text %)) commands))]
-      (should= true (:selected? options-cmd))))
+(describe "main menu buffer"
+  (it "has the size it was asked for"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= 100 (:cols buf))
+      (should= 30 (:rows buf))))
 
-  (it "marks only the selected item with :selected? true"
-    (let [s (themed-state)
-          commands (view/frame s 960)
-          new-game (first (filter #(= "New Game" (:text %)) commands))
-          options (first (filter #(= "Options" (:text %)) commands))]
-      (should= true (:selected? new-game))
-      (should= false (:selected? options))))
+  (it "centers the title on row 2"
+    (should= "VEIL" (text-at (view/buffer (themed-state) 80 24) 38 2 4)))
 
-  (it "lists the menu items top to bottom with a blank row between each"
-    (let [commands (view/frame (themed-state) 960)
-          rows (for [label (state/menu-items (themed-state))]
-                 (:row (first (filter #(= label (:text %)) commands))))
-          gaps (map - (rest rows) rows)]
-      (should= [2 2] gaps)))
+  (it "lists the menu items on rows 4, 6 and 8, centered"
+    (let [buf (view/buffer (themed-state) 80 24)]
+      (should= "New Game" (text-at buf 36 4 8))
+      (should= "Options" (text-at buf 36 6 7))
+      (should= "Quit" (text-at buf 38 8 4))))
 
-  (it "includes a hint line"
-    (let [commands (view/frame (themed-state) 960)]
-      (should (some #(string? (:text %)) commands))))
+  (it "puts the hint on row 12"
+    (should= "Use Up/Down or W/S to move, Enter to select"
+             (text-at (view/buffer (themed-state) 80 24) 18 12 43)))
 
-  (it "selected menu item has highlight colour"
-    (let [s (themed-state)
-          commands (view/frame s 960)
-          new-game-cmd (first (filter #(= "New Game" (:text %)) commands))]
-      (should= [192 192 192] (:color new-game-cmd))))
+  (it "keeps text centered when the grid is wider"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= "VEIL" (text-at buf 48 2 4))
+      (should= "New Game" (text-at buf 46 4 8))))
 
-  (it "unselected menu item has normal colour"
-    (let [s (themed-state)
-          commands (view/frame s 960)
-          options-cmd (first (filter #(= "Options" (:text %)) commands))]
-      (should= [255 255 255] (:color options-cmd))))
+  (it "draws the selected item in reverse video on exactly its own cells"
+    (let [buf (view/buffer (themed-state) 80 24)]
+      (should= {:glyph \N :fg :SELECTED_TEXT :bg :SELECTED_HIGHLIGHT} (buffer/cell buf 36 4))
+      (should= {:glyph \e :fg :SELECTED_TEXT :bg :SELECTED_HIGHLIGHT} (buffer/cell buf 43 4))
+      (should= buffer/blank-cell (buffer/cell buf 35 4))
+      (should= buffer/blank-cell (buffer/cell buf 44 4))))
 
-  (it "title has normal colour"
-    (let [commands (view/frame (themed-state) 960)
-          title-cmd (first (filter #(= "VEIL" (:text %)) commands))]
-      (should= [255 255 255] (:color title-cmd))))
+  (it "draws the other items and the title in normal text on the background"
+    (let [buf (view/buffer (themed-state) 80 24)]
+      (should= {:glyph \O :fg :NORMAL_TEXT :bg :BACKGROUND} (buffer/cell buf 36 6))
+      (should= {:glyph \V :fg :NORMAL_TEXT :bg :BACKGROUND} (buffer/cell buf 38 2))))
 
-  (it "menu item at row 2 has x=480 for 960px wide window"
-    (let [commands (view/frame (themed-state) 960)
-          title-cmd (first (filter #(= "VEIL" (:text %)) commands))]
-      (should= 480 (:x title-cmd))))
+  (it "moves the reverse video with the selection"
+    (let [buf (view/buffer (state/handle-input (themed-state) :down) 80 24)]
+      (should= :SELECTED_HIGHLIGHT (:bg (buffer/cell buf 36 6)))
+      (should= :BACKGROUND (:bg (buffer/cell buf 36 4))))))
 
-  (it "menu item at row 2 has y=130 for 960px wide window"
-    (let [commands (view/frame (themed-state) 960)
-          title-cmd (first (filter #(= "VEIL" (:text %)) commands))]
-      (should= 130 (:y title-cmd))))
+(describe "map screen buffer"
+  (it "shows the player as @ and an Esc hint"
+    (let [buf (view/buffer (map-screen (themed-state)) 80 24)]
+      (should= "@" (text-at buf 39 6 1))
+      (should= "Esc: menu" (text-at buf 35 20 9)))))
 
-  (it "menu item at row 4 has y=210 for 960px wide window"
-    (let [commands (view/frame (themed-state) 960)
-          new-game-cmd (first (filter #(= "New Game" (:text %)) commands))]
-      (should= 210 (:y new-game-cmd))))
+(describe "options screen buffer"
+  (it "shows a heading and an Esc hint"
+    (let [buf (view/buffer (options-screen (themed-state)) 80 24)]
+      (should= "Options" (text-at buf 36 4 7))
+      (should= "Esc: back" (text-at buf 35 20 9))))
 
-  (it "menu item at row 12 has y=530 for 960px wide window"
-    (let [commands (view/frame (themed-state) 960)
-          hint-cmd (first (filter #(string/includes? (:text %) "Use Up") commands))]
-      (should= 530 (:y hint-cmd))))
+  (it "draws the heading in normal text even though Options is the selected menu item"
+    (let [s (options-screen (themed-state))
+          buf (view/buffer s 80 24)]
+      (should= "Options" (state/selected-item s))
+      (should= {:glyph \O :fg :NORMAL_TEXT :bg :BACKGROUND} (buffer/cell buf 36 4)))))
 
-  (it "menu item at row 2 has x=400 for 800px wide window"
-    (let [commands (view/frame (themed-state) 800)
-          title-cmd (first (filter #(= "VEIL" (:text %)) commands))]
-      (should= 400 (:x title-cmd)))))
+(describe "border on main menu"
+  (it "draws the top-left corner"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= {:glyph \┌ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 0 0))))
 
-(describe "map screen frame"
-  (it "shows the player as @"
-    (let [s (-> (themed-state) (state/handle-input :confirm))
-          commands (view/frame s 960)]
-      (should (some #(= "@" (:text %)) commands))))
+  (it "draws the top-right corner"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= {:glyph \┐ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 99 0))))
 
-  (it "includes an Esc hint"
-    (let [s (-> (themed-state) (state/handle-input :confirm))
-          commands (view/frame s 960)]
-      (should (some #(string/includes? (:text %) "Esc") commands)))))
+  (it "draws the bottom-left corner"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= {:glyph \└ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 0 29))))
 
-(describe "options screen frame"
-  (it "shows a heading"
-    (let [s (-> (themed-state) (state/handle-input :down) (state/handle-input :confirm))
-          commands (view/frame s 960)]
-      (should (some #(= "Options" (:text %)) commands))))
+  (it "draws the bottom-right corner"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= {:glyph \┘ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 99 29))))
 
-  (it "includes an Esc hint"
-    (let [s (-> (themed-state) (state/handle-input :down) (state/handle-input :confirm))
-          commands (view/frame s 960)]
-      (should (some #(string/includes? (:text %) "Esc") commands)))))
+  (it "draws the top edge"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= {:glyph \─ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 50 0))))
 
-(describe "background"
-  (it "is the active theme's BACKGROUND color"
-    (let [s (assoc-in (themed-state) [:themes "core:default" :BACKGROUND] [5 5 5])]
-      (should= [5 5 5] (view/background s))))
+  (it "draws the bottom edge"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= {:glyph \─ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 50 29))))
 
-  (it "follows the active theme when another theme is made active"
-    (let [s (-> (themed-state)
-                (assoc-in [:themes "other:dark"] {:BACKGROUND [9 9 9]})
-                (theme/activate "other:dark"))]
-      (should= [9 9 9] (view/background s)))))
+  (it "draws the left edge"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= {:glyph \│ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 0 15))))
+
+  (it "draws the right edge"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= {:glyph \│ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 99 15))))
+
+  (it "keeps the cell inside the top-left corner blank"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= buffer/blank-cell (buffer/cell buf 1 1))))
+
+  (it "keeps the cell inside the top-right corner blank"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= buffer/blank-cell (buffer/cell buf 98 1))))
+
+  (it "keeps the cell inside the bottom-left corner blank"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= buffer/blank-cell (buffer/cell buf 1 28))))
+
+  (it "keeps the cell inside the bottom-right corner blank"
+    (let [buf (view/buffer (themed-state) 100 30)]
+      (should= buffer/blank-cell (buffer/cell buf 98 28)))))
+
+(describe "border on map screen"
+  (it "draws the top-left corner"
+    (let [buf (view/buffer (map-screen (themed-state)) 100 30)]
+      (should= {:glyph \┌ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 0 0))))
+
+  (it "draws the bottom-right corner"
+    (let [buf (view/buffer (map-screen (themed-state)) 100 30)]
+      (should= {:glyph \┘ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 99 29)))))
+
+(describe "border on options screen"
+  (it "draws the top-left corner"
+    (let [buf (view/buffer (options-screen (themed-state)) 100 30)]
+      (should= {:glyph \┌ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 0 0))))
+
+  (it "draws the bottom-right corner"
+    (let [buf (view/buffer (options-screen (themed-state)) 100 30)]
+      (should= {:glyph \┘ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 99 29)))))
+
+(describe "scene"
+  (it "turns a window and font measurements into draw commands"
+    (let [frame (view/scene (themed-state) 960 600 12.0 20.0 5.0)]
+      (should= [0 0 0] (:background frame))
+      (should (some #(= {:text "V" :x 456 :y 50 :color [255 255 255]} %) (:glyphs frame)))
+      (should (some #(= {:x 432 :y 100 :w 12 :h 25 :color [192 192 192]} %) (:rects frame)))))
+
+  (it "centers on a wider grid when the window is wider"
+    (let [wide (view/scene (themed-state) 1200 600 12.0 20.0 5.0)
+          title-x (fn [frame] (:x (first (filter #(= "V" (:text %)) (:glyphs frame)))))]
+      (should= 456 (title-x (view/scene (themed-state) 960 600 12.0 20.0 5.0)))
+      (should= 576 (title-x wide)))))

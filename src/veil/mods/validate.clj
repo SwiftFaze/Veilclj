@@ -9,7 +9,11 @@
             [clojure.spec.alpha :as s]
             [clojure.string :as str]))
 
-(defn- error [file path expected]
+(defn field-error
+  "An error map for a value that isn't what its field expects:
+  {:kind :invalid :file :path :expected :message}. Content types build their
+  :check errors with it too, so they read the same as validation failures."
+  [file path expected]
   {:kind     :invalid
    :file     file
    :path     path
@@ -158,7 +162,7 @@
   (let [segments (in->path spec (:in problem))]
     (cond
       (missing-key (:pred problem))
-      (error file (json-path (conj segments (missing-key (:pred problem)))) "a required field")
+      (field-error file (json-path (conj segments (missing-key (:pred problem)))) "a required field")
 
       (id-problem? problem)
       {:kind     :malformed-id
@@ -170,7 +174,7 @@
                       "\" (expected lowercase mod:name)")}
 
       :else
-      (error file (json-path segments) (phrase problem phrases)))))
+      (field-error file (json-path segments) (phrase problem phrases)))))
 
 (defn check
   "Every problem with data against spec, as error maps (empty when valid).
@@ -181,7 +185,7 @@
    (concat
      (map (partial problem->error file spec phrases)
           (:clojure.spec.alpha/problems (s/explain-data spec data)))
-     (map #(error file (json-path %) "no such field")
+     (map #(field-error file (json-path %) "no such field")
           (unknown-key-segments spec data [])))))
 
 (defn validate

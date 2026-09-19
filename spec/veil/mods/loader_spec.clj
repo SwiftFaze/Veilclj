@@ -116,6 +116,41 @@
       (should= [[:foreign-namespace "goblin-pack/widgets/spear.json" "core:spear" "goblin-pack"]]
                (map (juxt :kind :file :id :mod) (:errors result))))))
 
+(defn- with-check [check]
+  (assoc f/widget-type :check check))
+
+(describe "load-mods: content type :check"
+  (it "gives the check the data, mod, file and every path in the mods data"
+    (let [seen (atom nil)
+          mods-data (f/mods (f/manifest "core") (f/widget "core" "lever" "core:lever"))]
+      (loader/load-mods mods-data [(with-check (fn [context] (reset! seen context) []))])
+      (should= {:data {:id "core:lever" :label "lever"}
+                :mod "core"
+                :file "core/widgets/lever.json"
+                :paths #{"core/mod.json" "core/widgets/lever.json"}}
+               @seen)))
+
+  (it "reports what the check returns and registers nothing"
+    (let [problem {:kind :invalid :file "core/widgets/lever.json" :path "/label" :message "no good"}
+          result (loader/load-mods (f/mods (f/manifest "core") (f/widget "core" "lever" "core:lever"))
+                                   [(with-check (constantly [problem]))])]
+      (should= [problem] (:errors result))
+      (should-not (contains? result :registry))))
+
+  (it "registers the entry when the check finds nothing"
+    (let [result (loader/load-mods (f/mods (f/manifest "core") (f/widget "core" "lever" "core:lever"))
+                                   [(with-check (constantly []))])]
+      (should= {:mod "core" :value "lever"}
+               (select-keys (registry/entry (:registry result) :widget "core:lever") [:mod :value]))))
+
+  (it "does not call the check on a file that fails its spec"
+    (let [called (atom false)
+          result (loader/load-mods (f/mods (f/manifest "core")
+                                           ["core/widgets/lever.json" "{\"id\": \"core:lever\"}"])
+                                   [(with-check (fn [_] (reset! called true) []))])]
+      (should= ["/label"] (map :path (:errors result)))
+      (should-not @called))))
+
 (describe "mods-dir"
   (it "is the property's path when the property is set"
     (should= "/opt/veil/app/mods" (loader/mods-dir "/opt/veil/app/mods")))
