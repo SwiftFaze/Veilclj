@@ -33,6 +33,9 @@
   ;; --- tests -----------------------------------------------------------------
   spec  {:doc  "Run the speclj unit specs (extra args go to speclj, e.g. -a)"
          :task (apply clojure "-M:spec" *command-line-args*)}
+  property
+  {:doc      "Run the test.check property specs in spec-property/ (VEIL_PROPERTY_SEED=<n> reruns from a seed)"
+   :task     (apply clojure "-M:property" *command-line-args*)}
   cov   {:doc  "Run specs under Cloverage -> target/coverage/"
          :task (clojure "-M:cov")}
   acceptance

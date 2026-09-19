@@ -7,6 +7,7 @@ a `bb` task (`bb tasks` lists them); tool versions are pinned by git SHA in
 | Layer | Command | Tool | Gates? |
 |---|---|---|---|
 | Unit specs | `bb spec` | [speclj](https://github.com/slagyr/speclj) | yes |
+| Property specs | `bb property` | [test.check](https://github.com/clojure/test.check) via speclj | never - run deliberately; see [property-testing.md](property-testing.md) |
 | Spec structure | `bb scrap` | [scrap](https://github.com/unclebob/scrap) | structure errors only |
 | Acceptance | `bb acceptance` | [APS](https://github.com/unclebob/Acceptance-Pipeline-Specification) | yes |
 | CRAP | `bb crap`, `bb crap-gate` | [crap4clj](https://github.com/unclebob/crap4clj) | yes, `quality-gates.edn` |
@@ -43,6 +44,12 @@ bb spec -f d         # documentation format
 **SCRAP** (`bb scrap`) catches mis-nested forms speclj silently ignores - an
 `it` inside an `it` never runs - and blocks on them. Its refactoring
 recommendations are advice, not a gate.
+
+## Property specs (test.check)
+
+`bb property` runs the test.check properties in `spec-property/`. They are random,
+so they stay out of the gate and every other run. When to run one, what makes a
+good property and rerunning from a seed: [property-testing.md](property-testing.md).
 
 ## Acceptance tests (APS pipeline)
 
