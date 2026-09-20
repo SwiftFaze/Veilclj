@@ -1,15 +1,19 @@
 # Keyboard input QA script
-# Test navigation, W/S aliases, and modifier handling
+# Regression check that the existing menu behaves identically after the input
+# rewrite: arrows still move, W/S still alias to up/down in either case now
+# that they arrive as characters, Esc is still ignored on the menu, and Enter
+# and Esc still move between screens. Menu order is New Game, Options, Quit,
+# wrapping at both ends. The run starts on New Game.
 
-Down    # Navigate down to Options
-Up      # Navigate up to Quit
-Up      # Navigate up to Options
-Down    # Navigate down to Quit
-Down    # Navigate down to New Game
-w       # W should move up to Quit (character input)
-W       # W (uppercase) should move up to Options (character input)
-s       # s should move down to Quit (character input)
-S       # S (uppercase) should move down to New Game (character input)
-Esc     # Back action should do nothing on main menu
-Enter   # Open New Game (map screen)
-Esc     # Back to menu from map, should keep selection on New Game
+Down    # New Game -> Options
+Down    # Options -> Quit
+Down    # Quit -> New Game (wraps)
+Up      # New Game -> Quit (wraps)
+s       # Quit -> New Game (lowercase s is down, wraps)
+S       # New Game -> Options (uppercase S is down)
+w       # Options -> New Game (lowercase w is up)
+W       # New Game -> Quit (uppercase W is up, wraps)
+Down    # Quit -> New Game (wraps)
+Esc     # ignored on the main menu: logs the key and no event
+Enter   # New Game opens the map screen
+Esc     # back to the menu, New Game still selected
