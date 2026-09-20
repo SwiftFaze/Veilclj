@@ -82,7 +82,27 @@
 
   (it "ignores other inputs"
     (let [s (state/initial)]
-      (should= s (state/handle-main-menu s :back)))))
+      (should= s (state/handle-main-menu s :back))))
+
+  (it "moves up on lowercase w (the up alias)"
+    (let [s (state/initial)]
+      (should= "Quit" (state/selected-item (state/handle-main-menu s {:char \w})))))
+
+  (it "moves up on uppercase W (the alias is case-insensitive)"
+    (let [s (state/initial)]
+      (should= "Quit" (state/selected-item (state/handle-main-menu s {:char \W})))))
+
+  (it "moves down on lowercase s (the down alias)"
+    (let [s (state/initial)]
+      (should= "Options" (state/selected-item (state/handle-main-menu s {:char \s})))))
+
+  (it "moves down on uppercase S (the alias is case-insensitive)"
+    (let [s (state/initial)]
+      (should= "Options" (state/selected-item (state/handle-main-menu s {:char \S})))))
+
+  (it "ignores a character that isn't w or s"
+    (let [s (state/initial)]
+      (should= s (state/handle-main-menu s {:char \x})))))
 
 (describe "handle-map"
   (it "returns to menu on :back"

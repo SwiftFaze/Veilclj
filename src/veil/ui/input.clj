@@ -18,23 +18,35 @@
     :tab (if (contains? modifiers :shift) :shift-tab :tab)
     nil))
 
+(def ^:private special-raw-keys
+  "Raw keys with a fixed navigation action, keyed by the literal char
+  Processing reports for them."
+  {\newline    :confirm
+   \return     :confirm
+   escape-char :back
+   \space      :toggle
+   (char 8)    :backspace
+   (char 127)  :delete
+   (char 36)   :home
+   (char 35)   :end
+   (char 33)   :page-up
+   (char 34)   :page-down})
+
+(defn- printable-char
+  "Build a character input for a raw key that isn't one of the special
+  actions, attaching modifiers when present. Returns nil for the Processing
+  no-char sentinel or a missing raw key."
+  [raw-key modifiers]
+  (when (and (some? raw-key) (not= raw-key (char 65535)))
+    (if (seq modifiers)
+      {:char raw-key :mods modifiers}
+      {:char raw-key})))
+
 (defn- by-raw-key
   "Translate events matched by the :raw-key field to actions or characters."
   [raw-key modifiers]
-  (cond
-    (or (= raw-key \newline) (= raw-key \return)) :confirm
-    (= raw-key escape-char) :back
-    (= raw-key \space) :toggle
-    (= raw-key (char 8)) :backspace
-    (= raw-key (char 127)) :delete
-    (= raw-key (char 36)) :home
-    (= raw-key (char 35)) :end
-    (= raw-key (char 33)) :page-up
-    (= raw-key (char 34)) :page-down
-    :else (when (and (some? raw-key) (not (= raw-key (char 65535))))
-            (if (seq modifiers)
-              {:char raw-key :mods modifiers}
-              {:char raw-key}))))
+  (or (get special-raw-keys raw-key)
+      (printable-char raw-key modifiers)))
 
 (defn escape?
   "Check if an event is a raw Escape key. Returns a boolean."

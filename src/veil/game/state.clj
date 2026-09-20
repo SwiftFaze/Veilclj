@@ -48,6 +48,23 @@
     "Quit" (assoc state :over? true)
     state))
 
+(defn- main-menu-alias-direction
+  "Map a printable character to the menu-move direction it aliases,
+  case-insensitively (w = up, s = down). Returns nil for any other character."
+  [char]
+  (case (when char (Character/toLowerCase char))
+    \w :up
+    \s :down
+    nil))
+
+(defn- handle-main-menu-char
+  "Handle a printable-character input on the main menu: the W/S move
+  aliases, ignoring any other character."
+  [state input]
+  (if-let [direction (main-menu-alias-direction (:char input))]
+    (update state :menu menu/move direction)
+    state))
+
 (defn handle-main-menu
   "Handle input while on the main menu."
   [state input]
@@ -55,27 +72,25 @@
     (= input :up) (update state :menu menu/move :up)
     (= input :down) (update state :menu menu/move :down)
     (= input :confirm) (select-menu-item state)
-    (map? input) (let [{:keys [char]} input
-                       lower-char (when char (Character/toLowerCase char))]
-                   (cond
-                     (= lower-char \w) (update state :menu menu/move :up)
-                     (= lower-char \s) (update state :menu menu/move :down)
-                     :else state))
+    (map? input) (handle-main-menu-char state input)
     :else state))
+
+(defn- back-to-main-menu
+  "Return to the main menu on :back input; otherwise leave state unchanged."
+  [state input]
+  (if (= input :back)
+    (assoc state :screen :main-menu)
+    state))
 
 (defn handle-map
   "Handle input while on the map screen."
   [state input]
-  (if (= input :back)
-    (assoc state :screen :main-menu)
-    state))
+  (back-to-main-menu state input))
 
 (defn handle-options
   "Handle input while on the options screen."
   [state input]
-  (if (= input :back)
-    (assoc state :screen :main-menu)
-    state))
+  (back-to-main-menu state input))
 
 (defn handle-input-with-chain
   "Process an input through a dispatch chain and fall through to screen bindings.
