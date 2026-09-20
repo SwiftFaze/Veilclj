@@ -7,23 +7,55 @@
   "The raw key Processing reports for the Esc key."
   (char 27))
 
-(defn- by-key
-  "Translate events matched by the :key field."
-  [key]
-  (case key
-    :up :up
-    :down :down
-    :s :down
-    :w :up
+(def ^:private coded-key-sentinel
+  "The raw-key Processing reports for coded keys (arrows, F-keys, etc.)."
+  (char 65535))
+
+(defn- by-key-code
+  "Translate a coded key by its key-code to a navigation action.
+  Quil reports coded keys with this sentinel as raw-key and the actual code here."
+  [key-code]
+  (case key-code
+    38 :up
+    40 :down
+    37 :left
+    39 :right
+    36 :home
+    35 :end
+    33 :page-up
+    34 :page-down
     nil))
 
+(def ^:private special-raw-keys
+  "Raw keys with a fixed navigation action, keyed by the literal char
+  Processing reports for them. Does NOT include the printable ASCII codes
+  33 (!) 34 (\") 35 (#) 36 ($) which are real characters, not navigation.
+  Tab is handled separately to allow for Shift+Tab."
+  {\newline   :confirm
+   \return    :confirm
+   escape-char :back
+   \space     :toggle
+   (char 8)   :backspace
+   (char 127) :delete})
+
+(defn- printable-char
+  "Build a character input for a raw key that isn't one of the special
+  actions, attaching modifiers when present. Returns nil for the Processing
+  no-char sentinel or a missing raw key. Never sees \\tab: by-raw-key handles
+  it (and Shift+Tab) before printable-char is called."
+  [raw-key modifiers]
+  (when (and (some? raw-key) (not= raw-key coded-key-sentinel))
+    (if (seq modifiers)
+      {:char raw-key :mods modifiers}
+      {:char raw-key})))
+
 (defn- by-raw-key
-  "Translate events matched by the :raw-key field."
-  [raw-key]
-  (cond
-    (or (= raw-key \newline) (= raw-key \return)) :confirm
-    (= raw-key escape-char) :back
-    :else nil))
+  "Translate events matched by the :raw-key field to actions or characters."
+  [raw-key modifiers]
+  (if (= raw-key \tab)
+    (if (contains? modifiers :shift) :shift-tab :tab)
+    (or (get special-raw-keys raw-key)
+        (printable-char raw-key modifiers))))
 
 (defn escape?
   "Check if an event is a raw Escape key. Returns a boolean."
@@ -31,13 +63,15 @@
   (= escape-char (:raw-key event)))
 
 (defn event->input
-  "Translate a Quil key event map {:key kw :raw-key char :key-code int} to a
-  game input (:up, :down, :confirm, :back) or nil."
+  "Translate a Quil key event map {:key kw :raw-key char :key-code int :modifiers #{...}}
+  to a game input (keyword action, character map, or nil). :key is Quil's own
+  name for the key, but it isn't read here: :raw-key already tells apart a
+  coded key (the sentinel, read by :key-code) from a typed character (itself)."
   [event]
   (if (nil? event)
     nil
-    (let [{:keys [key raw-key]} event
-          by-key-result (by-key key)]
-      (if (some? by-key-result)
-        by-key-result
-        (by-raw-key raw-key)))))
+    (let [{:keys [raw-key key-code modifiers]} event
+          modifiers (or modifiers #{})]
+      (if (= raw-key coded-key-sentinel)
+        (by-key-code key-code)
+        (by-raw-key raw-key modifiers)))))

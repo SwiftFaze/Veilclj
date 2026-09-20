@@ -1,0 +1,19 @@
+# Keyboard input QA script
+# Regression check that the existing menu behaves identically after the input
+# rewrite: arrows still move, W/S still alias to up/down in either case now
+# that they arrive as characters, Esc is still ignored on the menu, and Enter
+# and Esc still move between screens. Menu order is New Game, Options, Quit,
+# wrapping at both ends. The run starts on New Game.
+
+Down    # New Game -> Options
+Down    # Options -> Quit
+Down    # Quit -> New Game (wraps)
+Up      # New Game -> Quit (wraps)
+s       # Quit -> New Game (lowercase s is down, wraps)
+S       # New Game -> Options (uppercase S is down)
+w       # Options -> New Game (lowercase w is up)
+W       # New Game -> Quit (uppercase W is up, wraps)
+Down    # Quit -> New Game (wraps)
+Esc     # ignored on the main menu: logs the key and no event
+Enter   # New Game opens the map screen
+Esc     # back to the menu, New Game still selected

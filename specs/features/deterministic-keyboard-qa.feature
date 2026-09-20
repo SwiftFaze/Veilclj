@@ -1,5 +1,5 @@
 # acceptance-mutation-manifest-begin
-# {"version":1,"tested_at":"2026-09-19T10:31:45.724731300Z","feature_name":"Deterministic keyboard QA run","feature_path":"specs/features/deterministic-keyboard-qa.feature","background_hash":"c278d9acbaf415d175b5b358c977d9702949c29bb8d5724ff7d60e6fd1f179e6","implementation_hash":"unknown","scenarios":[{"index":6,"name":"Each key press is logged, followed by the events it caused","scenario_hash":"591183c90671f40138241c3ef6447d3b0f7d7f0fda652cdb60d67760d6b06498","mutation_count":10,"result":{"Total":10,"Killed":10,"Survived":0,"Errors":0},"tested_at":"2026-09-19T10:31:45.724731300Z"},{"index":11,"name":"Launch flags choose scripted input and logging","scenario_hash":"c68bd1a50ce284378cb6d08ab0dbadca726645adb9f1be564ce9bcbd8119f77c","mutation_count":12,"result":{"Total":12,"Killed":12,"Survived":0,"Errors":0},"tested_at":"2026-09-19T10:30:11.181927300Z"},{"index":0,"name":"A key line names the key to press","scenario_hash":"2be7a3d337d32515a4c207f9adecb1a0f6ecb6fc94f7cb5c6150a2d7fd4153fd","mutation_count":18,"result":{"Total":18,"Killed":18,"Survived":0,"Errors":0},"tested_at":"2026-09-19T10:27:45.538083200Z"},{"index":2,"name":"Keys take consecutive ticks and a wait skips ticks","scenario_hash":"833b639f3bd1902e53d7b155bb1437b30530c433ce6ce8d68c6ef99fb9c91b88","mutation_count":10,"result":{"Total":10,"Killed":10,"Survived":0,"Errors":0},"tested_at":"2026-09-19T10:27:45.538083200Z"},{"index":13,"name":"Bad launch arguments are rejected","scenario_hash":"dfcd400ee4c6fe827b661da70a4d47eac5a610b3e6778b8492db5fb9964b99d3","mutation_count":8,"result":{"Total":8,"Killed":8,"Survived":0,"Errors":0},"tested_at":"2026-09-19T10:27:45.538083200Z"},{"index":19,"name":"--all runs every procedure file, sorted by slug","scenario_hash":"7d731953723bf980747f9b184832a76c51b3d26aa26c85e1bddf75f0a479dc25","mutation_count":6,"result":{"Total":6,"Killed":6,"Survived":0,"Errors":0},"tested_at":"2026-09-19T10:27:45.538083200Z"}]}
+# {"version":1,"tested_at":"2026-09-20T09:15:28.808214900Z","feature_name":"Deterministic keyboard QA run","feature_path":"specs/features/deterministic-keyboard-qa.feature","background_hash":"c278d9acbaf415d175b5b358c977d9702949c29bb8d5724ff7d60e6fd1f179e6","implementation_hash":"unknown","scenarios":[{"index":4,"name":"A script key reaches the game as the same input a real key press gives","scenario_hash":"b1dc01c124e53a5ff6f8cd0b2710e66f7b00bc46a5cb0a74cb8ec7aa51b5a046","mutation_count":18,"result":{"Total":18,"Killed":18,"Survived":0,"Errors":0},"tested_at":"2026-09-20T09:03:04.078410600Z"},{"index":6,"name":"Each key press is logged, followed by the events it caused","scenario_hash":"591183c90671f40138241c3ef6447d3b0f7d7f0fda652cdb60d67760d6b06498","mutation_count":10,"result":{"Total":10,"Killed":10,"Survived":0,"Errors":0},"tested_at":"2026-09-19T10:31:45.724731300Z"},{"index":11,"name":"Launch flags choose scripted input and logging","scenario_hash":"c68bd1a50ce284378cb6d08ab0dbadca726645adb9f1be564ce9bcbd8119f77c","mutation_count":12,"result":{"Total":12,"Killed":12,"Survived":0,"Errors":0},"tested_at":"2026-09-19T10:30:11.181927300Z"},{"index":0,"name":"A key line names the key to press","scenario_hash":"2be7a3d337d32515a4c207f9adecb1a0f6ecb6fc94f7cb5c6150a2d7fd4153fd","mutation_count":18,"result":{"Total":18,"Killed":18,"Survived":0,"Errors":0},"tested_at":"2026-09-19T10:27:45.538083200Z"},{"index":2,"name":"Keys take consecutive ticks and a wait skips ticks","scenario_hash":"833b639f3bd1902e53d7b155bb1437b30530c433ce6ce8d68c6ef99fb9c91b88","mutation_count":10,"result":{"Total":10,"Killed":10,"Survived":0,"Errors":0},"tested_at":"2026-09-19T10:27:45.538083200Z"},{"index":13,"name":"Bad launch arguments are rejected","scenario_hash":"dfcd400ee4c6fe827b661da70a4d47eac5a610b3e6778b8492db5fb9964b99d3","mutation_count":8,"result":{"Total":8,"Killed":8,"Survived":0,"Errors":0},"tested_at":"2026-09-19T10:27:45.538083200Z"},{"index":19,"name":"--all runs every procedure file, sorted by slug","scenario_hash":"7d731953723bf980747f9b184832a76c51b3d26aa26c85e1bddf75f0a479dc25","mutation_count":6,"result":{"Total":6,"Killed":6,"Survived":0,"Errors":0},"tested_at":"2026-09-19T10:27:45.538083200Z"}]}
 # acceptance-mutation-manifest-end
 
 Feature: Deterministic keyboard QA run
@@ -15,7 +15,12 @@ Feature: Deterministic keyboard QA run
     (matching, order, seen/missing report, exit status), and running every
     procedure with `bb qa --all` (which files count, the summary line, the
     overall exit status).
-  Supersedes: nothing.
+  Supersedes: nothing. Superseded in one place: keyboard-input.feature now
+    owns which game input each key produces, so the "A script key reaches the
+    game as the same input a real key press gives" table follows that
+    vocabulary rather than defining it. What this file still owns there is the
+    property the scenario is named for - that a scripted key and a typed key
+    reach the game as the same input - which is why the scenario stays here.
   Out of scope: seeded randomness (--seed; the game draws no random numbers
     yet), pixel or screenshot comparison, mouse input, and how any screen is
     drawn. Opening the real window, the q/exit call that quits the process when
@@ -84,16 +89,16 @@ Feature: Deterministic keyboard QA run
     Then the game input is <input>
 
     Examples:
-      | key   | input    |
-      | Up    | up       |
-      | W     | up       |
-      | Down  | down     |
-      | S     | down     |
-      | Enter | confirm  |
-      | Esc   | back     |
-      | X     | no input |
-      | Space | no input |
-      | Left  | no input |
+      | key   | input           |
+      | Up    | up              |
+      | W     | the character W |
+      | Down  | down            |
+      | S     | the character S |
+      | Enter | confirm         |
+      | Esc   | back            |
+      | X     | the character X |
+      | Space | toggle          |
+      | Left  | left            |
 
   Scenario Outline: Playing a script drives the game and ends the run
     When the script "<script>" is played

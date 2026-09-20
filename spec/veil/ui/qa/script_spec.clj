@@ -109,18 +109,18 @@
 
   (it "builds Space event"
     (let [evt (script/key->event "Space")]
-      (should= :space (:key evt))
-      (should= \space (:raw-key evt))))
+      (should= \space (:raw-key evt))
+      (should-be-nil (:key evt))))
 
   (it "builds letter event"
     (let [evt (script/key->event "S")]
-      (should= :s (:key evt))
-      (should= \S (:raw-key evt))))
+      (should= \S (:raw-key evt))
+      (should-be-nil (:key evt))))
 
   (it "builds digit event"
     (let [evt (script/key->event "7")]
-      (should= :7 (:key evt))
-      (should= \7 (:raw-key evt)))))
+      (should= \7 (:raw-key evt))
+      (should-be-nil (:key evt)))))
 
 (describe "key-keyword"
   (it "converts Down to :down"
@@ -154,8 +154,8 @@
   (it "uses the event's :key if it's a keyword"
     (should= :down (script/event->key-keyword {:key :down :raw-key (char 65535)})))
 
-  (it "converts unknown key to :unknown"
-    (should= :unknown (script/event->key-keyword {:raw-key \x})))
+  (it "converts single-character key to its keyword"
+    (should= :x (script/event->key-keyword {:raw-key \x})))
 
   (it "handles letter key"
     (should= :s (script/event->key-keyword {:key :s :raw-key \S})))

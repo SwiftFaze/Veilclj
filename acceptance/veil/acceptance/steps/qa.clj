@@ -26,7 +26,11 @@
          (str "expected error '" expected "' but got '" actual "'")))
 
 (def ^:private input-names
-  {"up" :up "down" :down "confirm" :confirm "back" :back "no input" nil})
+  {"up" :up "down" :down "confirm" :confirm "back" :back
+   "left" :left "toggle" :toggle "no input" nil
+   "the character W" {:char \W}
+   "the character S" {:char \S}
+   "the character X" {:char \X}})
 
 (defn- script-key?
   "True when name is one key line the script parser accepts."

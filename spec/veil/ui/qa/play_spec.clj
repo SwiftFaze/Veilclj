@@ -58,9 +58,9 @@
                (:entries result))
       (should= :map (state/screen (:state result)))))
 
-  (it "logs an event with no key as :unknown"
+  (it "logs a single-character event as its keyword"
     (let [result (play/handle-event simple-handler (state/initial) 2 {:raw-key \x})]
-      (should= [{:tick 2 :key :unknown}] (:entries result))))
+      (should= [{:tick 2 :key :x}] (:entries result))))
 
   (it "gives a live event the same entries as the scripted press of that key"
     (let [pressed (play/press simple-handler (state/initial) 3 "Down")

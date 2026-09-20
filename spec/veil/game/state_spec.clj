@@ -82,7 +82,27 @@
 
   (it "ignores other inputs"
     (let [s (state/initial)]
-      (should= s (state/handle-main-menu s :back)))))
+      (should= s (state/handle-main-menu s :back))))
+
+  (it "moves up on lowercase w (the up alias)"
+    (let [s (state/initial)]
+      (should= "Quit" (state/selected-item (state/handle-main-menu s {:char \w})))))
+
+  (it "moves up on uppercase W (the alias is case-insensitive)"
+    (let [s (state/initial)]
+      (should= "Quit" (state/selected-item (state/handle-main-menu s {:char \W})))))
+
+  (it "moves down on lowercase s (the down alias)"
+    (let [s (state/initial)]
+      (should= "Options" (state/selected-item (state/handle-main-menu s {:char \s})))))
+
+  (it "moves down on uppercase S (the alias is case-insensitive)"
+    (let [s (state/initial)]
+      (should= "Options" (state/selected-item (state/handle-main-menu s {:char \S})))))
+
+  (it "ignores a character that isn't w or s"
+    (let [s (state/initial)]
+      (should= s (state/handle-main-menu s {:char \x})))))
 
 (describe "handle-map"
   (it "returns to menu on :back"
@@ -196,3 +216,33 @@
     (let [themes {"core:default" {:BACKGROUND [0 0 0]} "other:dark" {:BACKGROUND [9 9 9]}}
           s (-> (state/initial) (assoc :active-theme "other:dark"))]
       (should= theme/default-id (theme/active-id (state/with-themes s themes))))))
+
+(describe "stamp-time"
+  (it "adds :now-ms to the state"
+    (let [s (state/initial)
+          stamped (state/stamp-time s 1000)]
+      (should= 1000 (:now-ms stamped))))
+
+  (it "replaces an earlier timestamp with a later one"
+    (let [s (state/initial)
+          s1 (state/stamp-time s 1000)
+          s2 (state/stamp-time s1 1016)]
+      (should= 1016 (:now-ms s2))))
+
+  (it "changes nothing else in the state"
+    (let [s (-> (state/initial) (state/handle-input :down))
+          before-screen (state/screen s)
+          before-item (state/selected-item s)
+          stamped (state/stamp-time s 1000)]
+      (should= before-screen (state/screen stamped))
+      (should= before-item (state/selected-item stamped))))
+
+  (it "is idempotent for the same state and timestamp"
+    (let [s (state/initial)
+          s1 (state/stamp-time s 1000)
+          s2 (state/stamp-time s 1000)]
+      (should= s1 s2)))
+
+  (it "a fresh state has no :now-ms"
+    (let [s (state/initial)]
+      (should-be-nil (:now-ms s)))))
