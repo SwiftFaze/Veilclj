@@ -1,0 +1,15 @@
+# Keyboard input QA script
+# Test navigation, W/S aliases, and modifier handling
+
+Down    # Navigate down to Options
+Up      # Navigate up to Quit
+Up      # Navigate up to Options
+Down    # Navigate down to Quit
+Down    # Navigate down to New Game
+w       # W should move up to Quit (character input)
+W       # W (uppercase) should move up to Options (character input)
+s       # s should move down to Quit (character input)
+S       # S (uppercase) should move down to New Game (character input)
+Esc     # Back action should do nothing on main menu
+Enter   # Open New Game (map screen)
+Esc     # Back to menu from map, should keep selection on New Game

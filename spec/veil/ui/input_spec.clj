@@ -11,29 +11,33 @@
     (should= :down (input/event->input {:key :down :key-code 40 :raw-key (char 65535)}))))
 
 (describe "arrow left"
-  (it "translates Left arrow to nil (ignored)"
-    (should= nil (input/event->input {:key :left :key-code 37 :raw-key (char 65535)}))))
+  (it "translates Left arrow to :left"
+    (should= :left (input/event->input {:key :left :key-code 37 :raw-key (char 65535)}))))
 
 (describe "arrow right"
-  (it "translates Right arrow to nil (ignored)"
-    (should= nil (input/event->input {:key :right :key-code 39 :raw-key (char 65535)}))))
+  (it "translates Right arrow to :right"
+    (should= :right (input/event->input {:key :right :key-code 39 :raw-key (char 65535)}))))
 
 (describe "letter s and S"
-  (it "translates s and S (case-insensitive) to :down"
-    (should= :down (input/event->input {:key :s :raw-key \s}))
-    (should= :down (input/event->input {:key :s :raw-key \S}))))
+  (it "translates s to character input"
+    (should= {:char \s} (input/event->input {:key :s :raw-key \s})))
+
+  (it "translates S to character input"
+    (should= {:char \S} (input/event->input {:key :s :raw-key \S}))))
 
 (describe "letter w and W"
-  (it "translates w and W (case-insensitive) to :up"
-    (should= :up (input/event->input {:key :w :raw-key \w}))
-    (should= :up (input/event->input {:key :w :raw-key \W}))))
+  (it "translates w to character input"
+    (should= {:char \w} (input/event->input {:key :w :raw-key \w})))
+
+  (it "translates W to character input"
+    (should= {:char \W} (input/event->input {:key :w :raw-key \W}))))
 
 (describe "letter x"
-  (it "translates X key to nil (ignored)"
-    (should= nil (input/event->input {:key :x :raw-key \x})))
+  (it "translates x key to character input"
+    (should= {:char \x} (input/event->input {:key :x :raw-key \x})))
 
-  (it "translates uppercase X to nil (ignored)"
-    (should= nil (input/event->input {:key :x :raw-key \X}))))
+  (it "translates uppercase X to character input"
+    (should= {:char \X} (input/event->input {:key :x :raw-key \X}))))
 
 (describe "enter key"
   (it "translates Enter (newline char) to :confirm"
@@ -47,15 +51,66 @@
     (should= :back (input/event->input {:raw-key (char 27)}))))
 
 (describe "space key"
-  (it "translates Space to nil (ignored)"
-    (should= nil (input/event->input {:key :space :raw-key \space}))))
+  (it "translates Space to :toggle"
+    (should= :toggle (input/event->input {:key :space :raw-key \space}))))
+
+(describe "tab key"
+  (it "translates Tab to :tab"
+    (should= :tab (input/event->input {:key :tab :raw-key \tab})))
+
+  (it "translates Shift+Tab to :shift-tab"
+    (should= :shift-tab (input/event->input {:key :tab :raw-key \tab :modifiers #{:shift}}))))
+
+(describe "backspace key"
+  (it "translates Backspace to :backspace"
+    (should= :backspace (input/event->input {:raw-key (char 8)}))))
+
+(describe "delete key"
+  (it "translates Delete to :delete"
+    (should= :delete (input/event->input {:raw-key (char 127)}))))
+
+(describe "home key"
+  (it "translates Home to :home"
+    (should= :home (input/event->input {:raw-key (char 36)}))))
+
+(describe "end key"
+  (it "translates End to :end"
+    (should= :end (input/event->input {:raw-key (char 35)}))))
+
+(describe "page up key"
+  (it "translates Page Up to :page-up"
+    (should= :page-up (input/event->input {:raw-key (char 33)}))))
+
+(describe "page down key"
+  (it "translates Page Down to :page-down"
+    (should= :page-down (input/event->input {:raw-key (char 34)}))))
+
+(describe "character with Ctrl modifier"
+  (it "translates Ctrl+a to character with ctrl modifier"
+    (should= {:char \a :mods #{:ctrl}} (input/event->input {:raw-key \a :modifiers #{:ctrl}})))
+
+  (it "translates Ctrl+b to character with ctrl modifier"
+    (should= {:char \b :mods #{:ctrl}} (input/event->input {:raw-key \b :modifiers #{:ctrl}}))))
 
 (describe "unknown and nil"
   (it "returns nil for nil input"
     (should= nil (input/event->input nil)))
 
   (it "returns nil for unknown keys"
-    (should= nil (input/event->input {:key :unknown :raw-key \?}))))
+    (should= nil (input/event->input {:key :unknown :raw-key (char 65535)}))))
+
+(describe "printable characters"
+  (it "translates a to character input"
+    (should= {:char \a} (input/event->input {:raw-key \a})))
+
+  (it "translates Z to character input"
+    (should= {:char \Z} (input/event->input {:raw-key \Z})))
+
+  (it "translates 7 to character input"
+    (should= {:char \7} (input/event->input {:raw-key \7})))
+
+  (it "translates ? to character input"
+    (should= {:char \?} (input/event->input {:raw-key \?}))))
 
 (describe "escape?"
   (it "returns true for Escape raw key"

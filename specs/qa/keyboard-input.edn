@@ -1,0 +1,12 @@
+{:script "specs/qa/keyboard-input.keys"
+ :expect [{:event :menu/selection-changed :to :options}
+          {:event :menu/selection-changed :to :quit}
+          {:event :menu/selection-changed :to :options}
+          {:event :menu/selection-changed :to :quit}
+          {:event :menu/selection-changed :to :new-game}
+          {:event :menu/selection-changed :to :quit}
+          {:event :menu/selection-changed :to :options}
+          {:event :menu/selection-changed :to :quit}
+          {:event :menu/selection-changed :to :new-game}
+          {:event :screen/changed :from :main-menu :to :map}
+          {:event :screen/changed :from :map :to :main-menu}]}

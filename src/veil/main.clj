@@ -40,7 +40,8 @@
   "The one path a key takes into the game, whether it was typed or scripted."
   [state event]
   (prevent-processing-exit event)
-  (state/handle-input state (input/event->input event)))
+  (let [event-with-mods (assoc event :modifiers (q/key-modifiers))]
+    (state/handle-input state (input/event->input event-with-mods))))
 
 (defn- update-state [qa-state state]
   (let [{:keys [qa entries exit?] new-state :state} (mode/frame @qa-state handle-key state)]

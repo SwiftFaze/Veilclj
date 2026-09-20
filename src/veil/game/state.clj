@@ -1,7 +1,8 @@
 (ns veil.game.state
   "Global game state: screens, menu, player, game over flag, mods registry, themes."
   (:require [veil.game.menu :as menu]
-            [veil.game.theme :as theme]))
+            [veil.game.theme :as theme]
+            [veil.game.dispatch :as dispatch]))
 
 (defn initial
   "Return the initial game state: main menu with New Game selected, not over."
@@ -50,11 +51,17 @@
 (defn handle-main-menu
   "Handle input while on the main menu."
   [state input]
-  (case input
-    :up (update state :menu menu/move :up)
-    :down (update state :menu menu/move :down)
-    :confirm (select-menu-item state)
-    state))
+  (cond
+    (= input :up) (update state :menu menu/move :up)
+    (= input :down) (update state :menu menu/move :down)
+    (= input :confirm) (select-menu-item state)
+    (map? input) (let [{:keys [char]} input
+                       lower-char (when char (Character/toLowerCase char))]
+                   (cond
+                     (= lower-char \w) (update state :menu menu/move :up)
+                     (= lower-char \s) (update state :menu menu/move :down)
+                     :else state))
+    :else state))
 
 (defn handle-map
   "Handle input while on the map screen."
@@ -70,16 +77,28 @@
     (assoc state :screen :main-menu)
     state))
 
-(defn handle-input
-  "Process an input (:up, :down, :confirm, :back, or nil/unknown) based on the current screen."
-  [state input]
+(defn handle-input-with-chain
+  "Process an input through a dispatch chain and fall through to screen bindings.
+  The chain is a sequence of handlers; each is (fn [state input] -> state-or-nil).
+  If a handler consumes (returns state), walk stops. If nothing consumes, use
+  screen-level bindings."
+  [state input handlers]
   (if (nil? input)
     state
-    (case (screen state)
-      :main-menu (handle-main-menu state input)
-      :map (handle-map state input)
-      :options (handle-options state input)
-      state)))
+    (let [[new-state consumed?] (dispatch/dispatch state input handlers nil)]
+      (if consumed?
+        new-state
+        (case (screen state)
+          :main-menu (handle-main-menu state input)
+          :map (handle-map state input)
+          :options (handle-options state input)
+          state)))))
+
+(defn handle-input
+  "Process an input based on the current screen. With an empty chain, uses screen-level bindings.
+  Kept for backward compatibility; new code should use handle-input-with-chain."
+  [state input]
+  (handle-input-with-chain state input []))
 
 (defn with-mods
   "Associate a mod registry with the game state."
@@ -104,3 +123,8 @@
    (with-mods (initial) registry))
   ([registry themes]
    (with-themes (with-mods (initial) registry) themes)))
+
+(defn stamp-time
+  "Stamp a frame's time (milliseconds) into the state."
+  [state ms]
+  (assoc state :now-ms ms))

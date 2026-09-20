@@ -18,6 +18,16 @@
     "Space" {:key :space :raw-key \space}
     "Enter" {:raw-key \newline}
     "Esc" {:raw-key (char 27)}
+    "Tab" {:key :tab :raw-key \tab}
+    "Backspace" {:raw-key (char 8)}
+    "Delete" {:raw-key (char 127)}
+    "Home" {:raw-key (char 36)}
+    "End" {:raw-key (char 35)}
+    "Page Up" {:raw-key (char 33)}
+    "Page Down" {:raw-key (char 34)}
+    "F1" {:key :f1 :raw-key (char 65535)}
+    "Caps Lock" {:key :caps-lock :raw-key (char 65535)}
+    "nothing" nil
     (fail (str "unknown key: " key-name))))
 
 (def handlers
@@ -61,14 +71,14 @@
                    (str "selected item is " (state/selected-item new-state))))
           (fail (str "item not found: " item-name)))))]
 
-   [#"the player presses (\w+)"
+   [#"the player presses ([A-Za-z0-9 ]+)"
     (fn [world [_ key-name]]
-      (let [event (build-event key-name)]
+      (let [event (build-event (clojure.string/trim key-name))]
         (if (:message event)
           event
           (let [game-input (input/event->input event)
                 new-state (state/handle-input (:state @world) game-input)]
-            (swap! world assoc :state new-state)
+            (swap! world assoc :state new-state :last-input game-input)
             (ok)))))]
 
    [#"the map shows the player as (.)"
