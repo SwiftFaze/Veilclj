@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-beta.9](https://github.com/SwiftFaze/Veilclj/compare/v0.1.0-beta.8...v0.1.0-beta.9) (2026-09-20)
+
+
+### Features
+
+* Jev spike — typed judgments for the rules no tool checks ([#55](https://github.com/SwiftFaze/Veilclj/issues/55)) ([1e21865](https://github.com/SwiftFaze/Veilclj/commit/1e21865d295c275aa9ed430bdbf7e6d8b001d235))
+
 ## [0.1.0-beta.8](https://github.com/SwiftFaze/Veilclj/compare/v0.1.0-beta.7...v0.1.0-beta.8) (2026-09-19)
 
 
