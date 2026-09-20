@@ -28,7 +28,7 @@ Dependencies point one way, downward. Nothing may depend on a layer above it.
 |---|---|---|---|
 | Entry | `veil.main` | `-main`, launch steps, sketch assembly, the per-frame and per-key callbacks: Quil calls and passing data along, no decisions (`bb shell-check`) | yes |
 | UI | `veil.ui.*` | drawing state as a grid of character cells ("The cell grid" below), mapping key events to game inputs, the QA tooling (`veil.ui.qa.*`) | yes |
-| Game | `veil.game.*` | rules: screens, menus, world, entities, the events a state change caused, the color lookup (`veil.game.theme`) | **no** |
+| Game | `veil.game.*` | rules: screens, menus, world, entities, the events a state change caused, the color lookup (`veil.game.theme`), the focus-first input dispatch chain (`veil.game.dispatch`) | **no** |
 | Mods | `veil.mods.*` | reading `mods/` and building the registry, content types and their validation (themes: `veil.mods.themes`, fonts: `veil.mods.fonts`); file format: `mod-format.md` | no; only `veil.mods.disk` does I/O |
 
 `veil.game` must stay free of Quil and I/O; it is where the specs, CRAP score
@@ -51,8 +51,10 @@ is a judgment-checklist line (`docs/clean-code-gate.md`).
 
 - Game state: the fun-mode state map, nowhere else. No atoms in `veil.game`.
   Besides the screen, menu and player it holds the mods registry (`:mods`), the
-  loaded themes (`:themes`, theme id -> its 19 colors) and the id of the active
-  one (`:active-theme`). The font is not in the state: only the sketch's setup
+  loaded themes (`:themes`, theme id -> its 19 colors), the id of the active
+  one (`:active-theme`), and the current frame's time in milliseconds
+  (`:now-ms`, `veil.game.state/stamp-time`; absent until the first frame
+  stamps it). The font is not in the state: only the sketch's setup
   needs it, so `veil.main` opens it once at launch and passes its path and size
   to `setup`.
 - Settings persisted between runs (`settings.json` in the working directory)
@@ -65,9 +67,10 @@ consumes a subset of game inputs.
 
 ```
 :main-menu
-  :up/:down    - navigate menu (wrapping)
-  :confirm     - select menu item, transition to :map/:options, or set :over?
-  :back        - ignored
+  :up/:down        - navigate menu (wrapping)
+  {:char \w}/{:char \s} (either case) - the same, as a screen-level alias
+  :confirm         - select menu item, transition to :map/:options, or set :over?
+  :back            - ignored
   
 :map
   :back        - return to :main-menu, keeping menu selection
@@ -83,15 +86,40 @@ field (0-based index) tracks which is active, with wrapping at both ends.
 
 ## Input translation: pure vs. Quil
 
-`veil.ui.input/event->input` is a pure function that translates Quil key events
-(`{:key kw :raw-key char :key-code int}`) to game inputs
-(`:up`, `:down`, `:confirm`, `:back`, or `nil`). It has no dependency on Quil,
-so specs and acceptance steps can use it directly without opening a window.
+`veil.ui.input/event->input` is a pure function that translates a Quil key
+event (`{:key kw :raw-key char :key-code int :modifiers #{...}}`) to a game
+input, one of: a **navigation action** (a bare keyword - `:up :down :left
+:right :confirm :back :tab :shift-tab :toggle :backspace :delete :home :end
+:page-up :page-down`), a **printable character** (`{:char \w}`), a
+**character with modifiers held** (`{:char \a :mods #{:ctrl}}`), or `nil` for
+a key with no translation. The translator knows nothing about WASD or any
+other screen-specific alias - those live where the screen binds inputs
+(`veil.game.state`), not in translation. It has no dependency on Quil, so
+specs and acceptance steps can use it directly without opening a window.
 
 `veil.ui.input/escape?` answers "is this the raw Escape key?", so the shell only
 has to act on the answer (next section). `veil.ui.draw` is the only
 Quil-touching UI namespace. `event->input` and `escape?` are kept pure (no Quil
 required) so game input logic can be tested in isolation.
+
+## The focus-first dispatch chain
+
+`veil.game.dispatch/dispatch` walks a caller-supplied sequence of handlers -
+`(fn [state input] -> state-or-nil)` - offering each the input in turn. `nil`
+means "not consumed, keep going"; any returned state means consumed, and the
+walk stops there. It returns `[state consumed?]` so the caller decides the
+fall-through, rather than owning it itself. The chain is an **argument**, not
+a field in the game state - no screen or widget has "focus" recorded in the
+state yet, since nothing plugs into the chain until later issues add
+overlays, panes and widgets.
+
+`veil.game.state/handle-input-with-chain` is that caller: it runs the chain
+first, and only when nothing in it consumes the input does it fall through to
+the existing screen-level bindings (`handle-main-menu`, `handle-map`,
+`handle-options`). `handle-input` (the function every existing caller already
+used) is the same thing with an empty chain, so a chain-less caller sees no
+behavior change. `veil.game.dispatch` has no Quil, I/O or knowledge of any
+particular screen - it only walks the list it's given.
 
 ## The cell grid: state to buffer to draw commands to pixels
 
@@ -159,6 +187,8 @@ check (`bb shell-check`, a blocking section of the gate) are in
 | What does each screen show, and where? | `veil.ui.view/buffer` (state, columns, rows -> a buffer) | ui |
 | Where and in what colour is each cell drawn? | `veil.ui.commands/frame` (buffer, cell size -> `:rects` and `:glyphs` with `:x`, `:y`, `:w`, `:h` and RGB `:color`); `veil.ui.view/scene` composes the pipeline | ui |
 | Is it time to quit? | `veil.ui.qa.mode/frame`'s `:exit?` | ui |
+| What does a held modifier key (Ctrl, Shift, ...) mean for this key event? | `veil.main/handle-key` only reads `(q/key-modifiers)` and merges it into the event map; `veil.ui.input/event->input` decides what the combination translates to | ui |
+| What time is it this frame, and what does that change? | `veil.main/update-state` only reads `(q/millis)`; `veil.game.state/stamp-time` puts it in the state as `:now-ms`, and nothing yet reads it back out | game |
 
 The startup decision is split at its seams so that no layer gained a
 dependency: `loader/startup` needs only `veil.mods.loader`, `themes/startup`
