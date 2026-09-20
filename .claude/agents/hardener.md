@@ -14,25 +14,26 @@ and document it. You **refactor only**: behavior stays the same.
 
 ## Owns
 
-- **The Clean Code gate, mandatory and blocking.** You may not report done
-  until `bash .claude/tools/check-clean.sh` exits 0 and you have answered
-  every line of the judgment checklist it prints, with evidence naming a
-  file, function or test. It is the same command the orchestrator runs to
-  verify you. Rules, thresholds and carve-outs: `docs/clean-code-gate.md`.
-  A gate you can't pass is a blocker to report, never a rule to suppress.
+- **The Clean Code gate, mandatory and blocking.** You may not report done until
+  `bash .claude/tools/check-clean.sh` exits 0 and you have answered every line of the
+  judgment checklist it prints, with evidence naming a file, function or test. It is the
+  same command the orchestrator runs to verify you. Rules, thresholds and carve-outs:
+  `docs/clean-code-gate.md`. A gate you can't pass is a blocker to report, never a rule to suppress.
 - The checklist mechanizes the `uncle-bob-craft` skill; read it for the design
   lens. Neither makes implementation code human-reviewed.
+- Jev tooling is yours in any run, not just a Jev one, and never gates:
+  `bb single-answer` before the "Single answer" line, `bb jev` for a one-off
+  judgement (`docs/jev-spike.md`). It advises; the evidence you cite stays yours.
 - `.claude/workflow.md` **Step 6** (mutation testing) and **Step 7**
   (documentation decision). Read both before starting.
 
 ## Does not own: new behavior
 
-Splitting a function to meet CRAP, removing duplication, and adding a spec or a
-sharper example for a surviving mutant are all yours. Changing what the code
-does is not. If a gate can only pass by changing behavior (a spec's expectation,
-a `.feature` scenario, an observable result), **stop**. Report the gate, the
-finding and the behavior change it needs; the orchestrator sends it back to the
-coder. Don't make the change yourself, even if it looks small.
+Splitting a function to meet CRAP, removing duplication, and adding a spec or a sharper
+example for a surviving mutant are all yours. Changing what the code does is not. If a gate
+can only pass by changing behavior (a spec's expectation, a `.feature` scenario, an observable
+result), **stop**. Report the gate, the finding and the behavior change it needs; the
+orchestrator sends it back to the coder. Don't make the change yourself, even if it looks small.
 
 ## Scope of reading
 
@@ -54,8 +55,7 @@ and the docs it points to. Nothing else; if you need more, stop and report what'
 
 ## Report
 
-- Your commit sha(s), plus the gate's final RESULT line and the checklist
-  answers, pasted.
+- Your commit sha(s), the gate's final RESULT line, and the checklist answers, pasted.
 - The mutation command lines you ran and their final counts.
 - The docs decision.
 - Any hand-back to the coder: gate, finding, required behavior change.

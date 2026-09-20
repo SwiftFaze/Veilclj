@@ -19,7 +19,7 @@ judgment is never a pass.
 | 1b. Grilling | `grilling` when intent is ambiguous | `jev-grilling` instead: same rounds, but each answer is checked against the whole settled tree before the frontier advances. |
 | 2. Spec | `spec-feature` writes the `.feature` | `jev-spec-check` §1-2: coverage both directions, implementation leak, one concept per file. |
 | 3. Approval | human approves; still blocking | The human reads a diff of the disagreements instead of both documents. **The gate does not move.** |
-| 4-5. Implementation | `implement-issue`, coder, `bb qa` | — nothing. See below. |
+| 4-5. Implementation | `implement-issue`, coder, `bb qa` | — nothing at the step. The `coder` may call Jev itself; see below. |
 | 4.5. Playtest | human plays `bb play` | — nothing, and nothing ever. |
 | 6. Mutation | `bb mutate`, `bb acceptance-mutate` | — nothing. Survivors are already a mechanical fact. |
 | 7. Docs | the hardener's docs decision | — nothing. |
@@ -40,6 +40,15 @@ outward-facing and hard to undo.
 Claude generates each question and its candidate answers; Jev picks between
 them. So an unattended run can only ever choose an option Claude thought of —
 which is the thing to watch when judging whether the variant is worth keeping.
+
+## The agents may use Jev in either workflow
+
+`coder` and `hardener` can reach for `bb single-answer` and `bb jev` in an
+ordinary `.claude/workflow.md` run, not only a Jev one — their own agent files
+say so. It never gates for them either: an answer they disagree with is an
+answer they overrule, and the evidence on a checklist line stays theirs to
+write. That is why nothing is added at Steps 4-7 here. The tooling reaches the
+agents through the agents, not through a second pipeline.
 
 ## Why so little in Steps 4-7
 

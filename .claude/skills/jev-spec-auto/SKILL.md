@@ -1,6 +1,7 @@
 ---
 name: jev-spec-auto
-description: Run Steps 1-2 of the spec-first pipeline unattended from a GitHub issue number - every question that spec-intent or grilling would put to the human is answered by Jev instead, with the decision, its confidence and its alternatives recorded in the intent doc. Use when the user wants a hands-off spec run; it halts at the three points no model can stand in for.
+description: Run the whole pipeline unattended from a GitHub issue number to a green PR - every question spec-intent or grilling would put to the human is answered by Jev instead, the implementation goes through implement-issue, and CI failures are diagnosed and fixed in place. Stops only at the merge. Use when the user wants a hands-off run from issue to reviewable PR.
+model: opus
 ---
 
 `spec-intent` then `spec-feature`, with nobody at the keyboard. Every question
@@ -24,16 +25,21 @@ you did not think of.** Generate the real alternatives, including the one you
 disagree with, and name them concretely. Two plausible options and a straw man
 produce a confident answer to the wrong question.
 
-## Where it stops
+## Human gates move to the PR; none are deleted
 
-Three halts. They are not configurable here, and reaching one is a normal,
-successful outcome — report and exit.
+The run goes from an issue number to a green PR with nobody at the keyboard.
+It does not remove this repo's human gates — it **relocates every one of them
+to the PR**, where they are owed before merge instead of mid-run.
 
-| Halt | Why |
-|---|---|
-| High-risk path detected | `.claude/workflow.md` Step 3 is blocking, and its triggers are the two places being wrong is expensive. Route here on `jev-spec-check` §3 at **0.3**, per that file's own "if unsure, take the high-risk path". |
-| Step 4.5 playtest | `CLAUDE.md`: no feature is done without it. It judges whether movement and rendering *feel* right — not text, and not something any model here can see. |
-| PR merge | Outward-facing and hard to reverse. Open the PR; the human merges. |
+| Gate | Normally | Here |
+|---|---|---|
+| Step 3, spec approval (high-risk path) | blocks before any code | PR is labelled `needs-spec-approval`, and the body says which trigger fired and at what probability |
+| Step 4.5, human playtest | blocks before the hardener | PR body lists exactly which screens and behaviours are unplayed, under a heading that says Step 4.5 is outstanding |
+| Merge | human | human, unchanged |
+
+This is a deliberate deviation from `CLAUDE.md`'s ordering, and the reason to
+be loud about it in the PR body: a playtest owed and named is a moved gate, a
+playtest unmentioned is a skipped one. Never write that Step 4.5 is done.
 
 ## The loop
 
@@ -44,13 +50,70 @@ successful outcome — report and exit.
 2. **Derive the intent doc** from the issue, `spec-intent`'s way.
 3. **Answer the open questions** (below), appending each decision to the doc.
 4. **Write the `.feature`** with `spec-feature`.
-5. **Run `jev-spec-check`.** Its §3 decides the path — halt if high-risk.
+5. **Run `jev-spec-check`.** Its §3 sets the path: on high-risk, take the
+   high-risk path's artifacts in order and carry the label forward — do not
+   stop.
 6. **Close the gaps it found**, then re-run it. **At most three rounds.** If
-   round three still has uncovered requirements, halt and report them: a check
+   round three still has uncovered requirements, stop and report them: a check
    that keeps failing is telling you the intent doc is ambiguous, and looping
    harder will not fix that.
-7. **Hand to `implement-issue`**, which already runs Steps 4-7 agent-side.
-   Halt at its playtest step.
+7. **Hand to `implement-issue`** for Steps 4-7, skipping its playtest stop and
+   recording what the playtest owes instead. **The agents still run.** Steps
+   4-5 are the `coder`'s and Step 6-7 the `hardener`'s, dispatched and
+   verified exactly as `implement-issue` says. Do not implement inline: this
+   skill replaces the human in the loop, not the pipeline's own division of
+   labour, and the hardener's gate is the only thing standing between an
+   unattended run and unreviewed code.
+8. **Push and open the PR** against `develop`, never `master`. `Closes #N` in
+   the body is required — `pr-body-closes-issue` enforces it, and without it
+   nothing closes the issue on merge.
+9. **Watch CI and fix it** (below).
+10. **Green: done.** Report and wait. Do not merge.
+
+## Watching CI
+
+```bash
+gh pr checks <n> --watch --repo SwiftFaze/Veilclj
+gh run view <run-id> --log-failed --repo SwiftFaze/Veilclj
+```
+
+The jobs are `branch-name`, `master-source-check` and `build-and-test`
+(`ci.yml`), plus `instruction-budget`, `pr-body-closes-issue`,
+`no-manual-release-edits` and `quality-gate-ratchet` (`repo-hygiene.yml`).
+
+**At most three fix rounds.** Each round: read the failing log, classify it,
+fix, push, watch again. After the third, stop and report with the log — a
+failure that survives three attempts is one you do not understand, and a
+fourth guess is how a gate ends up suppressed.
+
+Two jobs are never "fixed" by making them pass. `quality-gate-ratchet` fails
+because a gate was loosened: the fix is to restore the gate and change the
+code. `master-source-check` fails because the PR targets `master`: the fix is
+the base branch, and if it is already `develop`, something is structurally
+wrong — stop.
+
+Before pushing any CI fix, put it to Jev:
+
+```json
+{"id": "fix1", "model": "jev-latest",
+ "state": {"failing_job": "build-and-test",
+           "log_excerpt": "<the failing output>",
+           "proposed_fix": "<the diff you are about to push>",
+           "rule": "A gate you cannot pass is a blocker to report, never a rule to suppress."},
+ "questions": {
+   "suppresses": {"type": "noul",
+     "instructions": "Does `proposed_fix` make the check stop complaining without fixing what it complained about?",
+     "criteria": {"true": "It raises a limit, adds an exception or suppression, deletes or weakens the assertion, narrows what the check looks at, or removes the failing test.",
+                  "false": "It changes the code under test so the original check now passes unchanged."}},
+   "addresses": {"type": "noul",
+     "instructions": "Would `proposed_fix` actually make `failing_job` pass, judged against `log_excerpt`?",
+     "criteria": {"true": "It addresses the cause the log names.",
+                  "false": "It changes something the log does not implicate."}}}}
+```
+
+`suppresses >= 0.5` — do not push it. Stop and report the failure and the fix
+you rejected. `addresses < 0.5` — you have not found the cause yet; read more
+log rather than pushing a guess.
 
 ## Answering one question
 
@@ -128,9 +191,9 @@ Every fallback also goes under `## Open questions`, because that is what it is.
 
 ## Reporting
 
-Lead with which halt you reached and why. Then the decision table, fallbacks
-first — they are the ones worth a human's attention. Then what `jev-spec-check`
-still flagged at the last round.
+Lead with the PR URL and CI state. Then the decision table, fallbacks first —
+they are the ones worth a human's attention. Then what `jev-spec-check` still
+flagged at the last round, and every human gate the PR now owes.
 
 Say plainly what the run does not establish: that the decisions were *right*.
 It establishes that they were made from the stated evidence, recorded with
