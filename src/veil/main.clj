@@ -48,7 +48,7 @@
     (reset! qa-state qa)
     (files/append-log! (:log-path qa) entries)
     (when exit? (q/exit))
-    new-state))
+    (state/stamp-time new-state (q/millis))))
 
 (defn- key-pressed [qa-state state event]
   (let [{:keys [entries] new-state :state} (mode/on-key @qa-state handle-key state (q/frame-count) event)]

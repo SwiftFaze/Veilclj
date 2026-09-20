@@ -5,14 +5,14 @@
 (describe "dispatch"
   (it "returns the state unchanged and consumed=false when chain is empty"
     (let [s {:screen :main-menu}
-          [result consumed?] (dispatch/dispatch s :down [] nil)]
+          [result consumed?] (dispatch/dispatch s :down [])]
       (should= s result)
       (should= false consumed?)))
 
   (it "calls the first handler with state and input"
     (let [handler (fn [state input] (when (= input :down) (assoc state :moved true)))
           s {:screen :main-menu}
-          [result consumed?] (dispatch/dispatch s :down [handler] nil)]
+          [result consumed?] (dispatch/dispatch s :down [handler])]
       (should= true (:moved result))
       (should= true consumed?)))
 
@@ -20,7 +20,7 @@
     (let [handler1 (fn [s i] (assoc s :handler 1))
           handler2 (fn [s i] (assoc s :handler 2))
           s {:screen :main-menu}
-          [result consumed?] (dispatch/dispatch s :down [handler1 handler2] nil)]
+          [result consumed?] (dispatch/dispatch s :down [handler1 handler2])]
       (should= 1 (:handler result))
       (should= true consumed?)))
 
@@ -28,7 +28,7 @@
     (let [handler1 (fn [s i] nil)
           handler2 (fn [s i] (assoc s :handler 2))
           s {:screen :main-menu}
-          [result consumed?] (dispatch/dispatch s :down [handler1 handler2] nil)]
+          [result consumed?] (dispatch/dispatch s :down [handler1 handler2])]
       (should= 2 (:handler result))
       (should= true consumed?)))
 
@@ -36,6 +36,6 @@
     (let [handler1 (fn [s i] nil)
           handler2 (fn [s i] nil)
           s {:screen :main-menu}
-          [result consumed?] (dispatch/dispatch s :down [handler1 handler2] nil)]
+          [result consumed?] (dispatch/dispatch s :down [handler1 handler2])]
       (should= s result)
       (should= false consumed?))))

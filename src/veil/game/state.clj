@@ -85,7 +85,7 @@
   [state input handlers]
   (if (nil? input)
     state
-    (let [[new-state consumed?] (dispatch/dispatch state input handlers nil)]
+    (let [[new-state consumed?] (dispatch/dispatch state input handlers)]
       (if consumed?
         new-state
         (case (screen state)
@@ -95,8 +95,8 @@
           state)))))
 
 (defn handle-input
-  "Process an input based on the current screen. With an empty chain, uses screen-level bindings.
-  Kept for backward compatibility; new code should use handle-input-with-chain."
+  "Process an input based on the current screen using an empty dispatch chain,
+  falling through to screen-level bindings."
   [state input]
   (handle-input-with-chain state input []))
 
