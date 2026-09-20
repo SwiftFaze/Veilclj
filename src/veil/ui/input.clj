@@ -26,16 +26,6 @@
     34 :page-down
     nil))
 
-(defn- by-key
-  "Translate events matched by the :key field to navigation actions."
-  [key modifiers]
-  (case key
-    :up :up
-    :down :down
-    :left :left
-    :right :right
-    nil))
-
 (def ^:private special-raw-keys
   "Raw keys with a fixed navigation action, keyed by the literal char
   Processing reports for them. Does NOT include the printable ASCII codes
@@ -51,14 +41,13 @@
 (defn- printable-char
   "Build a character input for a raw key that isn't one of the special
   actions, attaching modifiers when present. Returns nil for the Processing
-  no-char sentinel or a missing raw key."
+  no-char sentinel or a missing raw key. Never sees \\tab: by-raw-key handles
+  it (and Shift+Tab) before printable-char is called."
   [raw-key modifiers]
   (when (and (some? raw-key) (not= raw-key coded-key-sentinel))
-    (let [shift-tab? (and (= raw-key \tab) (contains? modifiers :shift))]
-      (cond
-        shift-tab? :shift-tab
-        (seq modifiers) {:char raw-key :mods modifiers}
-        :else {:char raw-key}))))
+    (if (seq modifiers)
+      {:char raw-key :mods modifiers}
+      {:char raw-key})))
 
 (defn- by-raw-key
   "Translate events matched by the :raw-key field to actions or characters."
@@ -75,19 +64,14 @@
 
 (defn event->input
   "Translate a Quil key event map {:key kw :raw-key char :key-code int :modifiers #{...}}
-  to a game input (keyword action, character map, or nil)."
+  to a game input (keyword action, character map, or nil). :key is Quil's own
+  name for the key, but it isn't read here: :raw-key already tells apart a
+  coded key (the sentinel, read by :key-code) from a typed character (itself)."
   [event]
   (if (nil? event)
     nil
-    (let [{:keys [key raw-key key-code modifiers]} event
+    (let [{:keys [raw-key key-code modifiers]} event
           modifiers (or modifiers #{})]
-      (cond
-        ;; Coded key: raw-key is the sentinel, translate by key-code
-        (= raw-key coded-key-sentinel) (by-key-code key-code)
-        ;; Regular :key field (arrows, etc.)
-        (some? key) (let [by-key-result (by-key key modifiers)]
-                      (if (some? by-key-result)
-                        by-key-result
-                        (by-raw-key raw-key modifiers)))
-        ;; Fall through to raw-key translation
-        :else (by-raw-key raw-key modifiers)))))
+      (if (= raw-key coded-key-sentinel)
+        (by-key-code key-code)
+        (by-raw-key raw-key modifiers)))))
