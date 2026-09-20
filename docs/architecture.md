@@ -84,63 +84,14 @@ consumes a subset of game inputs.
 The menu has three items: `"New Game"`, `"Options"`, `"Quit"`. The `:selected`
 field (0-based index) tracks which is active, with wrapping at both ends.
 
-## Input translation: pure vs. Quil
+## Input: translation and focus-first dispatch
 
-`veil.ui.input/event->input` is a pure function that translates a Quil key
-event (`{:key kw :raw-key char :key-code int :modifiers #{...}}`) to a game
-input, one of: a **navigation action** (a bare keyword - `:up :down :left
-:right :confirm :back :tab :shift-tab :toggle :backspace :delete :home :end
-:page-up :page-down`), a **printable character** (`{:char \w}`), a
-**character with modifiers held** (`{:char \a :mods #{:ctrl}}`), or `nil` for
-a key with no translation. The translator knows nothing about WASD or any
-other screen-specific alias - those live where the screen binds inputs
-(`veil.game.state`), not in translation. It has no dependency on Quil, so
-specs and acceptance steps can use it directly without opening a window.
-
-**Coded key or typed character: `:raw-key` says which, not `:key`.** A key
-Processing can't represent as a character - an arrow, Home/End/Page Up/Page
-Down, an F-key, Caps Lock - is a **coded key**: `:raw-key` is `(char 65535)`
-(AWT's `CHAR_UNDEFINED`, Processing's `CODED`) and the real value is
-`:key-code`; `by-key-code` reads that. Every other key - Tab, Enter, Esc,
-Space, Backspace, Delete, and every printable character - has a real
-character, so `:raw-key` *is* that character; `by-raw-key` reads it directly.
-`:key` can't make this call either: Quil derives it from the same raw-key/
-key-code pair (`quil.core/key-as-keyword`) - a coded key with no entry in
-Quil's own `KEY-CODES` table (Home, End, Page Up, Page Down, Caps Lock; only
-the arrows and the F-keys are in that table) becomes `:key :unknown-key`
-regardless of which key it was, and a typed character becomes a keyword built
-from the character itself, which duplicates `:raw-key` rather than adding to
-it. `event->input` reads only `:raw-key` and `:key-code`, never `:key`.
-Getting the coded/typed call backwards is exactly the defect this file's own
-`special-raw-keys` map had before: char codes 33-36 (`!"#$`, printable
-characters, the neighbors of the digit row on a US keyboard) were mapped to
-`:page-up :page-down :end :home` as if they were those coded keys'
-`:key-code` values, when a coded key's value only ever arrives as
-`:key-code`, never as `:raw-key`.
-
-`veil.ui.input/escape?` answers "is this the raw Escape key?", so the shell only
-has to act on the answer (next section). `veil.ui.draw` is the only
-Quil-touching UI namespace. `event->input` and `escape?` are kept pure (no Quil
-required) so game input logic can be tested in isolation.
-
-## The focus-first dispatch chain
-
-`veil.game.dispatch/dispatch` walks a caller-supplied sequence of handlers -
-`(fn [state input] -> state-or-nil)` - offering each the input in turn. `nil`
-means "not consumed, keep going"; any returned state means consumed, and the
-walk stops there. It returns `[state consumed?]` so the caller decides the
-fall-through, rather than owning it itself. The chain is an **argument**, not
-a field in the game state - no screen or widget has "focus" recorded in the
-state yet, since nothing plugs into the chain until later issues add
-overlays, panes and widgets.
-
-`veil.game.state/handle-input-with-chain` is that caller: it runs the chain
-first, and only when nothing in it consumes the input does it fall through to
-the existing screen-level bindings (`handle-main-menu`, `handle-map`,
-`handle-options`). `handle-input` (the function every existing caller already
-used) is the same thing with an empty chain, so a chain-less caller sees no
-behavior change. `veil.game.dispatch` has no Quil, I/O or knowledge of any
-particular screen - it only walks the list it's given.
+How a Quil key event becomes a game input, the coded-key vs typed-character
+rule that translation turns on, the focus-first dispatch chain
+(`veil.game.dispatch`) and the Esc/Processing workaround have their own
+canonical home: [input.md](input.md). The layer rules still apply — the
+translator sits in `veil.ui` and requires no Quil; the dispatch chain is pure
+`veil.game`.
 
 ## The cell grid: state to buffer to draw commands to pixels
 
@@ -237,16 +188,6 @@ cannot see. `veil.mods.loader` therefore calls a type's `:check` with
 so the check stays pure) once the file satisfies its spec, and reports the
 error maps it returns with the other load problems, in
 `veil.mods.validate/field-error`'s shape.
-
-## The Esc/Processing gotcha
-
-Processing calls `exit()` if its `key` field == 27 (ESC char) after `keyPressed`
-returns. To make Esc mean `:back` (not quit), `veil.main/handle-key` calls
-`prevent-processing-exit`, which zeros that field when `input/escape?` says the
-event is a raw Escape. This prevents the unintended exit and allows menu and
-screen navigation to handle Esc as :back input. The `set!` on the applet needs a
-live window, so it is the one part of this that only the QA run and the
-playtest exercise.
 
 ## QA runs: scripted input through the real key path
 
