@@ -97,6 +97,27 @@ other screen-specific alias - those live where the screen binds inputs
 (`veil.game.state`), not in translation. It has no dependency on Quil, so
 specs and acceptance steps can use it directly without opening a window.
 
+**Coded key or typed character: `:raw-key` says which, not `:key`.** A key
+Processing can't represent as a character - an arrow, Home/End/Page Up/Page
+Down, an F-key, Caps Lock - is a **coded key**: `:raw-key` is `(char 65535)`
+(AWT's `CHAR_UNDEFINED`, Processing's `CODED`) and the real value is
+`:key-code`; `by-key-code` reads that. Every other key - Tab, Enter, Esc,
+Space, Backspace, Delete, and every printable character - has a real
+character, so `:raw-key` *is* that character; `by-raw-key` reads it directly.
+`:key` can't make this call either: Quil derives it from the same raw-key/
+key-code pair (`quil.core/key-as-keyword`) - a coded key with no entry in
+Quil's own `KEY-CODES` table (Home, End, Page Up, Page Down, Caps Lock; only
+the arrows and the F-keys are in that table) becomes `:key :unknown-key`
+regardless of which key it was, and a typed character becomes a keyword built
+from the character itself, which duplicates `:raw-key` rather than adding to
+it. `event->input` reads only `:raw-key` and `:key-code`, never `:key`.
+Getting the coded/typed call backwards is exactly the defect this file's own
+`special-raw-keys` map had before: char codes 33-36 (`!"#$`, printable
+characters, the neighbors of the digit row on a US keyboard) were mapped to
+`:page-up :page-down :end :home` as if they were those coded keys'
+`:key-code` values, when a coded key's value only ever arrives as
+`:key-code`, never as `:raw-key`.
+
 `veil.ui.input/escape?` answers "is this the raw Escape key?", so the shell only
 has to act on the answer (next section). `veil.ui.draw` is the only
 Quil-touching UI namespace. `event->input` and `escape?` are kept pure (no Quil
