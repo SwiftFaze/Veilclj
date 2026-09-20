@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-beta.10](https://github.com/SwiftFaze/Veilclj/compare/v0.1.0-beta.9...v0.1.0-beta.10) (2026-09-20)
+
+
+### Features
+
+* rich keyboard input, focus-first dispatch and a frame clock ([#57](https://github.com/SwiftFaze/Veilclj/issues/57)) ([b17a3bd](https://github.com/SwiftFaze/Veilclj/commit/b17a3bd84d45cd2bda0f5f7a7ae70624c3dc55c2))
+
 ## [0.1.0-beta.9](https://github.com/SwiftFaze/Veilclj/compare/v0.1.0-beta.8...v0.1.0-beta.9) (2026-09-20)
 
 
