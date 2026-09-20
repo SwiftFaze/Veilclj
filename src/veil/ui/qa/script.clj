@@ -46,14 +46,22 @@
     (or (first (filter :error parsed))
         {:steps (:steps (reduce place {:steps [] :tick 1} parsed))})))
 
+(def ^:private coded-key-sentinel
+  "The raw-key Quil reports for coded keys (arrows, F-keys, etc.)."
+  (char 65535))
+
 (def ^:private named-events
-  {"Down"  {:key :down  :key-code 40 :raw-key (char 65535)}
-   "Up"    {:key :up    :key-code 38 :raw-key (char 65535)}
-   "Left"  {:key :left  :key-code 37 :raw-key (char 65535)}
-   "Right" {:key :right :key-code 39 :raw-key (char 65535)}
+  "Known key names and their Quil event representation.
+  Coded keys have raw-key as the sentinel and real key-codes.
+  Character keys have raw-key as the actual character."
+  {"Down"  {:key :down  :key-code 40 :raw-key coded-key-sentinel}
+   "Up"    {:key :up    :key-code 38 :raw-key coded-key-sentinel}
+   "Left"  {:key :left  :key-code 37 :raw-key coded-key-sentinel}
+   "Right" {:key :right :key-code 39 :raw-key coded-key-sentinel}
    "Enter" {:raw-key \newline}
    "Esc"   {:raw-key (char 27)}
-   "Space" {:key :space :raw-key \space}})
+   "Space" {:raw-key \space}
+   "Tab"   {:key-code 9 :raw-key \tab}})
 
 (defn key-keyword
   "Get the keyword used in log entries for a key name: its lower-cased name."
@@ -61,18 +69,24 @@
   (keyword (str/lower-case key-name)))
 
 (defn key->event
-  "Build a Quil-shaped event map for a key name."
+  "Build a Quil-shaped event map for a key name.
+  Single-character keys (printable chars) have only raw-key, not a faked :key."
   [key-name]
   (or (named-events key-name)
-      {:key (key-keyword key-name) :raw-key (first key-name)}))
+      {:raw-key (first key-name)}))
 
 (defn event->key-keyword
   "Convert a Quil-shaped event to the keyword used in log entries.
-   Handles raw-key (newline/return -> :enter, ESC -> :esc) or :key field."
+   Handles raw-key (newline/return -> :enter, ESC -> :esc, space -> :space),
+   :key field, or single character raw-keys (converted to their lowercase keyword)."
   [event]
-  (let [raw-key (:raw-key event)]
+  (let [raw-key (:raw-key event)
+        key-field (:key event)]
     (cond
       (or (= raw-key \newline) (= raw-key \return)) :enter
       (= raw-key (char 27)) :esc
-      (keyword? (:key event)) (:key event)
+      (= raw-key \space) :space
+      (keyword? key-field) key-field
+      (and (some? raw-key) (char? raw-key) (not= raw-key (char 65535)))
+        (keyword (str/lower-case (str raw-key)))
       :else :unknown)))

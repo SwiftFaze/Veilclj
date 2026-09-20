@@ -12,21 +12,21 @@
     "Up" {:key :up :key-code 38 :raw-key (char 65535)}
     "Left" {:key :left :key-code 37 :raw-key (char 65535)}
     "Right" {:key :right :key-code 39 :raw-key (char 65535)}
-    "S" {:key :s :raw-key \S}
-    "W" {:key :w :raw-key \W}
-    "X" {:key :x :raw-key \x}
-    "Space" {:key :space :raw-key \space}
+    "S" {:raw-key \S}
+    "W" {:raw-key \W}
+    "X" {:raw-key \x}
+    "Space" {:raw-key \space}
     "Enter" {:raw-key \newline}
     "Esc" {:raw-key (char 27)}
-    "Tab" {:key :tab :raw-key \tab}
+    "Tab" {:key-code 9 :raw-key \tab}
     "Backspace" {:raw-key (char 8)}
     "Delete" {:raw-key (char 127)}
-    "Home" {:raw-key (char 36)}
-    "End" {:raw-key (char 35)}
-    "Page Up" {:raw-key (char 33)}
-    "Page Down" {:raw-key (char 34)}
-    "F1" {:key :f1 :raw-key (char 65535)}
-    "Caps Lock" {:key :caps-lock :raw-key (char 65535)}
+    "Home" {:key-code 36 :raw-key (char 65535)}
+    "End" {:key-code 35 :raw-key (char 65535)}
+    "Page Up" {:key-code 33 :raw-key (char 65535)}
+    "Page Down" {:key-code 34 :raw-key (char 65535)}
+    "F1" {:key-code 112 :raw-key (char 65535)}
+    "Caps Lock" {:key-code 20 :raw-key (char 65535)}
     "nothing" nil
     (fail (str "unknown key: " key-name))))
 

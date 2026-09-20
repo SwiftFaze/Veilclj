@@ -56,10 +56,10 @@
 
 (describe "tab key"
   (it "translates Tab to :tab"
-    (should= :tab (input/event->input {:key :tab :raw-key \tab})))
+    (should= :tab (input/event->input {:key-code 9 :raw-key \tab})))
 
   (it "translates Shift+Tab to :shift-tab"
-    (should= :shift-tab (input/event->input {:key :tab :raw-key \tab :modifiers #{:shift}}))))
+    (should= :shift-tab (input/event->input {:key-code 9 :raw-key \tab :modifiers #{:shift}}))))
 
 (describe "backspace key"
   (it "translates Backspace to :backspace"
@@ -70,20 +70,20 @@
     (should= :delete (input/event->input {:raw-key (char 127)}))))
 
 (describe "home key"
-  (it "translates Home to :home"
-    (should= :home (input/event->input {:raw-key (char 36)}))))
+  (it "translates Home to :home via key-code"
+    (should= :home (input/event->input {:key-code 36 :raw-key (char 65535)}))))
 
 (describe "end key"
-  (it "translates End to :end"
-    (should= :end (input/event->input {:raw-key (char 35)}))))
+  (it "translates End to :end via key-code"
+    (should= :end (input/event->input {:key-code 35 :raw-key (char 65535)}))))
 
 (describe "page up key"
-  (it "translates Page Up to :page-up"
-    (should= :page-up (input/event->input {:raw-key (char 33)}))))
+  (it "translates Page Up to :page-up via key-code"
+    (should= :page-up (input/event->input {:key-code 33 :raw-key (char 65535)}))))
 
 (describe "page down key"
-  (it "translates Page Down to :page-down"
-    (should= :page-down (input/event->input {:raw-key (char 34)}))))
+  (it "translates Page Down to :page-down via key-code"
+    (should= :page-down (input/event->input {:key-code 34 :raw-key (char 65535)}))))
 
 (describe "character with Ctrl modifier"
   (it "translates Ctrl+a to character with ctrl modifier"
@@ -111,6 +111,19 @@
 
   (it "translates ? to character input"
     (should= {:char \?} (input/event->input {:raw-key \?}))))
+
+(describe "printable ASCII codes that were previously hijacked"
+  (it "translates ! (char 33) to character, not page-up"
+    (should= {:char (char 33)} (input/event->input {:raw-key (char 33)})))
+
+  (it "translates \" (char 34) to character, not page-down"
+    (should= {:char (char 34)} (input/event->input {:raw-key (char 34)})))
+
+  (it "translates # (char 35) to character, not end"
+    (should= {:char (char 35)} (input/event->input {:raw-key (char 35)})))
+
+  (it "translates $ (char 36) to character, not home"
+    (should= {:char (char 36)} (input/event->input {:raw-key (char 36)}))))
 
 (describe "escape?"
   (it "returns true for Escape raw key"
