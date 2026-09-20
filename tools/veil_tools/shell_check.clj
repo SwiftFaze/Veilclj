@@ -5,9 +5,8 @@
 
   Pure: `check` takes the source text of the shell files and returns findings.
   Source is read with the Clojure reader, so comments and strings are ignored."
-  (:require [clojure.string :as str])
-  (:import [clojure.lang LineNumberingPushbackReader]
-           [java.io StringReader]))
+  (:require [clojure.string :as str]
+            [veil-tools.clj-source :as clj-source]))
 
 (def shell-files
   "The only files the check looks at."
@@ -19,15 +18,6 @@
 (def ^:private branch-heads #{'cond 'case 'condp})
 
 (def ^:private guard-heads #{'if 'when 'if-not 'when-not})
-
-(defn- read-forms
-  "Every top-level form in source-text; list forms carry :line metadata."
-  [source-text]
-  (binding [*read-eval* false]
-    (let [reader (LineNumberingPushbackReader. (StringReader. source-text))]
-      (->> (repeatedly #(read reader false ::eof))
-           (take-while #(not= ::eof %))
-           vec))))
 
 (defn- require-aliases
   "alias symbol -> namespace symbol from the file's first ns form."
@@ -97,7 +87,7 @@
   (if (nil? source-text)
     [{:path path :message "file not found"}]
     (try
-      (let [forms (read-forms source-text)
+      (let [forms (clj-source/read-forms source-text)
             aliases (require-aliases forms)]
         (vec (for [form forms
                    finding (form-findings form aliases)]

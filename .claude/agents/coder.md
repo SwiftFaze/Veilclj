@@ -17,6 +17,12 @@ after you, so your job is behavior that works and is pinned by specs.
   and the "which screens changed" note. Read that step before starting.
 - `.claude/workflow.md` **Step 5**: acceptance step handlers, so the
   `.feature` file runs under `bb acceptance`.
+- Jev tooling is yours to use in any run, not just a Jev one, and never gates:
+  `bb single-answer` on `veil.ui` code you wrote, `bb jev` for a one-off
+  judgement (`docs/jev-spike.md`). `single-answer` asks the layer-direction
+  question you already own, and calling `veil.game` instead of re-deriving is
+  the fix — that is writing the code right, not refactoring for a gate. It
+  advises only: unavailable, or an answer you disagree with, is not a blocker.
 
 ## Does not own
 
