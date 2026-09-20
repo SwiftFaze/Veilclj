@@ -90,6 +90,10 @@
    :task     (System/exit (apply update-tools/run *command-line-args*))}
 
   ;; --- manual inspection (never gates) ---------------------------------------
+  single-answer
+  {:doc      "SPIKE: ask Jev which veil.ui functions re-derive a veil.game answer (--all, --threshold n, or paths)"
+   :requires ([veil-tools.single-answer-runner :as single-answer])
+   :task     (System/exit (apply single-answer/run *command-line-args*))}
   introvert {:doc      "deintroverter: find specs whose assertions don't touch src"
              :requires ([deintroverter.core :as intro])
              :task     (apply intro/-main (or (seq *command-line-args*) ["spec"]))}
