@@ -90,6 +90,9 @@
    :task     (System/exit (apply update-tools/run *command-line-args*))}
 
   ;; --- manual inspection (never gates) ---------------------------------------
+  jev   {:doc      "SPIKE: post System One payloads from a JSON or JSONL file and print the answers"
+         :requires ([veil-tools.jev-cli :as jev-cli])
+         :task     (System/exit (apply jev-cli/run *command-line-args*))}
   single-answer
   {:doc      "SPIKE: ask Jev which veil.ui functions re-derive a veil.game answer (--all, --threshold n, or paths)"
    :requires ([veil-tools.single-answer-runner :as single-answer])

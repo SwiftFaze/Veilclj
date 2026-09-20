@@ -240,23 +240,11 @@ every task to be mentioned here.
 
 - `bb introvert` - flags specs whose assertions never touch `src/` (asserting
   on literals or test data). Its author says: inspect by hand, never gate.
-- `bb single-answer` - **spike, under evaluation.** The one judgment-checklist
-  line no tool covers (`docs/clean-code-gate.md`, "Single answer"): asks a
-  TypeSafe System One model whether a `veil.ui` function works out an answer
-  `veil.game` already gives, and names the `veil.game` function it should have
-  called. Probabilistic, so it always exits 0 and never gates. With no
-  arguments it judges the `veil.ui` files changed against `origin/develop`;
-  `--all` judges every one, `--threshold <n>` sets the reporting floor
-  (default 0.30), or pass paths. Needs `TYPESAFE_API_KEY` in the environment -
-  a missing key or a failed call is reported as an error, never a silent pass.
-  Measured on this repo: five planted violations scored 0.95-0.97 and each
-  named the right `veil.game` function; all 82 real `veil.ui` functions scored
-  below 0.20. About 2.6k input tokens per function judged.
+- `bb single-answer` and `bb jev` - Jev spike tooling, never gates: `jev-spike.md`.
 - `bb uml-ir` then `bb uml` - live UML of the namespace tree from
   `docs/uml/veil.policy.edn`, with `.metrics/` (CRAP, mutation) overlaid. Run
-  `bb uml-data` first: it refreshes `crap.edn` and mutates every eligible
-  `src` file (a first run is slow, later ones are differential), then runs
-  `bb uml-ir`. `:levels` there mirrors the layer rules, so
-  violations draw red. The viewer's **Regen** button needs a Grok companion
-  in tmux, so it doesn't work here; instead leave the viewer open and rerun
-  `bb uml-ir` - it reloads the diagram when the file changes (or press `R`).
+  `bb uml-data` first: it refreshes `crap.edn` and mutates every eligible `src`
+  file (first run slow, later ones differential), then `bb uml-ir`. `:levels`
+  there mirrors the layer rules, so violations draw red. The viewer's **Regen**
+  button needs a Grok companion in tmux, so it doesn't work here; instead leave
+  the viewer open and rerun `bb uml-ir` - it reloads on change (or press `R`).

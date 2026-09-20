@@ -38,7 +38,9 @@ VERBOSE=0
 # needs to be bigger.
 BUDGETS=(
   "CLAUDE.md:100"
-  ".claude/workflow.md:150"
+  # Glob, not the one path: a workflow variant is loaded the same way and decays
+  # the same way, so a new one must not land unmeasured.
+  ".claude/workflow*.md:150"
   # Baselined 2026-09-19 at the larger agent file (hardener.md) when added.
   ".claude/agents/*.md:61"
   ".claude/skills/*/SKILL.md:215"
