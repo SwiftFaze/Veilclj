@@ -25,6 +25,22 @@ judgment is never a pass.
 | 7. Docs | the hardener's docs decision | — nothing. |
 | Gate | `check-clean.sh`, all nine sections | `bb single-answer` as an advisory tenth, for the one judgment-checklist line no tool covers. Exits 0 always. |
 
+## The unattended variant
+
+`jev-spec-auto` runs Steps 1-2 with nobody at the keyboard: every question
+`spec-intent` or `grilling` would put to the human is answered by Jev instead,
+recorded in the intent doc with its confidence and the alternatives, and then
+handed to `implement-issue` for Steps 4-7.
+
+It halts at three points, and reaching one is a successful outcome: a
+high-risk path detection (Step 3 is blocking), the Step 4.5 playtest, and the
+PR merge. The first two are this repo's rules; the third is because merging is
+outward-facing and hard to undo.
+
+Claude generates each question and its candidate answers; Jev picks between
+them. So an unattended run can only ever choose an option Claude thought of —
+which is the thing to watch when judging whether the variant is worth keeping.
+
 ## Why so little in Steps 4-7
 
 Jev returns a probability, a choice from a fixed set, or a score. It cannot

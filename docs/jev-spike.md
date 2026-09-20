@@ -89,6 +89,15 @@ Each holds the question design for one workflow step; all three call `bb jev`.
 | `jev-grilling` | each answer you give during a `grilling` session, against the whole settled design tree | holds the frontier on answers that hedge, contradict an earlier round, or assume something still open |
 | `jev-brainstorm` | the judgement calls in `brainstorm-issue` / `brainstorm-milestone`: the split, milestone fit, priority, duplicates, and **pairwise** build order | code topologically sorts the pairwise edges into the order the issues get filed in |
 | `jev-spec-check` | `specs/intent/<slug>.md` against `specs/features/<slug>.feature` before the approval gate | a coverage matrix: which requirements no scenario covers, and which scenarios no requirement asked for |
+| `jev-spec-auto` | every question `spec-intent` or `grilling` would put to the human, during an unattended Steps 1-2 run | adopts a pick only above a confidence floor **and** only when the state held the answer; otherwise falls back to the documented conservative default and records it as an assumption |
+
+`jev-spec-auto` is the one to be most careful with. Because Jev picks from a
+fixed set, Claude writes both the question and the candidate answers, so an
+unattended run can only ever choose an option Claude thought of — the failure
+mode is a confident pick between three options where the right fourth was
+never written down. Its `answerable` noul exists for the related trap: a choice
+is confident whenever its options are far apart, including when the state never
+contained the answer. Judge that variant on its fallbacks, not its decisions.
 
 `jev-brainstorm` is the one that most clearly beats a prompt. Asking an agent to
 order a dozen issues in one pass is inconsistent run to run; asking one bounded
