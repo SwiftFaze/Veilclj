@@ -15,7 +15,12 @@ Feature: Deterministic keyboard QA run
     (matching, order, seen/missing report, exit status), and running every
     procedure with `bb qa --all` (which files count, the summary line, the
     overall exit status).
-  Supersedes: nothing.
+  Supersedes: nothing. Superseded in one place: keyboard-input.feature now
+    owns which game input each key produces, so the "A script key reaches the
+    game as the same input a real key press gives" table follows that
+    vocabulary rather than defining it. What this file still owns there is the
+    property the scenario is named for - that a scripted key and a typed key
+    reach the game as the same input - which is why the scenario stays here.
   Out of scope: seeded randomness (--seed; the game draws no random numbers
     yet), pixel or screenshot comparison, mouse input, and how any screen is
     drawn. Opening the real window, the q/exit call that quits the process when
@@ -84,16 +89,16 @@ Feature: Deterministic keyboard QA run
     Then the game input is <input>
 
     Examples:
-      | key   | input    |
-      | Up    | up       |
-      | W     | up       |
-      | Down  | down     |
-      | S     | down     |
-      | Enter | confirm  |
-      | Esc   | back     |
-      | X     | no input |
-      | Space | no input |
-      | Left  | no input |
+      | key   | input           |
+      | Up    | up              |
+      | W     | the character W |
+      | Down  | down            |
+      | S     | the character S |
+      | Enter | confirm         |
+      | Esc   | back            |
+      | X     | the character X |
+      | Space | toggle          |
+      | Left  | left            |
 
   Scenario Outline: Playing a script drives the game and ends the run
     When the script "<script>" is played

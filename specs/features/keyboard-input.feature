@@ -20,12 +20,17 @@ Feature: Keyboard input and focus-first dispatch
     than as something the translator knows. Translation preserves the case the
     player typed, so the menu's W/S aliases accept either case - which is what
     keeps main-menu.feature's uppercase W and S examples passing.
-  Supersedes: nothing behavioural. main-menu.feature's scenarios all keep
-    passing and it remains the owner of what each screen does with an input;
-    this file owns what a key becomes and who is offered it first. The one
-    thing it overturns is internal: W and S are no longer translated to :up
-    and :down, they are characters the main menu interprets on fall-through,
-    so the observable result of pressing W is unchanged.
+  Supersedes: the key-to-input vocabulary wherever another feature file
+    pinned it. deterministic-keyboard-qa.feature's "A script key reaches the
+    game as the same input a real key press gives" table asserted the old
+    four-input vocabulary (W and S as movement, X and Space and Left as no
+    input at all); that table now follows this file, while the property it is
+    named for - scripted and typed keys agreeing - stays its own.
+    main-menu.feature's scenarios all keep passing untouched and it remains
+    the owner of what each screen does with an input. The one thing overturned
+    for the player is nothing: W and S are no longer translated to :up and
+    :down, they are characters the main menu interprets on fall-through, so
+    the observable result of pressing W is unchanged.
   Out of scope: key rebinding and mouse input (outside this milestone); the
     frame clock, which is the same issue but a separate concept
     (frame-clock.feature); any actual overlay, pane or widget - issues #11-#16
