@@ -26,24 +26,26 @@
         ;; Row 0: title bar
         with-title-bar (widgets/title-bar buf "VEIL" "Widget Gallery" 0)
 
-        ;; Rows 1-6: "Items" frame
-        with-items-frame (widgets/frame with-title-bar 0 1 cols 6 "Items" :WINDOW_BORDER :BACKGROUND)
+        ;; Rows 1-8: "Items" frame (width 12, height 8)
+        ;; Interior: row 2 (pad), rows 3-6 (items), row 7 (pad)
+        with-items-frame (widgets/frame with-title-bar 0 1 12 8 "Items" :WINDOW_BORDER :BACKGROUND)
 
-        ;; Rows 2-5: item list with accelerators (interior of Items frame)
+        ;; Rows 3-6: item list with accelerators (interior of Items frame)
         items [["Apple" \a]
                ["Banana" \b]
                ["Grape" \g]
                ["Guava" \u]]
         with-items
         (reduce (fn [b [idx [item letter]]]
-                  (widgets/accelerator-label b item letter 3 (+ 2 idx) :NORMAL_TEXT :BACKGROUND))
+                  (widgets/accelerator-label b item letter 3 (+ 3 idx) :NORMAL_TEXT :BACKGROUND))
                 with-items-frame
                 (map-indexed (fn [i item] [i item]) items))
 
-        ;; Rows 8-10: "Badges" frame
-        with-badges-frame (widgets/frame with-items 0 8 cols 3 "Badges" :WINDOW_BORDER :BACKGROUND)
+        ;; Rows 10-14: "Badges" frame (width 35, height 5)
+        ;; Interior: row 11 (pad), row 12 (content), row 13 (pad)
+        with-badges-frame (widgets/frame with-items 0 10 35 5 "Badges" :WINDOW_BORDER :BACKGROUND)
 
-        ;; Row 9: badges (SUC/ERR/WRN/INF/ACC at columns 3, 9, 15, 21, 27)
+        ;; Row 12: badges (SUC/ERR/WRN/INF/ACC at columns 3, 9, 15, 21, 27)
         badges [[:SUCCESS "SUC" 3]
                 [:ERROR "ERR" 9]
                 [:WARNING "WRN" 15]
@@ -51,14 +53,15 @@
                 [:ACCENT "ACC" 27]]
         with-badges
         (reduce (fn [b [color abbr col]]
-                  (widgets/badge b color abbr col 9))
+                  (widgets/badge b color abbr col 12))
                 with-badges-frame
                 badges)
 
-        ;; Rows 12-14: "Chips" frame
-        with-chips-frame (widgets/frame with-badges 0 12 cols 3 "Chips" :WINDOW_BORDER :BACKGROUND)
+        ;; Rows 16-20: "Chips" frame (width 35, height 5)
+        ;; Interior: row 17 (pad), row 18 (content), row 19 (pad)
+        with-chips-frame (widgets/frame with-badges 0 16 35 5 "Chips" :WINDOW_BORDER :BACKGROUND)
 
-        ;; Row 13: chips (same colors and columns)
+        ;; Row 18: chips (same colors and columns)
         chips [[:SUCCESS "SUC" 3 false]
                [:ERROR "ERR" 9 false]
                [:WARNING "WRN" 15 false]
@@ -66,7 +69,7 @@
                [:ACCENT "ACC" 27 false]]
         with-chips
         (reduce (fn [b [color abbr col focused?]]
-                  (widgets/chip b color abbr col 13 focused?))
+                  (widgets/chip b color abbr col 18 focused?))
                 with-chips-frame
                 chips)
 
