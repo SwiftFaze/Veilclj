@@ -59,8 +59,13 @@
    Left text at col 1, center text centered."
   [buf left center row]
   (let [cols (:cols buf)
+        ;; Fill entire row with spaces in SELECTED_TEXT on SELECTED_HIGHLIGHT
         filled (buffer/fill-rect buf 0 row cols 1 :SELECTED_HIGHLIGHT)
-        with-left (buffer/write-text filled 1 row left :SELECTED_TEXT :SELECTED_HIGHLIGHT)
+        filled-spaces (reduce (fn [b c]
+                                (assoc-in b [:cells row c] {:glyph \space :fg :SELECTED_TEXT :bg :SELECTED_HIGHLIGHT}))
+                              filled
+                              (range cols))
+        with-left (buffer/write-text filled-spaces 1 row left :SELECTED_TEXT :SELECTED_HIGHLIGHT)
         center-col (quot (- cols (count center)) 2)
         with-center (buffer/write-text with-left center-col row center :SELECTED_TEXT :SELECTED_HIGHLIGHT)]
     with-center))

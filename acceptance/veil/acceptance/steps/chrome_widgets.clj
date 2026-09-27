@@ -177,7 +177,8 @@
                                  (let [trimmed (str/trim pair)
                                        parts (str/split trimmed #"\s+" 2)
                                        key-part (first parts)
-                                       label (second parts)]
+                                       label-raw (second parts)
+                                       label (if label-raw (str/replace (str/trim label-raw) #"[\"']" "") "")]
                                    (cond
                                      (= key-part "Esc") [:back label]
                                      (re-matches #"Ctrl\+(.)" key-part)
