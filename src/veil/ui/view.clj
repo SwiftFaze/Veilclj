@@ -78,10 +78,16 @@
         with-message-frame (widgets/frame with-chips 13 11 26 5 "Message" :WINDOW_BORDER :BACKGROUND)
 
         ;; Row 13: status message text (custom, not using status-line widget)
+        ;; Rows 12 and 14: vertical padding bars in SELECTED_HIGHLIGHT
         status-message (get-in state [:gallery :status])
         with-message
         (if status-message
-          (buffer/write-text with-message-frame 15 13 (str " [ " status-message " ] ") :SELECTED_TEXT :SELECTED_HIGHLIGHT)
+          (let [padded-text (str " [ " status-message " ] ")
+                text-width (count padded-text)]
+            (-> with-message-frame
+                (buffer/fill-rect 15 12 text-width 1 :SELECTED_HIGHLIGHT)
+                (buffer/fill-rect 15 14 text-width 1 :SELECTED_HIGHLIGHT)
+                (buffer/write-text 15 13 padded-text :SELECTED_TEXT :SELECTED_HIGHLIGHT)))
           with-message-frame)
 
         ;; Row 23: hint bar (docks at bottom, grows upward if needed)
