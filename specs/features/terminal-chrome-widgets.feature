@@ -1,3 +1,7 @@
+# acceptance-mutation-manifest-begin
+# {"version":1,"tested_at":"2026-09-27T19:34:02.565801400Z","feature_name":"Terminal chrome widgets","feature_path":"specs/features/terminal-chrome-widgets.feature","background_hash":"74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b","implementation_hash":"unknown","scenarios":[{"index":0,"name":"A titled frame puts its title into the top edge","scenario_hash":"3b02dc50c12b0d2c6898e96ce8fb6d51912c5b0a5f7d9b52df2974b1c5ea3d70","mutation_count":16,"result":{"Total":16,"Killed":16,"Survived":0,"Errors":0},"tested_at":"2026-09-27T19:30:27.806621300Z"},{"index":2,"name":"A title too long for the frame is cut to fit","scenario_hash":"efa6f0eeaf5fce2b208c5f710105078c01b046f835f7eade1eee95630470500e","mutation_count":10,"result":{"Total":10,"Killed":10,"Survived":0,"Errors":0},"tested_at":"2026-09-27T19:30:27.806621300Z"},{"index":7,"name":"Each input has a keycap label","scenario_hash":"8bf19ab67b3a9a6135ce92c0fe8b8983eae5177af0374c1b13224abe01f9a645","mutation_count":14,"result":{"Total":14,"Killed":14,"Survived":0,"Errors":0},"tested_at":"2026-09-27T19:30:27.806621300Z"}]}
+# acceptance-mutation-manifest-end
+
 Feature: Terminal chrome widgets
   The static building blocks for dressing a screen like a Linux terminal
   editor: nano-style bars, whiptail-style boxed frames, and the small inline

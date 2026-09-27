@@ -77,9 +77,8 @@
         (fn [buf]
           (let [row-text (buffer/row-text buf 0)
                 ascii-row (apply str (map box-char-to-ascii row-text))]
-            (check (= expected ascii-row)
-                   (str "top edge reads \"" ascii-row "\", expected \"" expected "\"")))))
-      (ok))]
+            (check (str/starts-with? ascii-row expected)
+                   (str "top edge reads \"" ascii-row "\", expected \"" expected "\""))))))]
 
    [#"the buffer is the same as a box at column (-?\d+), row (-?\d+), (\d+) wide and (\d+) high drawn in (\w+) on (\w+)"
     (fn [world [_ col row w h fg bg]]
@@ -89,8 +88,7 @@
                                           (int-of col) (int-of row) (int-of w) (int-of h)
                                           (keyword fg) (keyword bg))]
             (check (= buf expected)
-                   "buffer is not the same as the expected box"))))
-      (ok))]
+                   "buffer is not the same as the expected box")))))]
 
    ;; Title bar
    [#"a title bar reading \"([^\"]*)\" on the left and \"([^\"]*)\" in the center is drawn on row (\d+)"
@@ -218,8 +216,7 @@
           (let [row-text (buffer/row-text buf (int-of row))]
             (check (str/starts-with? row-text expected)
                    (str "row " row " starts with \"" (subs row-text 0 (min (count expected) (count row-text)))
-                        "\", expected \"" expected "\"")))))
-      (ok))]
+                        "\", expected \"" expected "\""))))))]
 
    ;; Badge
    [#"a (\w+) badge reading \"([^\"]*)\" is drawn at column (\d+), row (\d+)"

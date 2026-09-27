@@ -71,8 +71,7 @@
       (let [expected-strs (str/split hints-str #",\s*")
             actual-hints (state/gallery-hints)]
         (check (= (count expected-strs) (count actual-hints))
-               (str "expected " (count expected-strs) " hints, got " (count actual-hints))))
-      (ok))]
+               (str "expected " (count expected-strs) " hints, got " (count actual-hints)))))]
 
    ;; Keycap at location (for the hint bar) - check multi-char text
    [#"the keycap \"([^\"]*)\" is at column (\d+), row (\d+)"
@@ -86,8 +85,7 @@
                                                 (range expected-col (+ expected-col (count keycap-text))))))]
             (check (= keycap-text actual-text)
                    (str "keycap at column " col ", row " row " is \"" actual-text
-                        "\", expected \"" keycap-text "\"")))))
-      (ok))]
+                        "\", expected \"" keycap-text "\""))))))]
 
    ;; Label at location (for the hint bar)
    [#"the label \"([^\"]*)\" is at column (\d+), row (\d+) in (\w+) on (\w+)"
@@ -96,12 +94,15 @@
         (fn [buf]
           (let [expected-col (int-of col)
                 expected-row (int-of row)
-                cells (cells-of buf label expected-col expected-row)]
-            (check (every? #(and (= (keyword fg) (:fg %))
-                                (= (keyword bg) (:bg %)))
-                          cells)
-                   (str "\"" label "\" at column " col ", row " row " colors mismatch")))))
-      (ok))]
+                cells (cells-of buf label expected-col expected-row)
+                actual-text (apply str (map :glyph cells))]
+            (check (and (= label actual-text)
+                        (every? #(and (= (keyword fg) (:fg %))
+                                     (= (keyword bg) (:bg %)))
+                               cells))
+                   (str "\"" actual-text "\" at column " col ", row " row
+                        " in " (mapv (juxt :fg :bg) cells)
+                        ", expected \"" label "\" in " fg " on " bg))))))]
 
    ;; Build draw commands (reuse grid.clj's infrastructure)
    [#"the buffer is turned into draw commands for cells (\d+) by (\d+) pixels"
@@ -122,8 +123,7 @@
       (with-frame world
         (fn [frame]
           (check (and (:rects frame) (:glyphs frame) true)
-                 "draw commands were built successfully")))
-      (ok))]
+                 "draw commands were built successfully"))))]
    ])
 
 (def handlers

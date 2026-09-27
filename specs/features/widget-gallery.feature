@@ -1,3 +1,7 @@
+# acceptance-mutation-manifest-begin
+# {"version":1,"tested_at":"2026-09-27T19:34:19.815860900Z","feature_name":"Widget Gallery","feature_path":"specs/features/widget-gallery.feature","background_hash":"c278d9acbaf415d175b5b358c977d9702949c29bb8d5724ff7d60e6fd1f179e6","implementation_hash":"unknown","scenarios":[{"index":2,"name":"Esc in the Widget Gallery returns to the main menu with its selection kept","scenario_hash":"4f1f7b0e6582bf4cb1af5112f7cef2051932659f79d4813ced0cbc6184df9528","mutation_count":3,"result":{"Total":3,"Killed":3,"Survived":0,"Errors":0},"tested_at":"2026-09-27T19:30:44.528057700Z"},{"index":5,"name":"Keys that are no item's accelerator change nothing in the Gallery","scenario_hash":"dd2944682cc0b68d06888138ad2ace1fb3a86f7dd559e9a9b56579e08a6a3852","mutation_count":5,"result":{"Total":5,"Killed":5,"Survived":0,"Errors":0},"tested_at":"2026-09-27T19:30:44.528057700Z"},{"index":9,"name":"The Gallery shows a badge and a chip in each semantic color","scenario_hash":"3d3c8d39b82eecdfafafb89d0385243d67fe52be5c0a137d72dc71b9d45ae475","mutation_count":15,"result":{"Total":15,"Killed":15,"Survived":0,"Errors":0},"tested_at":"2026-09-27T19:30:44.528057700Z"}]}
+# acceptance-mutation-manifest-end
+
 Feature: Widget Gallery
   A developer screen that shows every widget from terminal-chrome-widgets.feature
   with fake data, so they can be playtested before any real screen uses them.
