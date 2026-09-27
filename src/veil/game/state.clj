@@ -110,17 +110,21 @@
   [state input]
   (cond
     (= input :back) (assoc state :screen :main-menu)
-    ;; Check if input matches an accelerator letter (case-insensitive)
+    ;; Check if input matches an accelerator letter (case-insensitive, no modifiers)
     (map? input)
     (if-let [char (:char input)]
-      (let [lower-char (Character/toLowerCase char)
-            matched-item (first (for [[item letter]
-                                      (gallery-items)
-                                      :when (= (Character/toLowerCase letter) lower-char)]
-                                  item))]
-        (if matched-item
-          (assoc-in state [:gallery :status] (str "Activated " matched-item))
-          state))
+      (let [mods (:mods input)
+            has-mods (or (and (seq? mods) (seq mods)) (and (set? mods) (seq mods)))]
+        (if has-mods
+          state
+          (let [lower-char (Character/toLowerCase char)
+                matched-item (first (for [[item letter]
+                                          (gallery-items)
+                                          :when (= (Character/toLowerCase letter) lower-char)]
+                                      item))]
+            (if matched-item
+              (assoc-in state [:gallery :status] (str "Activated " matched-item))
+              state))))
       state)
     :else state))
 

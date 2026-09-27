@@ -41,8 +41,8 @@
               [[(+ col 2) row \space]]
               (for [[i ch] (map-indexed vector title-text)]
                 [(+ title-start i) row ch])
-              [[(+ title-end 1) row \space]]
-              (for [c (range (+ title-end 2) right)]
+              [[title-end row \space]]
+              (for [c (range (+ title-end 1) right)]
                 [c row horizontal])))]
 
       (reduce (fn [b [c r glyph]]
@@ -105,12 +105,27 @@
 
 ;; --- Hint bar ---
 
-(defn hint-bar
-  "Draw a hint bar: ordered seq of [input label] pairs, laid out in equal slots,
-   wrapping into rows docked at the bottom. Returns the number of rows used."
+(defn hint-bar-rows
+  "Calculate how many rows a hint bar with these hints would take."
   [buf hints]
   (if (empty? hints)
     0
+    (let [cols (:cols buf)
+          slot-width
+          (+ 1 (apply max (map (fn [[input label]]
+                                 (+ (count (keycap-label input)) 1 (count label)))
+                               hints)))
+          slots-per-row (max 1 (quot cols slot-width))
+          num-hints (count hints)
+          bar-rows (quot (+ num-hints slots-per-row (dec 1)) slots-per-row)]
+      bar-rows)))
+
+(defn hint-bar
+  "Draw a hint bar: ordered seq of [input label] pairs, laid out in equal slots,
+   wrapping into rows docked at the bottom. Returns the buffer with hint bar drawn."
+  [buf hints]
+  (if (empty? hints)
+    buf
     (let [cols (:cols buf)
           rows (:rows buf)
           slot-width
@@ -122,23 +137,20 @@
           bar-rows (quot (+ num-hints slots-per-row (dec 1)) slots-per-row)
           bar-start-row (- rows bar-rows)]
 
-      (let [result
-            (reduce (fn [b [hint-idx [input label]]]
-                      (let [slot-idx hint-idx
-                            row-offset (quot slot-idx slots-per-row)
-                            col-offset (mod slot-idx slots-per-row)
-                            hint-row (+ bar-start-row row-offset)
-                            hint-col (* col-offset slot-width)
-                            keycap-label-text (keycap-label input)
-                            with-cap (buffer/write-text b hint-col hint-row keycap-label-text
-                                                        :SELECTED_TEXT :SELECTED_HIGHLIGHT)
-                            label-col (+ hint-col (count keycap-label-text) 1)]
-                        (buffer/write-text with-cap label-col hint-row label
-                                           :NORMAL_TEXT :BACKGROUND)))
-                    buf
-                    (map-indexed (fn [i hint] [i hint]) hints))]
-
-        bar-rows))))
+      (reduce (fn [b [hint-idx [input label]]]
+                (let [slot-idx hint-idx
+                      row-offset (quot slot-idx slots-per-row)
+                      col-offset (mod slot-idx slots-per-row)
+                      hint-row (+ bar-start-row row-offset)
+                      hint-col (* col-offset slot-width)
+                      keycap-label-text (keycap-label input)
+                      with-cap (buffer/write-text b hint-col hint-row keycap-label-text
+                                                  :SELECTED_TEXT :SELECTED_HIGHLIGHT)
+                      label-col (+ hint-col (count keycap-label-text) 1)]
+                  (buffer/write-text with-cap label-col hint-row label
+                                     :NORMAL_TEXT :BACKGROUND)))
+              buf
+              (map-indexed (fn [i hint] [i hint]) hints)))))
 
 ;; --- Accelerator label ---
 
@@ -150,7 +162,7 @@
               (let [is-accelerator (= (Character/toLowerCase ch) lower-letter)
                     [c fg-to-use]
                     (if is-accelerator
-                      [(Character/toUpperCase ch) :ACCENT]
+                      [ch :ACCENT]
                       [ch fg])]
                 (buffer/write-text b (+ col idx) row (str c) fg-to-use bg)))
             buf

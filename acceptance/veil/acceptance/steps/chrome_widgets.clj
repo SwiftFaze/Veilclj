@@ -43,13 +43,21 @@
   "Map box-drawing characters to ASCII for readability in feature file assertions."
   [ch]
   (cond
-    (= ch (char 0x250C)) \+  ;; top-left
-    (= ch (char 0x2510)) \+  ;; top-right
-    (= ch (char 0x2514)) \+  ;; bottom-left
-    (= ch (char 0x2518)) \+  ;; bottom-right
-    (= ch (char 0x2500)) \-  ;; horizontal
-    (= ch (char 0x2502)) \|  ;; vertical
+    (= ch (char 0x250C)) \+
+    (= ch (char 0x2510)) \+
+    (= ch (char 0x2514)) \+
+    (= ch (char 0x2518)) \+
+    (= ch (char 0x2500)) \-
+    (= ch (char 0x2502)) \|
     :else ch))
+
+(defn- find-text
+  "[col row] of the first place text appears in buf, or nil."
+  [buf text]
+  (first (for [row (range (:rows buf))
+               :let [col (str/index-of (buffer/row-text buf row) text)]
+               :when col]
+           [col row])))
 
 (def ^:private raw-handlers
   [;; Frame
@@ -70,8 +78,19 @@
           (let [row-text (buffer/row-text buf 0)
                 ascii-row (apply str (map box-char-to-ascii row-text))]
             (check (= expected ascii-row)
-                   (str "top edge reads \"" ascii-row "\", expected \"" expected "\"")))
-          (ok))))]
+                   (str "top edge reads \"" ascii-row "\", expected \"" expected "\"")))))
+      (ok))]
+
+   [#"the buffer is the same as a box at column (-?\d+), row (-?\d+), (\d+) wide and (\d+) high drawn in (\w+) on (\w+)"
+    (fn [world [_ col row w h fg bg]]
+      (with-buffer world
+        (fn [buf]
+          (let [expected (buffer/draw-box (buffer/blank (:cols buf) (:rows buf))
+                                          (int-of col) (int-of row) (int-of w) (int-of h)
+                                          (keyword fg) (keyword bg))]
+            (check (= buf expected)
+                   "buffer is not the same as the expected box"))))
+      (ok))]
 
    ;; Title bar
    [#"a title bar reading \"([^\"]*)\" on the left and \"([^\"]*)\" in the center is drawn on row (\d+)"
@@ -87,7 +106,7 @@
     (fn [world [_ row]]
       (update-buffer! world #(widgets/status-line % nil (int-of row))))]
 
-   ;; Keycap label - each action as its own step
+   ;; Keycap label
    [#"the keycap label for the back action is asked for"
     (fn [world _]
       (let [label (widgets/keycap-label :back)]
@@ -145,19 +164,44 @@
     (fn [world [_ col row]]
       (update-buffer! world #(widgets/keycap % :confirm (int-of col) (int-of row))))]
 
-   ;; Hints setup
+   ;; Hints
+   [#"there are no hints"
+    (fn [world _]
+      (swap! world assoc :hints [])
+      (ok))]
+
    [#"the hints are (.+)"
     (fn [world [_ hints-str]]
-      (swap! world assoc :hints hints-str)
+      (let [hint-pairs (str/split hints-str #",\s*")
+            parsed-hints (mapv (fn [pair]
+                                 (let [trimmed (str/trim pair)
+                                       parts (str/split trimmed #"\s+" 2)
+                                       key-part (first parts)
+                                       label (second parts)]
+                                   (cond
+                                     (= key-part "Esc") [:back label]
+                                     (re-matches #"Ctrl\+(.)" key-part)
+                                     (let [matched (re-matches #"Ctrl\+(.)" key-part)
+                                           char (first (second matched))]
+                                       [{:char char :mods #{:ctrl}} label])
+                                     :else [:unknown label])))
+                               hint-pairs)]
+        (swap! world assoc :hints parsed-hints))
       (ok))]
 
    [#"the hint bar is drawn"
     (fn [world _]
+      (update-buffer! world #(widgets/hint-bar % (:hints @world)))
       (ok))]
 
    [#"the hint bar takes (\d+) rows?"
     (fn [world [_ rows-str]]
-      (ok))]
+      (let [expected (int-of rows-str)
+            buf (:buffer @world)
+            hints (:hints @world)
+            actual (widgets/hint-bar-rows buf hints)]
+        (check (= expected actual)
+               (str "hint bar takes " actual " rows, expected " rows-str))))]
 
    ;; Accelerator label
    [#"the label \"([^\"]*)\" with accelerator ([a-zA-Z]) is written at column (\d+), row (\d+) in (\w+) on (\w+)"
@@ -165,6 +209,16 @@
       (update-buffer! world
                       #(widgets/accelerator-label % label (first letter) (int-of col) (int-of row)
                                                   (keyword fg) (keyword bg))))]
+
+   [#"the text in row (\d+) starts with \"([^\"]*)\""
+    (fn [world [_ row expected]]
+      (with-buffer world
+        (fn [buf]
+          (let [row-text (buffer/row-text buf (int-of row))]
+            (check (str/starts-with? row-text expected)
+                   (str "row " row " starts with \"" (subs row-text 0 (min (count expected) (count row-text)))
+                        "\", expected \"" expected "\"")))))
+      (ok))]
 
    ;; Badge
    [#"a (\w+) badge reading \"([^\"]*)\" is drawn at column (\d+), row (\d+)"

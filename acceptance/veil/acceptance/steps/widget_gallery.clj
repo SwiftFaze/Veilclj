@@ -4,7 +4,8 @@
             [veil.acceptance.step-support :refer [ok check fail]]
             [veil.game.state :as state]
             [veil.ui.buffer :as buffer]
-            [veil.ui.widgets :as widgets]))
+            [veil.ui.widgets :as widgets]
+            [veil.ui.commands :as commands]))
 
 (defn- int-of [s]
   (Long/parseLong s))
@@ -24,6 +25,15 @@
   (if-let [buf (:buffer @world)]
     (f buf)
     (fail "no buffer has been made in this scenario")))
+
+(defn- with-frame
+  "Run (f frame) when draw commands were built, else fail with why not."
+  [world f]
+  (if-let [frame (:frame @world)]
+    (f frame)
+    (fail (str "no draw commands were built"
+               (when-let [error (:commands-error @world)]
+                 (str " (building them failed: " error ")"))))))
 
 (defn- find-text
   "[col row] of the first place text appears in a row of buf, or nil."
@@ -64,16 +74,18 @@
                (str "expected " (count expected-strs) " hints, got " (count actual-hints))))
       (ok))]
 
-   ;; Keycap at location (for the hint bar)
+   ;; Keycap at location (for the hint bar) - check multi-char text
    [#"the keycap \"([^\"]*)\" is at column (\d+), row (\d+)"
     (fn [world [_ keycap-text col row]]
       (with-buffer world
         (fn [buf]
           (let [expected-col (int-of col)
                 expected-row (int-of row)
-                actual-cell (buffer/cell buf expected-col expected-row)]
-            (check (= keycap-text (:glyph actual-cell))
-                   (str "keycap at column " col ", row " row " is \"" (:glyph actual-cell)
+                actual-text (apply str (map :glyph
+                                           (map #(buffer/cell buf % expected-row)
+                                                (range expected-col (+ expected-col (count keycap-text))))))]
+            (check (= keycap-text actual-text)
+                   (str "keycap at column " col ", row " row " is \"" actual-text
                         "\", expected \"" keycap-text "\"")))))
       (ok))]
 
@@ -89,6 +101,28 @@
                                 (= (keyword bg) (:bg %)))
                           cells)
                    (str "\"" label "\" at column " col ", row " row " colors mismatch")))))
+      (ok))]
+
+   ;; Build draw commands (reuse grid.clj's infrastructure)
+   [#"the buffer is turned into draw commands for cells (\d+) by (\d+) pixels"
+    (fn [world [_ cell-w cell-h]]
+      (with-buffer world
+        (fn [buf]
+          (let [built (try (commands/frame (:state @world) buf (int-of cell-w) (int-of cell-h))
+                           (catch Exception e {:error (.getMessage e)}))]
+            (if-let [error (:error built)]
+              (do (swap! world #(-> % (assoc :commands-error error) (dissoc :frame)))
+                  (ok))
+              (do (swap! world #(-> % (assoc :frame built :cell-size [(int-of cell-w) (int-of cell-h)])
+                                    (dissoc :commands-error)))
+                  (ok)))))))]
+
+   [#"building the draw commands succeeds"
+    (fn [world _]
+      (with-frame world
+        (fn [frame]
+          (check (and (:rects frame) (:glyphs frame) true)
+                 "draw commands were built successfully")))
       (ok))]
    ])
 
