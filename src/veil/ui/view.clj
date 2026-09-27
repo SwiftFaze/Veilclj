@@ -54,7 +54,7 @@
 
         ;; Row 10: chips (same colors and columns)
         chips [[:SUCCESS "SUC" 3 false]
-               [:ERROR "ERR" 9 true]  ;; ERROR chip is focused
+               [:ERROR "ERR" 9 false]
                [:WARNING "WRN" 15 false]
                [:INFO "INF" 21 false]
                [:ACCENT "ACC" 27 false]]

@@ -122,7 +122,7 @@
                                hints)))
           slots-per-row (max 1 (quot cols slot-width))
           num-hints (count hints)
-          bar-rows (quot (+ num-hints slots-per-row (dec 1)) slots-per-row)]
+          bar-rows (quot (+ num-hints slots-per-row -1) slots-per-row)]
       bar-rows)))
 
 (defn hint-bar
@@ -139,7 +139,7 @@
                                hints)))
           slots-per-row (max 1 (quot cols slot-width))
           num-hints (count hints)
-          bar-rows (quot (+ num-hints slots-per-row (dec 1)) slots-per-row)
+          bar-rows (quot (+ num-hints slots-per-row -1) slots-per-row)
           bar-start-row (- rows bar-rows)]
 
       (reduce (fn [b [hint-idx [input label]]]
