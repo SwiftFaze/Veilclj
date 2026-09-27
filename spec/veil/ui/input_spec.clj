@@ -85,6 +85,13 @@
   (it "translates Page Down to :page-down via key-code"
     (should= :page-down (input/event->input {:key-code 34 :raw-key (char 65535)}))))
 
+(describe "f12 key"
+  (it "translates F12 to :f12 via key-code"
+    (should= :f12 (input/event->input {:key-code 123 :raw-key (char 65535)})))
+
+  (it "returns nil for F1, an untranslated function key"
+    (should= nil (input/event->input {:key-code 112 :raw-key (char 65535)}))))
+
 (describe "character with Ctrl modifier"
   (it "translates Ctrl+a to character with ctrl modifier"
     (should= {:char \a :mods #{:ctrl}} (input/event->input {:raw-key \a :modifiers #{:ctrl}})))
