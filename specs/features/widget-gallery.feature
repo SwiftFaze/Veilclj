@@ -11,8 +11,9 @@ Feature: Widget Gallery
     menu items; typing a fake item's accelerator showing an activation
     message on the status line, and every other key changing nothing; the
     Gallery's own chrome (title bar, one titled frame per widget group -
-    Items, Badges, Chips - status line, hint bar) in place of the
-    whole-grid border; the hint bar listing exactly the Gallery's own
+    Items, Badges, Chips, each sized to its own content with matching
+    left/right and top/bottom interior padding - status line, hint bar) in
+    place of the whole-grid border; the hint bar listing exactly the Gallery's own
     bindings; a badge and a chip shown in every semantic color, at fixed
     positions; and every cell the Gallery draws naming a color the active
     theme defines.
@@ -104,13 +105,14 @@ Feature: Widget Gallery
     Then the text "Widget Gallery" is at column 33, row 0
     And the cell at column 0, row 0 has the background SELECTED_HIGHLIGHT
     And the cell at column 0, row 1 holds glyph U+250C in WINDOW_BORDER on BACKGROUND
-    And the cell at column 79, row 6 holds glyph U+2518 in WINDOW_BORDER on BACKGROUND
+    And the cell at column 11, row 8 holds glyph U+2518 in WINDOW_BORDER on BACKGROUND
     And the text "Items" is at column 3, row 1
-    And the cell at column 0, row 8 holds glyph U+250C in WINDOW_BORDER on BACKGROUND
-    And the text "Badges" is at column 3, row 8
-    And the cell at column 0, row 12 holds glyph U+250C in WINDOW_BORDER on BACKGROUND
-    And the text "Chips" is at column 3, row 12
-    And the cell at column 79, row 14 holds glyph U+2518 in WINDOW_BORDER on BACKGROUND
+    And the cell at column 0, row 10 holds glyph U+250C in WINDOW_BORDER on BACKGROUND
+    And the text "Badges" is at column 3, row 10
+    And the cell at column 34, row 14 holds glyph U+2518 in WINDOW_BORDER on BACKGROUND
+    And the cell at column 0, row 16 holds glyph U+250C in WINDOW_BORDER on BACKGROUND
+    And the text "Chips" is at column 3, row 16
+    And the cell at column 34, row 20 holds glyph U+2518 in WINDOW_BORDER on BACKGROUND
     And the keycap "Esc" is at column 0, row 23
 
   Scenario: The Gallery's hint bar lists exactly its own bindings, in order
@@ -127,9 +129,9 @@ Feature: Widget Gallery
   Scenario Outline: The Gallery shows a badge and a chip in each semantic color
     Given the game is on the widget gallery screen
     When the screen is rendered into a grid of 80 columns by 24 rows
-    Then the text " <abbr> " is at column <col>, row 9
+    Then the text " <abbr> " is at column <col>, row 12
     And " <abbr> " is drawn in BACKGROUND on <color>
-    And the text "[<abbr>]" is at column <col>, row 13
+    And the text "[<abbr>]" is at column <col>, row 18
     And "[<abbr>]" is drawn in <color> on BACKGROUND
 
     Examples:
@@ -175,15 +177,17 @@ Feature: Widget Gallery
 #     grows by one.
 #   - The Gallery screen adds a value (:widget-gallery) to :screen/changed's
 #     :from/:to; no new event kind.
-#   - Layout revised after the human playtest (Clarifications): the single
-#     unlabeled "Chrome" frame spanning rows 1-21 was replaced by one titled
-#     frame per widget group - "Items" (rows 1-6, the accelerator list),
-#     "Badges" (rows 8-10, interior row 9), "Chips" (rows 12-14, interior
-#     row 13) - each full width (columns 0-79), with a blank row between
-#     each (7, 11) and unused rows 15-21 below. This both labels each
-#     component and gives every group its own border padding instead of
-#     everything crowding one shared frame's edges. The item list's own
-#     position inside its frame is still deliberately unpinned beyond "one
-#     per interior row" (see Non-goals).
+#   - Layout revised twice after human playtest (Clarifications). First: the
+#     single unlabeled "Chrome" frame (rows 1-21) became one titled frame per
+#     widget group - Items, Badges, Chips. Second: each frame is now sized to
+#     its own content (2-column left/right interior padding, 1-row top/bottom
+#     interior padding) instead of stretched to 80 columns, so left and right
+#     padding match instead of content hugging the left wall with a large
+#     unpadded gap on the right. Current geometry, all three left-aligned at
+#     column 0: Items width 12 rows 1-8 (content rows 3-6), Badges width 35
+#     rows 10-14 (content row 12), Chips width 35 rows 16-20 (content row
+#     18), row 9 and row 15 blank separators, row 21 spare. The item list's
+#     own column position inside its frame is still deliberately unpinned
+#     beyond "one per interior row" (see Non-goals).
 #
 # Open questions: see the grilling round in specs/intent/terminal-chrome-widgets.md.
