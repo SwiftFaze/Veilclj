@@ -2,7 +2,7 @@
   "Parse key scripts: sequences of key names, waits, and comments."
   (:require [clojure.string :as str]))
 
-(def ^:private special-keys #{"Down" "Up" "Left" "Right" "Enter" "Esc" "Space"})
+(def ^:private special-keys #{"Down" "Up" "Left" "Right" "Enter" "Esc" "Space" "F12"})
 
 (defn- valid-key? [text]
   (or (contains? special-keys text)
@@ -61,7 +61,8 @@
    "Enter" {:raw-key \newline}
    "Esc"   {:raw-key (char 27)}
    "Space" {:raw-key \space}
-   "Tab"   {:key-code 9 :raw-key \tab}})
+   "Tab"   {:key-code 9 :raw-key \tab}
+   "F12"   {:key :f12 :key-code 123 :raw-key coded-key-sentinel}})
 
 (defn key-keyword
   "Get the keyword used in log entries for a key name: its lower-cased name."

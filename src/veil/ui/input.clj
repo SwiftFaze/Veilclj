@@ -24,6 +24,7 @@
     35 :end
     33 :page-up
     34 :page-down
+    123 :f12
     nil))
 
 (def ^:private special-raw-keys

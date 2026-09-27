@@ -12,7 +12,8 @@
    :over? false
    :player {:glyph \@}
    :themes {}
-   :active-theme theme/default-id})
+   :active-theme theme/default-id
+   :gallery {:status nil}})
 
 (defn screen
   "Get the current screen keyword (:main-menu, :map, :options)."
@@ -69,6 +70,7 @@
   "Handle input while on the main menu."
   [state input]
   (cond
+    (= input :f12) (assoc state :screen :widget-gallery)
     (= input :up) (update state :menu menu/move :up)
     (= input :down) (update state :menu menu/move :down)
     (= input :confirm) (select-menu-item state)
@@ -86,6 +88,41 @@
   "Handle input while on the map screen."
   [state input]
   (back-to-main-menu state input))
+
+(defn- gallery-items
+  "The widget gallery items with their accelerator letters."
+  []
+  [["Apple" \a]
+   ["Banana" \b]
+   ["Grape" \g]
+   ["Guava" \u]])
+
+(defn gallery-hints
+  "The hint bar hints for the widget gallery: [input label] pairs."
+  []
+  (concat [[:back "Close"]]
+          (map (fn [[item letter]]
+                 [{:char letter} item])
+               (gallery-items))))
+
+(defn handle-widget-gallery
+  "Handle input while in the widget gallery."
+  [state input]
+  (cond
+    (= input :back) (assoc state :screen :main-menu)
+    ;; Check if input matches an accelerator letter (case-insensitive)
+    (map? input)
+    (if-let [char (:char input)]
+      (let [lower-char (Character/toLowerCase char)
+            matched-item (first (for [[item letter]
+                                      (gallery-items)
+                                      :when (= (Character/toLowerCase letter) lower-char)]
+                                  item))]
+        (if matched-item
+          (assoc-in state [:gallery :status] (str "Activated " matched-item))
+          state))
+      state)
+    :else state))
 
 (defn handle-options
   "Handle input while on the options screen."
@@ -107,6 +144,7 @@
           :main-menu (handle-main-menu state input)
           :map (handle-map state input)
           :options (handle-options state input)
+          :widget-gallery (handle-widget-gallery state input)
           state)))))
 
 (defn handle-input
