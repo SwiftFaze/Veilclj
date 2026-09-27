@@ -26,21 +26,24 @@
         ;; Row 0: title bar
         with-title-bar (widgets/title-bar buf "VEIL" "Widget Gallery" 0)
 
-        ;; Rows 1-21: frame titled "Chrome"
-        with-frame (widgets/frame with-title-bar 0 1 cols 21 "Chrome" :WINDOW_BORDER :BACKGROUND)
+        ;; Rows 1-6: "Items" frame
+        with-items-frame (widgets/frame with-title-bar 0 1 cols 6 "Items" :WINDOW_BORDER :BACKGROUND)
 
-        ;; Row 3-6: item list with accelerators
+        ;; Rows 2-5: item list with accelerators (interior of Items frame)
         items [["Apple" \a]
                ["Banana" \b]
                ["Grape" \g]
                ["Guava" \u]]
         with-items
         (reduce (fn [b [idx [item letter]]]
-                  (widgets/accelerator-label b item letter 3 (+ 3 idx) :NORMAL_TEXT :BACKGROUND))
-                with-frame
+                  (widgets/accelerator-label b item letter 3 (+ 2 idx) :NORMAL_TEXT :BACKGROUND))
+                with-items-frame
                 (map-indexed (fn [i item] [i item]) items))
 
-        ;; Row 8: badges (SUC/ERR/WRN/INF/ACC at columns 3, 9, 15, 21, 27)
+        ;; Rows 8-10: "Badges" frame
+        with-badges-frame (widgets/frame with-items 0 8 cols 3 "Badges" :WINDOW_BORDER :BACKGROUND)
+
+        ;; Row 9: badges (SUC/ERR/WRN/INF/ACC at columns 3, 9, 15, 21, 27)
         badges [[:SUCCESS "SUC" 3]
                 [:ERROR "ERR" 9]
                 [:WARNING "WRN" 15]
@@ -48,11 +51,14 @@
                 [:ACCENT "ACC" 27]]
         with-badges
         (reduce (fn [b [color abbr col]]
-                  (widgets/badge b color abbr col 8))
-                with-items
+                  (widgets/badge b color abbr col 9))
+                with-badges-frame
                 badges)
 
-        ;; Row 10: chips (same colors and columns)
+        ;; Rows 12-14: "Chips" frame
+        with-chips-frame (widgets/frame with-badges 0 12 cols 3 "Chips" :WINDOW_BORDER :BACKGROUND)
+
+        ;; Row 13: chips (same colors and columns)
         chips [[:SUCCESS "SUC" 3 false]
                [:ERROR "ERR" 9 false]
                [:WARNING "WRN" 15 false]
@@ -60,8 +66,8 @@
                [:ACCENT "ACC" 27 false]]
         with-chips
         (reduce (fn [b [color abbr col focused?]]
-                  (widgets/chip b color abbr col 10 focused?))
-                with-badges
+                  (widgets/chip b color abbr col 13 focused?))
+                with-chips-frame
                 chips)
 
         ;; Row 22: status line
