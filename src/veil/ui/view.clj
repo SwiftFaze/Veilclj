@@ -81,7 +81,7 @@
         status-message (get-in state [:gallery :status])
         with-message
         (if status-message
-          (buffer/write-text with-message-frame 3 20 (str "[ " status-message " ]") :NORMAL_TEXT :BACKGROUND)
+          (buffer/write-text with-message-frame 3 20 (str "[ " status-message " ]") :SELECTED_TEXT :SELECTED_HIGHLIGHT)
           with-message-frame)
 
         ;; Row 23: hint bar (docks at bottom, grows upward if needed)
