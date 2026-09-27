@@ -170,7 +170,7 @@
   (it "turns a window and font measurements into draw commands"
     (let [frame (view/scene (themed-state) 960 600 12.0 20.0 5.0)]
       (should= [0 0 0] (:background frame))
-      (should (some #(= {:text "V" :x 456 :y 50 :color [255 255 255]} %) (:glyphs frame)))
+      (should (some #(= {:text "V" :x 456 :y 50 :w 12 :h 25 :color [255 255 255]} %) (:glyphs frame)))
       (should (some #(= {:x 432 :y 100 :w 12 :h 25 :color [192 192 192]} %) (:rects frame)))))
 
   (it "centers on a wider grid when the window is wider"

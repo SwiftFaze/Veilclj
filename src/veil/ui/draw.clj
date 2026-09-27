@@ -11,11 +11,11 @@
                                                         (q/text-width "M") (q/text-ascent) (q/text-descent))]
     (apply q/background background)
     (q/no-stroke)
-    (q/text-align :left :top)
+    (q/text-align :left :center)
     (doseq [{:keys [x y w h color]} rects]
       (q/fill color)
       (q/rect x y w h))
-    (doseq [{:keys [text x y color]} glyphs]
+    (doseq [{:keys [text x y w h color]} glyphs]
       (q/fill color)
-      (q/text text x y)))
+      (q/text text x y w h)))
   state)

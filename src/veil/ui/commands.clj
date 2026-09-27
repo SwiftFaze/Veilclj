@@ -26,4 +26,4 @@
                    {:x x :y y :w cell-w :h cell-h :color (theme/color state bg)}))
      :glyphs (vec (for [{:keys [x y glyph fg]} cells
                         :when (not= glyph \space)]
-                    {:text (str glyph) :x x :y y :color (theme/color state fg)}))}))
+                    {:text (str glyph) :x x :y y :w cell-w :h cell-h :color (theme/color state fg)}))}))

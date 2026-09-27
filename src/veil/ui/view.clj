@@ -41,11 +41,11 @@
                 with-items-frame
                 (map-indexed (fn [i item] [i item]) items))
 
-        ;; Rows 10-14: "Badges" frame (width 35, height 5)
-        ;; Interior: row 11 (pad), row 12 (content), row 13 (pad)
-        with-badges-frame (widgets/frame with-items 0 10 35 5 "Badges" :WINDOW_BORDER :BACKGROUND)
+        ;; Rows 9-13: "Badges" frame (width 35, height 5)
+        ;; Interior: row 10 (pad), row 11 (content), row 12 (pad)
+        with-badges-frame (widgets/frame with-items 0 9 35 5 "Badges" :WINDOW_BORDER :BACKGROUND)
 
-        ;; Row 12: badges (SUC/ERR/WRN/INF/ACC at columns 3, 9, 15, 21, 27)
+        ;; Row 11: badges (SUC/ERR/WRN/INF/ACC at columns 3, 9, 15, 21, 27)
         badges [[:SUCCESS "SUC" 3]
                 [:ERROR "ERR" 9]
                 [:WARNING "WRN" 15]
@@ -53,15 +53,15 @@
                 [:ACCENT "ACC" 27]]
         with-badges
         (reduce (fn [b [color abbr col]]
-                  (widgets/badge b color abbr col 12))
+                  (widgets/badge b color abbr col 11))
                 with-badges-frame
                 badges)
 
-        ;; Rows 16-20: "Chips" frame (width 35, height 5)
-        ;; Interior: row 17 (pad), row 18 (content), row 19 (pad)
-        with-chips-frame (widgets/frame with-badges 0 16 35 5 "Chips" :WINDOW_BORDER :BACKGROUND)
+        ;; Rows 14-18: "Chips" frame (width 35, height 5)
+        ;; Interior: row 15 (pad), row 16 (content), row 17 (pad)
+        with-chips-frame (widgets/frame with-badges 0 14 35 5 "Chips" :WINDOW_BORDER :BACKGROUND)
 
-        ;; Row 18: chips (same colors and columns)
+        ;; Row 16: chips (same colors and columns)
         chips [[:SUCCESS "SUC" 3 false]
                [:ERROR "ERR" 9 false]
                [:WARNING "WRN" 15 false]
@@ -69,17 +69,24 @@
                [:ACCENT "ACC" 27 false]]
         with-chips
         (reduce (fn [b [color abbr col focused?]]
-                  (widgets/chip b color abbr col 18 focused?))
+                  (widgets/chip b color abbr col 16 focused?))
                 with-chips-frame
                 chips)
 
-        ;; Row 22: status line
-        status-message (get-in state [:gallery :status])
-        with-status-line (widgets/status-line with-chips status-message 22)
+        ;; Rows 19-21: "Message" frame (width 26, height 3)
+        ;; Interior: row 20 (content, no padding)
+        with-message-frame (widgets/frame with-chips 0 19 26 3 "Message" :WINDOW_BORDER :BACKGROUND)
 
-        ;; Row 23 and up: hint bar (docks at bottom, grows upward if needed)
+        ;; Row 20: status message text (custom, not using status-line widget)
+        status-message (get-in state [:gallery :status])
+        with-message
+        (if status-message
+          (buffer/write-text with-message-frame 3 20 (str "[ " status-message " ]") :NORMAL_TEXT :BACKGROUND)
+          with-message-frame)
+
+        ;; Row 23: hint bar (docks at bottom, grows upward if needed)
         hints (state/gallery-hints)
-        with-hints (widgets/hint-bar with-status-line hints)]
+        with-hints (widgets/hint-bar with-message hints)]
 
     with-hints))
 
