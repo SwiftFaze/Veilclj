@@ -1,0 +1,3 @@
+{:script "specs/qa/widget-gallery.keys"
+ :expect [{:event :screen/changed :from :main-menu :to :widget-gallery}
+          {:event :screen/changed :from :widget-gallery :to :main-menu}]}
