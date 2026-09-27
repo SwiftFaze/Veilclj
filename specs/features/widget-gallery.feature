@@ -130,6 +130,10 @@ Feature: Widget Gallery
     When the screen is rendered into a grid of 80 columns by 24 rows
     Then the text " [ Activated Guava ] " is at column 15, row 13
     And " [ Activated Guava ] " is drawn in SELECTED_TEXT on SELECTED_HIGHLIGHT
+    And the cell at column 15, row 12 has the background SELECTED_HIGHLIGHT
+    And the cell at column 35, row 12 has the background SELECTED_HIGHLIGHT
+    And the cell at column 15, row 14 has the background SELECTED_HIGHLIGHT
+    And the cell at column 35, row 14 has the background SELECTED_HIGHLIGHT
 
   Scenario Outline: The Gallery shows a badge and a chip in each semantic color
     Given the game is on the widget gallery screen
