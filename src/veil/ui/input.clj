@@ -11,21 +11,17 @@
   "The raw-key Processing reports for coded keys (arrows, F-keys, etc.)."
   (char 65535))
 
+(def ^:private key-code-actions
+  "Coded key-codes (arrows, Home/End, Page Up/Down, F12) to navigation actions."
+  {38 :up, 40 :down, 37 :left, 39 :right,
+   36 :home, 35 :end, 33 :page-up, 34 :page-down,
+   123 :f12})
+
 (defn- by-key-code
   "Translate a coded key by its key-code to a navigation action.
   Quil reports coded keys with this sentinel as raw-key and the actual code here."
   [key-code]
-  (case key-code
-    38 :up
-    40 :down
-    37 :left
-    39 :right
-    36 :home
-    35 :end
-    33 :page-up
-    34 :page-down
-    123 :f12
-    nil))
+  (key-code-actions key-code))
 
 (def ^:private special-raw-keys
   "Raw keys with a fixed navigation action, keyed by the literal char

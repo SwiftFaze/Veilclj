@@ -84,20 +84,25 @@
 
 ;; --- Keycap label lookup ---
 
+(def ^:private action-labels
+  "Fixed labels for the action keywords that have no character to derive a label from."
+  {:back "Esc" :confirm "Enter" :tab "Tab" :up "Up" :f12 "F12"})
+
+(defn- char-label
+  "The keycap label for a character input, e.g. {:char \\a} -> \"A\",
+   {:char \\x :mods #{:ctrl}} -> \"^X\"."
+  [{:keys [char mods]}]
+  (let [upper (Character/toUpperCase char)]
+    (if (seq mods)
+      (str "^" upper)
+      (str upper))))
+
 (defn keycap-label
   "Pure input -> string lookup for key labels."
   [input]
   (cond
-    (= input :back) "Esc"
-    (= input :confirm) "Enter"
-    (= input :tab) "Tab"
-    (= input :up) "Up"
-    (= input :f12) "F12"
-    (map? input)
-    (let [{:keys [char mods]} input]
-      (if (seq mods)
-        (str "^" (Character/toUpperCase char))
-        (str (Character/toUpperCase char))))
+    (contains? action-labels input) (action-labels input)
+    (map? input) (char-label input)
     :else "?"))
 
 ;; --- Keycap ---
@@ -114,7 +119,7 @@
   "Calculate how many rows a hint bar with these hints would take."
   [buf hints]
   (if (empty? hints)
-    0
+    (count hints)
     (let [cols (:cols buf)
           slot-width
           (+ 1 (apply max (map (fn [[input label]]

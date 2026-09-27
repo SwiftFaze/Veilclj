@@ -31,10 +31,7 @@
         with-items-frame (widgets/frame with-title-bar 0 1 12 8 "Items" :WINDOW_BORDER :BACKGROUND)
 
         ;; Rows 3-6: item list with accelerators (interior of Items frame)
-        items [["Apple" \a]
-               ["Banana" \b]
-               ["Grape" \g]
-               ["Guava" \u]]
+        items (state/gallery-items)
         with-items
         (reduce (fn [b [idx [item letter]]]
                   (widgets/accelerator-label b item letter 3 (+ 3 idx) :NORMAL_TEXT :BACKGROUND))
