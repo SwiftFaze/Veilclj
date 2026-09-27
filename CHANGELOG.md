@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0-beta.11](https://github.com/SwiftFaze/Veilclj/compare/v0.1.0-beta.10...v0.1.0-beta.11) (2026-09-27)
+
+
+### Features
+
+* terminal chrome widgets and the Widget Gallery ([#59](https://github.com/SwiftFaze/Veilclj/issues/59)) ([87b157f](https://github.com/SwiftFaze/Veilclj/commit/87b157f6acb24acb812f4aa6aeb5329c4646cf23))
+
 ## [0.1.0-beta.10](https://github.com/SwiftFaze/Veilclj/compare/v0.1.0-beta.9...v0.1.0-beta.10) (2026-09-20)
 
 
