@@ -16,9 +16,10 @@ Feature: Terminal cell grid
     drawing a single-line box, clipping at the grid's edges, buffers being
     values that a write does not change), the grid size derived from the window
     size and the cell size (whole cells only, the 80x24 minimum), turning a
-    buffer into draw commands (pixel position from column and row, theme keys
-    resolved to colors, blank cells adding nothing, a key the theme lacks
-    failing loudly), the main menu, map and options screens drawn through the
+    buffer into draw commands (pixel position from column and row, a glyph
+    command's pixel size for vertical centering, theme keys resolved to
+    colors, blank cells adding nothing, a key the theme lacks failing
+    loudly), the main menu, map and options screens drawn through the
     buffer (position, reverse video on the selected menu item, staying centered
     when the grid is wider than 80 columns), and the single-line border
     around the whole grid on every screen.
@@ -243,6 +244,12 @@ Feature: Terminal cell grid
     When the buffer is turned into draw commands for cells 12 by 25 pixels
     Then the glyph command for "A" has the color 238,179,146
 
+  Scenario: A glyph command carries the cell's pixel size, for vertical centering
+    Given a blank buffer 80 columns by 24 rows
+    And "A" is written at column 3, row 2 in NORMAL_TEXT on BACKGROUND
+    When the buffer is turned into draw commands for cells 12 by 25 pixels
+    Then the glyph command for "A" is 12 wide and 25 high
+
   Scenario: A cell whose background is not the frame's background gets a rectangle of the cell's size
     Given the active theme has SELECTED_HIGHLIGHT 192,192,192
     And a blank buffer 80 columns by 24 rows
@@ -436,6 +443,16 @@ Feature: Terminal cell grid
 #     have no drawing scenario until #11 draws borders, tables and scrollbars.
 #
 # Risks:
+#   - Added after #11's playtest: glyph commands carry :w/:h (the same cell
+#     pixel size already on rectangle commands) so veil.ui.draw can center
+#     text vertically within its cell using Processing's box-form text() call
+#     and text-align :center, instead of :top-aligning to the font's full
+#     ascent+descent box. :top alignment left visible dead space under
+#     all-caps, no-descender labels (e.g. a badge's "SUC") wherever a colored
+#     rectangle sat behind the text, exposing an offset that was always
+#     present but invisible against a plain background. Additive only - no
+#     existing glyph :x/:y value changes, so no other scenario in this file
+#     needed to change.
 #   - The border was added after the first playtest ("its difficult to see the
 #     grid"; intent Clarifications). It is a scope addition to the issue, which
 #     lists frames as out (#11); #11's frames may replace it. It uses

@@ -9,10 +9,10 @@ Feature: Widget Gallery
     screen (including the Gallery itself); Esc closing the Gallery back to
     the main menu with its selection kept; the Gallery not appearing in the
     menu items; typing a fake item's accelerator showing an activation
-    message on the status line, and every other key changing nothing; the
-    Gallery's own chrome (title bar, one titled frame per widget group -
-    Items, Badges, Chips, each sized to its own content with matching
-    left/right and top/bottom interior padding - status line, hint bar) in
+    message in its own boxed Message panel, and every other key changing
+    nothing; the Gallery's own chrome (title bar, one titled frame per
+    widget group - Items, Badges, Chips, Message, each sized to its own
+    content with matching left/right interior padding - hint bar) in
     place of the whole-grid border; the hint bar listing exactly the Gallery's own
     bindings; a badge and a chip shown in every semantic color, at fixed
     positions; and every cell the Gallery draws naming a color the active
@@ -107,12 +107,15 @@ Feature: Widget Gallery
     And the cell at column 0, row 1 holds glyph U+250C in WINDOW_BORDER on BACKGROUND
     And the cell at column 11, row 8 holds glyph U+2518 in WINDOW_BORDER on BACKGROUND
     And the text "Items" is at column 3, row 1
-    And the cell at column 0, row 10 holds glyph U+250C in WINDOW_BORDER on BACKGROUND
-    And the text "Badges" is at column 3, row 10
-    And the cell at column 34, row 14 holds glyph U+2518 in WINDOW_BORDER on BACKGROUND
-    And the cell at column 0, row 16 holds glyph U+250C in WINDOW_BORDER on BACKGROUND
-    And the text "Chips" is at column 3, row 16
-    And the cell at column 34, row 20 holds glyph U+2518 in WINDOW_BORDER on BACKGROUND
+    And the cell at column 0, row 9 holds glyph U+250C in WINDOW_BORDER on BACKGROUND
+    And the text "Badges" is at column 3, row 9
+    And the cell at column 34, row 13 holds glyph U+2518 in WINDOW_BORDER on BACKGROUND
+    And the cell at column 0, row 14 holds glyph U+250C in WINDOW_BORDER on BACKGROUND
+    And the text "Chips" is at column 3, row 14
+    And the cell at column 34, row 18 holds glyph U+2518 in WINDOW_BORDER on BACKGROUND
+    And the cell at column 0, row 19 holds glyph U+250C in WINDOW_BORDER on BACKGROUND
+    And the text "Message" is at column 3, row 19
+    And the cell at column 25, row 21 holds glyph U+2518 in WINDOW_BORDER on BACKGROUND
     And the keycap "Esc" is at column 0, row 23
 
   Scenario: The Gallery's hint bar lists exactly its own bindings, in order
@@ -120,18 +123,18 @@ Feature: Widget Gallery
     When the screen is rendered into a grid of 80 columns by 24 rows
     Then the hints shown are Esc "Close", A "Apple", B "Banana", G "Grape", U "Guava"
 
-  Scenario: Activating an item shows on the Gallery's status line
+  Scenario: Activating an item shows in the Gallery's Message box
     Given the game is on the widget gallery screen
     And the player types u
     When the screen is rendered into a grid of 80 columns by 24 rows
-    Then the text "[ Activated Guava ]" is at column 30, row 22
+    Then the text "[ Activated Guava ]" is at column 3, row 20
 
   Scenario Outline: The Gallery shows a badge and a chip in each semantic color
     Given the game is on the widget gallery screen
     When the screen is rendered into a grid of 80 columns by 24 rows
-    Then the text " <abbr> " is at column <col>, row 12
+    Then the text " <abbr> " is at column <col>, row 11
     And " <abbr> " is drawn in BACKGROUND on <color>
-    And the text "[<abbr>]" is at column <col>, row 18
+    And the text "[<abbr>]" is at column <col>, row 16
     And "[<abbr>]" is drawn in <color> on BACKGROUND
 
     Examples:
@@ -169,6 +172,12 @@ Feature: Widget Gallery
 #     what pins it, together with the accelerator scenarios.
 #   - The Gallery's status message is new state, under a :gallery key rather
 #     than :menu, so Esc and F12 leave the menu selection alone.
+#   - Added after #11's playtest: glyph commands vertically centering within
+#     their cell (terminal-cell-grid.feature's new "glyph command carries the
+#     cell's pixel size" scenario, veil.ui.draw) fixes text that floated near
+#     the top of colored-background cells - most visible on the badges and
+#     the Message box, both reverse-video-adjacent widgets. No scenario here
+#     changes for it; the fix lives entirely in the shared rendering pipeline.
 #   - F12's translation to an input (and F1 through F11 staying untranslated)
 #     is keyboard-input.feature's, not this file's; F12 is added there so
 #     one file owns "what a key translates to". It's also added to the QA
@@ -177,17 +186,24 @@ Feature: Widget Gallery
 #     grows by one.
 #   - The Gallery screen adds a value (:widget-gallery) to :screen/changed's
 #     :from/:to; no new event kind.
-#   - Layout revised twice after human playtest (Clarifications). First: the
-#     single unlabeled "Chrome" frame (rows 1-21) became one titled frame per
-#     widget group - Items, Badges, Chips. Second: each frame is now sized to
-#     its own content (2-column left/right interior padding, 1-row top/bottom
-#     interior padding) instead of stretched to 80 columns, so left and right
-#     padding match instead of content hugging the left wall with a large
-#     unpadded gap on the right. Current geometry, all three left-aligned at
-#     column 0: Items width 12 rows 1-8 (content rows 3-6), Badges width 35
-#     rows 10-14 (content row 12), Chips width 35 rows 16-20 (content row
-#     18), row 9 and row 15 blank separators, row 21 spare. The item list's
-#     own column position inside its frame is still deliberately unpinned
-#     beyond "one per interior row" (see Non-goals).
+#   - Layout revised three times after human playtest (Clarifications).
+#     First: the single unlabeled "Chrome" frame (rows 1-21) became one
+#     titled frame per widget group - Items, Badges, Chips. Second: each
+#     frame sized to its own content (2-column left/right, 1-row top/bottom
+#     interior padding) instead of stretched to 80 columns. Third: the
+#     status message got its own "Message" box too, which required removing
+#     the blank separator rows between frames (zero spare rows left in the
+#     24-row screen once four padded boxes are laid out) and giving Message
+#     no internal top/bottom padding (border/content/border only - the one
+#     component that doesn't match the others' interior padding, purely
+#     because there was no row left to give it). Current geometry, all four
+#     boxes left-aligned at column 0, stacked with no gap between them:
+#     Items width 12 rows 1-8 (content rows 3-6), Badges width 35 rows 9-13
+#     (content row 11), Chips width 35 rows 14-18 (content row 16), Message
+#     width 26 rows 19-21 (content row 20, left-aligned not centered - see
+#     intent Clarifications), row 22 spare (breathing room before the hint
+#     bar), row 23 hint bar. The item list's own column position inside its
+#     frame is still deliberately unpinned beyond "one per interior row"
+#     (see Non-goals).
 #
 # Open questions: see the grilling round in specs/intent/terminal-chrome-widgets.md.
