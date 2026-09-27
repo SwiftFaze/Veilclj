@@ -13,10 +13,12 @@
             [veil.acceptance.steps.shell-check :as shell-check]
             [veil.acceptance.steps.themes :as themes]
             [veil.acceptance.steps.fonts :as fonts]
-            [veil.acceptance.steps.grid :as grid]))
+            [veil.acceptance.steps.grid :as grid]
+            [veil.acceptance.steps.chrome-widgets :as chrome-widgets]
+            [veil.acceptance.steps.widget-gallery :as widget-gallery]))
 
 (def step-handlers
-  (concat window/handlers keyboard-input/handlers menu/handlers mods/handlers qa/handlers docs-check/handlers crap-gate/handlers startup/handlers shell-check/handlers themes/handlers fonts/handlers grid/handlers))
+  (concat window/handlers keyboard-input/handlers menu/handlers mods/handlers qa/handlers docs-check/handlers crap-gate/handlers startup/handlers shell-check/handlers themes/handlers fonts/handlers grid/handlers chrome-widgets/handlers widget-gallery/handlers))
 
 (defn handle-step [world text]
   (if-let [[handler match] (some (fn [[pattern handler]]

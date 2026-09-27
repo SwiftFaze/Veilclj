@@ -150,7 +150,7 @@ window briefly.
 **Files** (write both next to the `.feature`, at spec time):
 
 - `specs/qa/<slug>.keys` - the script. One key per line: `Up` `Down` `Left`
-  `Right` `Enter` `Esc` `Space`, or one letter or digit. `wait N` skips N ticks.
+  `Right` `Enter` `Esc` `Space` `F12`, or one letter or digit. `wait N` skips N ticks.
   `#` starts a comment; blank lines are ignored. A key takes the next tick
   (the first is tick 1); `wait N` adds N. A bad line rejects the whole script
   before any key is pressed.
@@ -169,7 +169,7 @@ count. The event vocabulary, derived by diffing game states
 | Event | Keys |
 |---|---|
 | `:menu/selection-changed` | `:to` - the new item as a keyword (`:options`, `:quit`) |
-| `:screen/changed` | `:from`, `:to` - screens (`:main-menu`, `:map`, `:options`) |
+| `:screen/changed` | `:from`, `:to` - screens (`:main-menu`, `:map`, `:options`, `:widget-gallery`) |
 | `:game/over` | none |
 
 A key that changes nothing logs only the key. Events, the log version and the

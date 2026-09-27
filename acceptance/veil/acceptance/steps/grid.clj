@@ -360,6 +360,14 @@
                       (str "glyph commands for \"" text "\"")
                       (rgb-of r g b)))))]
 
+   [#"the glyph command for \"([^\"])\" is (\d+) wide and (\d+) high"
+    (fn [world [_ text w h]]
+      (with-frame world
+        (fn [frame]
+          (check (some #(and (= text (:text %)) (= (int-of w) (:w %)) (= (int-of h) (:h %)))
+                       (:glyphs frame))
+                 (str "no glyph command for \"" text "\" with width " w " and height " h)))))]
+
    [#"there is a rectangle command at x (\d+) and y (\d+), (\d+) wide and (\d+) high, with the color (\d+),(\d+),(\d+)"
     (fn [world [_ x y w h r g b]]
       (with-frame world

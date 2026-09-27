@@ -102,7 +102,63 @@
 
   (it "ignores a character that isn't w or s"
     (let [s (state/initial)]
-      (should= s (state/handle-main-menu s {:char \x})))))
+      (should= s (state/handle-main-menu s {:char \x}))))
+
+  (it "opens the widget gallery on :f12"
+    (let [s (state/initial)]
+      (should= :widget-gallery (state/screen (state/handle-main-menu s :f12))))))
+
+(describe "gallery-items"
+  (it "is the fixed Apple/Banana/Grape/Guava list with their accelerators"
+    (should= [["Apple" \a] ["Banana" \b] ["Grape" \g] ["Guava" \u]]
+             (state/gallery-items))))
+
+(describe "gallery-hints"
+  (it "is Close first, then each item keyed by its accelerator"
+    (should= [[:back "Close"]
+              [{:char \a} "Apple"]
+              [{:char \b} "Banana"]
+              [{:char \g} "Grape"]
+              [{:char \u} "Guava"]]
+             (state/gallery-hints))))
+
+(describe "handle-widget-gallery"
+  (it "returns to the main menu on :back"
+    (let [s (-> (state/initial) (assoc :screen :widget-gallery))]
+      (should= :main-menu (state/screen (state/handle-widget-gallery s :back)))))
+
+  (it "activates Apple on lowercase a"
+    (let [s (state/initial)]
+      (should= "Activated Apple" (get-in (state/handle-widget-gallery s {:char \a}) [:gallery :status]))))
+
+  (it "activates Banana on lowercase b"
+    (let [s (state/initial)]
+      (should= "Activated Banana" (get-in (state/handle-widget-gallery s {:char \b}) [:gallery :status]))))
+
+  (it "activates Grape on lowercase g"
+    (let [s (state/initial)]
+      (should= "Activated Grape" (get-in (state/handle-widget-gallery s {:char \g}) [:gallery :status]))))
+
+  (it "activates Guava on lowercase u"
+    (let [s (state/initial)]
+      (should= "Activated Guava" (get-in (state/handle-widget-gallery s {:char \u}) [:gallery :status]))))
+
+  (it "activates Guava on uppercase U (case-insensitive match)"
+    (let [s (state/initial)]
+      (should= "Activated Guava" (get-in (state/handle-widget-gallery s {:char \U}) [:gallery :status]))))
+
+  (it "does nothing when the character matches no item's accelerator"
+    (let [s (state/initial)]
+      (should= s (state/handle-widget-gallery s {:char \z}))))
+
+  (it "does nothing when the character is held with a modifier, even if it would otherwise match"
+    (let [s (state/initial)]
+      (should= s (state/handle-widget-gallery s {:char \u :mods #{:ctrl}}))))
+
+  (it "ignores non-character, non-:back inputs"
+    (let [s (state/initial)]
+      (should= s (state/handle-widget-gallery s :down))
+      (should= s (state/handle-widget-gallery s :confirm)))))
 
 (describe "handle-map"
   (it "returns to menu on :back"
@@ -165,7 +221,13 @@
 
   (it "ignores unknown input"
     (let [s (state/initial)]
-      (should= s (state/handle-input s :unknown)))))
+      (should= s (state/handle-input s :unknown))))
+
+  (it "opens the widget gallery on :f12 from the main menu, and returns on :back"
+    (let [s (state/initial)
+          in-gallery (state/handle-input s :f12)]
+      (should= :widget-gallery (state/screen in-gallery))
+      (should= :main-menu (state/screen (state/handle-input in-gallery :back))))))
 
 (describe "with-mods"
   (it "keeps the mod registry in the state"

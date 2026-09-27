@@ -26,6 +26,7 @@
     "Page Up" {:key-code 33 :raw-key (char 65535)}
     "Page Down" {:key-code 34 :raw-key (char 65535)}
     "F1" {:key-code 112 :raw-key (char 65535)}
+    "F12" {:key-code 123 :raw-key (char 65535)}
     "Caps Lock" {:key-code 20 :raw-key (char 65535)}
     "nothing" nil
     (fail (str "unknown key: " key-name))))
@@ -42,6 +43,8 @@
                        "the main menu" :main-menu
                        "the map screen" :map
                        "the options screen" :options
+                       "the widget gallery" :widget-gallery
+                       "the widget gallery screen" :widget-gallery
                        (throw (Exception. (str "unknown screen: " screen-name))))
             actual (state/screen (:state @world))]
         (check (= expected actual)

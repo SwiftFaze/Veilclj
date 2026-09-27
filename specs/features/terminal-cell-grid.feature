@@ -1,5 +1,5 @@
 # acceptance-mutation-manifest-begin
-# {"version":1,"tested_at":"2026-09-19T20:53:11.628044200Z","feature_name":"Terminal cell grid","feature_path":"specs/features/terminal-cell-grid.feature","background_hash":"74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b","implementation_hash":"unknown","scenarios":[{"index":8,"name":"Filling a rectangle sets every cell inside it and no cell outside","scenario_hash":"57bfcfc7e7392eb6c28c383f1ee163a79b547e16df6f47476449a34c82801d68","mutation_count":24,"result":{"Total":24,"Killed":24,"Survived":0,"Errors":0},"tested_at":"2026-09-19T20:52:03.389668800Z"},{"index":11,"name":"A box is drawn with single-line box-drawing glyphs on its edge","scenario_hash":"b1698854d8f64020a8de878ec6f9ede83964ec00f6544d9ef9437d374acc7432","mutation_count":24,"result":{"Total":24,"Killed":24,"Survived":0,"Errors":0},"tested_at":"2026-09-19T20:52:03.389668800Z"},{"index":17,"name":"A cell's pixel position follows from its column and row","scenario_hash":"bb5fb51767b81f399f68daf92ecdb5e38138707d34c3de5ec91e9819532093fa","mutation_count":12,"result":{"Total":12,"Killed":12,"Survived":0,"Errors":0},"tested_at":"2026-09-19T20:52:03.389668800Z"},{"index":25,"name":"The main menu puts each line at its row, centered in an 80-column grid","scenario_hash":"09ae4960e3c5d0cef4aa92e8cffdcfa9bd027c4c0759d752ad0aa0ffb9db34f5","mutation_count":15,"result":{"Total":15,"Killed":15,"Survived":0,"Errors":0},"tested_at":"2026-09-19T20:52:03.389668800Z"},{"index":26,"name":"The selected menu item is drawn in reverse video and nothing else is","scenario_hash":"11741e951c5c475e0a28b2db64b414fd054e0d71b4bba89d22c879d67647cb2f","mutation_count":6,"result":{"Total":6,"Killed":6,"Survived":0,"Errors":0},"tested_at":"2026-09-19T20:52:03.389668800Z"},{"index":28,"name":"The map and options screens put each line at its row, centered in an 80-column grid","scenario_hash":"fdde9ea2c8b2ecb87523914d9f1908539a9e3d93069930ae03fe31cb3e6b6b91","mutation_count":16,"result":{"Total":16,"Killed":16,"Survived":0,"Errors":0},"tested_at":"2026-09-19T20:52:03.389668800Z"},{"index":31,"name":"The border follows the grid's size","scenario_hash":"2eea91d511d0dbe47ca011cf33fa932a969329f0d734ba35f565fa54ecb46088","mutation_count":12,"result":{"Total":12,"Killed":12,"Survived":0,"Errors":0},"tested_at":"2026-09-19T20:52:03.389668800Z"},{"index":32,"name":"The border leaves the cells just inside it blank","scenario_hash":"2cbe38f9c1e0f93a646eab04869071a968e17f5f2b241f018d9ec3a1d965dfe4","mutation_count":3,"result":{"Total":3,"Killed":3,"Survived":0,"Errors":0},"tested_at":"2026-09-19T20:52:03.389668800Z"},{"index":33,"name":"Every screen renders into a grid of the requested size","scenario_hash":"64ce0c89f5e5dac06fd28ba12660d4bd047d847353da86bc073d510f82a96962","mutation_count":3,"result":{"Total":3,"Killed":3,"Survived":0,"Errors":0},"tested_at":"2026-09-19T20:52:03.389668800Z"}]}
+# {"version":1,"tested_at":"2026-09-27T19:33:54.172801200Z","feature_name":"Terminal cell grid","feature_path":"specs/features/terminal-cell-grid.feature","background_hash":"74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b","implementation_hash":"unknown","scenarios":[{"index":26,"name":"The main menu puts each line at its row, centered in an 80-column grid","scenario_hash":"09ae4960e3c5d0cef4aa92e8cffdcfa9bd027c4c0759d752ad0aa0ffb9db34f5","mutation_count":15,"result":{"Total":15,"Killed":15,"Survived":0,"Errors":0},"tested_at":"2026-09-27T19:10:24.832841500Z"},{"index":27,"name":"The selected menu item is drawn in reverse video and nothing else is","scenario_hash":"11741e951c5c475e0a28b2db64b414fd054e0d71b4bba89d22c879d67647cb2f","mutation_count":6,"result":{"Total":6,"Killed":6,"Survived":0,"Errors":0},"tested_at":"2026-09-27T19:10:24.832841500Z"},{"index":29,"name":"The map and options screens put each line at its row, centered in an 80-column grid","scenario_hash":"fdde9ea2c8b2ecb87523914d9f1908539a9e3d93069930ae03fe31cb3e6b6b91","mutation_count":16,"result":{"Total":16,"Killed":16,"Survived":0,"Errors":0},"tested_at":"2026-09-27T19:10:24.832841500Z"},{"index":32,"name":"The border follows the grid's size","scenario_hash":"2eea91d511d0dbe47ca011cf33fa932a969329f0d734ba35f565fa54ecb46088","mutation_count":12,"result":{"Total":12,"Killed":12,"Survived":0,"Errors":0},"tested_at":"2026-09-27T19:10:24.832841500Z"},{"index":33,"name":"The border leaves the cells just inside it blank","scenario_hash":"2cbe38f9c1e0f93a646eab04869071a968e17f5f2b241f018d9ec3a1d965dfe4","mutation_count":3,"result":{"Total":3,"Killed":3,"Survived":0,"Errors":0},"tested_at":"2026-09-27T19:10:24.832841500Z"},{"index":34,"name":"Every screen renders into a grid of the requested size","scenario_hash":"64ce0c89f5e5dac06fd28ba12660d4bd047d847353da86bc073d510f82a96962","mutation_count":3,"result":{"Total":3,"Killed":3,"Survived":0,"Errors":0},"tested_at":"2026-09-27T19:10:24.832841500Z"},{"index":8,"name":"Filling a rectangle sets every cell inside it and no cell outside","scenario_hash":"57bfcfc7e7392eb6c28c383f1ee163a79b547e16df6f47476449a34c82801d68","mutation_count":24,"result":{"Total":24,"Killed":24,"Survived":0,"Errors":0},"tested_at":"2026-09-19T20:52:03.389668800Z"},{"index":11,"name":"A box is drawn with single-line box-drawing glyphs on its edge","scenario_hash":"b1698854d8f64020a8de878ec6f9ede83964ec00f6544d9ef9437d374acc7432","mutation_count":24,"result":{"Total":24,"Killed":24,"Survived":0,"Errors":0},"tested_at":"2026-09-19T20:52:03.389668800Z"},{"index":17,"name":"A cell's pixel position follows from its column and row","scenario_hash":"bb5fb51767b81f399f68daf92ecdb5e38138707d34c3de5ec91e9819532093fa","mutation_count":12,"result":{"Total":12,"Killed":12,"Survived":0,"Errors":0},"tested_at":"2026-09-19T20:52:03.389668800Z"}]}
 # acceptance-mutation-manifest-end
 
 Feature: Terminal cell grid
@@ -16,9 +16,10 @@ Feature: Terminal cell grid
     drawing a single-line box, clipping at the grid's edges, buffers being
     values that a write does not change), the grid size derived from the window
     size and the cell size (whole cells only, the 80x24 minimum), turning a
-    buffer into draw commands (pixel position from column and row, theme keys
-    resolved to colors, blank cells adding nothing, a key the theme lacks
-    failing loudly), the main menu, map and options screens drawn through the
+    buffer into draw commands (pixel position from column and row, a glyph
+    command's pixel size for vertical centering, theme keys resolved to
+    colors, blank cells adding nothing, a key the theme lacks failing
+    loudly), the main menu, map and options screens drawn through the
     buffer (position, reverse video on the selected menu item, staying centered
     when the grid is wider than 80 columns), and the single-line border
     around the whole grid on every screen.
@@ -243,6 +244,12 @@ Feature: Terminal cell grid
     When the buffer is turned into draw commands for cells 12 by 25 pixels
     Then the glyph command for "A" has the color 238,179,146
 
+  Scenario: A glyph command carries the cell's pixel size, for vertical centering
+    Given a blank buffer 80 columns by 24 rows
+    And "A" is written at column 3, row 2 in NORMAL_TEXT on BACKGROUND
+    When the buffer is turned into draw commands for cells 12 by 25 pixels
+    Then the glyph command for "A" is 12 wide and 25 high
+
   Scenario: A cell whose background is not the frame's background gets a rectangle of the cell's size
     Given the active theme has SELECTED_HIGHLIGHT 192,192,192
     And a blank buffer 80 columns by 24 rows
@@ -436,6 +443,16 @@ Feature: Terminal cell grid
 #     have no drawing scenario until #11 draws borders, tables and scrollbars.
 #
 # Risks:
+#   - Added after #11's playtest: glyph commands carry :w/:h (the same cell
+#     pixel size already on rectangle commands) so veil.ui.draw can center
+#     text vertically within its cell using Processing's box-form text() call
+#     and text-align :center, instead of :top-aligning to the font's full
+#     ascent+descent box. :top alignment left visible dead space under
+#     all-caps, no-descender labels (e.g. a badge's "SUC") wherever a colored
+#     rectangle sat behind the text, exposing an offset that was always
+#     present but invisible against a plain background. Additive only - no
+#     existing glyph :x/:y value changes, so no other scenario in this file
+#     needed to change.
 #   - The border was added after the first playtest ("its difficult to see the
 #     grid"; intent Clarifications). It is a scope addition to the issue, which
 #     lists frames as out (#11); #11's frames may replace it. It uses

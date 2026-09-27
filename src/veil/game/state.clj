@@ -7,12 +7,14 @@
 (defn initial
   "Return the initial game state: main menu with New Game selected, not over."
   []
-  {:screen :main-menu
-   :menu (menu/new-menu)
-   :over? false
-   :player {:glyph \@}
-   :themes {}
-   :active-theme theme/default-id})
+  (let [not-over? false]
+    {:screen :main-menu
+     :menu (menu/new-menu)
+     :over? not-over?
+     :player {:glyph \@}
+     :themes {}
+     :active-theme theme/default-id
+     :gallery {:status nil}}))
 
 (defn screen
   "Get the current screen keyword (:main-menu, :map, :options)."
@@ -69,6 +71,7 @@
   "Handle input while on the main menu."
   [state input]
   (cond
+    (= input :f12) (assoc state :screen :widget-gallery)
     (= input :up) (update state :menu menu/move :up)
     (= input :down) (update state :menu menu/move :down)
     (= input :confirm) (select-menu-item state)
@@ -86,6 +89,49 @@
   "Handle input while on the map screen."
   [state input]
   (back-to-main-menu state input))
+
+(defn gallery-items
+  "The widget gallery items with their accelerator letters."
+  []
+  [["Apple" \a]
+   ["Banana" \b]
+   ["Grape" \g]
+   ["Guava" \u]])
+
+(defn gallery-hints
+  "The hint bar hints for the widget gallery: [input label] pairs."
+  []
+  (concat [[:back "Close"]]
+          (map (fn [[item letter]]
+                 [{:char letter} item])
+               (gallery-items))))
+
+(defn- accelerator-item
+  "The gallery item whose accelerator letter matches char, case-insensitively, or nil."
+  [char]
+  (let [lower-char (Character/toLowerCase char)]
+    (first (for [[item letter] (gallery-items)
+                 :when (= (Character/toLowerCase letter) lower-char)]
+             item))))
+
+(defn- activate-accelerator
+  "Apply a character input to the gallery: activate the matching item's
+  accelerator (recording it in :gallery :status), or leave state unchanged
+  when the character has modifiers held or matches no item."
+  [state {:keys [char mods]}]
+  (if (or (nil? char) (seq mods))
+    state
+    (if-let [item (accelerator-item char)]
+      (assoc-in state [:gallery :status] (str "Activated " item))
+      state)))
+
+(defn handle-widget-gallery
+  "Handle input while in the widget gallery."
+  [state input]
+  (cond
+    (= input :back) (assoc state :screen :main-menu)
+    (map? input) (activate-accelerator state input)
+    :else state))
 
 (defn handle-options
   "Handle input while on the options screen."
@@ -107,6 +153,7 @@
           :main-menu (handle-main-menu state input)
           :map (handle-map state input)
           :options (handle-options state input)
+          :widget-gallery (handle-widget-gallery state input)
           state)))))
 
 (defn handle-input

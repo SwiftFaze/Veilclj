@@ -11,7 +11,9 @@ one of:
 
 - a **navigation action**, a bare keyword — `:up :down :left :right :confirm
   :back :tab :shift-tab :toggle :backspace :delete :home :end :page-up
-  :page-down`
+  :page-down :f12` (F12 is the one function key with a translation, added to
+  open the Widget Gallery - `docs/architecture.md`, "Screens and menu"; every
+  other F-key stays untranslated)
 - a **printable character**, `{:char \w}`
 - a **character with modifiers held**, `{:char \a :mods #{:ctrl}}`
 - `nil`, for a key with no translation

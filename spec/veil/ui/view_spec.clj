@@ -35,6 +35,12 @@
 (defn- map-screen [s]
   (state/handle-input s :confirm))
 
+(defn- gallery-screen [s]
+  (state/handle-input s :f12))
+
+(defn- gallery-screen-typing [s char]
+  (state/handle-input (gallery-screen s) {:char char}))
+
 (defn- text-at
   "The glyphs of n cells of row starting at col."
   [buf col row n]
@@ -166,11 +172,84 @@
     (let [buf (view/buffer (options-screen (themed-state)) 100 30)]
       (should= {:glyph \┘ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 99 29)))))
 
+(describe "widget gallery buffer"
+  (it "has a title bar with the gallery's title, centered"
+    (let [buf (view/buffer (gallery-screen (themed-state)) 80 24)]
+      (should= "Widget Gallery" (text-at buf 33 0 14))
+      (should= :SELECTED_HIGHLIGHT (:bg (buffer/cell buf 0 0)))))
+
+  (it "draws the Items frame at column 0, row 1, titled Items"
+    (let [buf (view/buffer (gallery-screen (themed-state)) 80 24)]
+      (should= {:glyph \┌ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 0 1))
+      (should= "Items" (text-at buf 3 1 5))
+      (should= {:glyph \┘ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 11 8))))
+
+  (it "lists Apple, Banana, Grape and Guava on rows 3-6 with their accelerator highlighted"
+    (let [buf (view/buffer (gallery-screen (themed-state)) 80 24)]
+      (should= "Apple" (text-at buf 3 3 5))
+      (should= "Banana" (text-at buf 3 4 6))
+      (should= "Grape" (text-at buf 3 5 5))
+      (should= "Guava" (text-at buf 3 6 5))
+      (should= :ACCENT (:fg (buffer/cell buf 3 3)))
+      (should= :ACCENT (:fg (buffer/cell buf 4 6)))))
+
+  (it "draws the Badges frame at column 13, row 1, titled Badges"
+    (let [buf (view/buffer (gallery-screen (themed-state)) 80 24)]
+      (should= {:glyph \┌ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 13 1))
+      (should= "Badges" (text-at buf 16 1 6))
+      (should= {:glyph \┘ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 47 5))))
+
+  (it "shows a badge in each semantic color on row 3"
+    (let [buf (view/buffer (gallery-screen (themed-state)) 80 24)]
+      (doseq [[color abbr col] [[:SUCCESS "SUC" 16] [:ERROR "ERR" 22] [:WARNING "WRN" 28]
+                                 [:INFO "INF" 34] [:ACCENT "ACC" 40]]]
+        (should= (str " " abbr " ") (text-at buf col 3 5))
+        (should= {:glyph \space :fg :BACKGROUND :bg color} (buffer/cell buf col 3)))))
+
+  (it "draws the Chips frame at column 13, row 6, titled Chips"
+    (let [buf (view/buffer (gallery-screen (themed-state)) 80 24)]
+      (should= {:glyph \┌ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 13 6))
+      (should= "Chips" (text-at buf 16 6 5))
+      (should= {:glyph \┘ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 47 10))))
+
+  (it "shows an unfocused chip in each semantic color on row 8"
+    (let [buf (view/buffer (gallery-screen (themed-state)) 80 24)]
+      (doseq [[color abbr col] [[:SUCCESS "SUC" 16] [:ERROR "ERR" 22] [:WARNING "WRN" 28]
+                                 [:INFO "INF" 34] [:ACCENT "ACC" 40]]]
+        (should= (str "[" abbr "]") (text-at buf col 8 5))
+        (should= {:glyph \[ :fg color :bg :BACKGROUND} (buffer/cell buf col 8)))))
+
+  (it "draws the Message frame at column 13, row 11, titled Message"
+    (let [buf (view/buffer (gallery-screen (themed-state)) 80 24)]
+      (should= {:glyph \┌ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 13 11))
+      (should= "Message" (text-at buf 16 11 7))
+      (should= {:glyph \┘ :fg :WINDOW_BORDER :bg :BACKGROUND} (buffer/cell buf 38 15))))
+
+  (it "leaves the Message box's interior blank with no status message"
+    (let [buf (view/buffer (gallery-screen (themed-state)) 80 24)]
+      (should= :BACKGROUND (:bg (buffer/cell buf 15 12)))
+      (should= :BACKGROUND (:bg (buffer/cell buf 15 13)))
+      (should= :BACKGROUND (:bg (buffer/cell buf 15 14)))))
+
+  (it "shows the activation message in the Message box, padded, with its highlight padded top and bottom"
+    (let [buf (view/buffer (gallery-screen-typing (themed-state) \u) 80 24)
+          padded " [ Activated Guava ] "]
+      (should= padded (text-at buf 15 13 (count padded)))
+      (should= :SELECTED_HIGHLIGHT (:bg (buffer/cell buf 15 12)))
+      (should= :SELECTED_HIGHLIGHT (:bg (buffer/cell buf 35 12)))
+      (should= :SELECTED_HIGHLIGHT (:bg (buffer/cell buf 15 14)))
+      (should= :SELECTED_HIGHLIGHT (:bg (buffer/cell buf 35 14)))))
+
+  (it "docks the hint bar with a Close hint at column 0, row 23"
+    (let [buf (view/buffer (gallery-screen (themed-state)) 80 24)]
+      (should= "Esc" (text-at buf 0 23 3))
+      (should= "Close" (text-at buf 4 23 5)))))
+
 (describe "scene"
   (it "turns a window and font measurements into draw commands"
     (let [frame (view/scene (themed-state) 960 600 12.0 20.0 5.0)]
       (should= [0 0 0] (:background frame))
-      (should (some #(= {:text "V" :x 456 :y 50 :color [255 255 255]} %) (:glyphs frame)))
+      (should (some #(= {:text "V" :x 456 :y 50 :w 12 :h 25 :color [255 255 255]} %) (:glyphs frame)))
       (should (some #(= {:x 432 :y 100 :w 12 :h 25 :color [192 192 192]} %) (:rects frame)))))
 
   (it "centers on a wider grid when the window is wider"

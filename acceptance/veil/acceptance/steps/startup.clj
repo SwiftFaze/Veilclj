@@ -178,7 +178,8 @@
                                                     :SHADOW [0 0 0]}})
             screens {"main menu" start
                      "map" (state/handle-input start :confirm)
-                     "options" (-> start (state/handle-input :down) (state/handle-input :confirm))}]
+                     "options" (-> start (state/handle-input :down) (state/handle-input :confirm))
+                     "widget gallery" (state/handle-input start :f12)}]
         (if-let [s (get screens screen-name)]
           (do (swap! world assoc :state s)
               (ok))

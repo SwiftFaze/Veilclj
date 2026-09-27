@@ -44,7 +44,7 @@
           buf (buffer/write-text buf 3 2 "A" :BORDER :BACKGROUND)
           frame (commands/frame state buf 12 25)]
       (should= 1 (count (:glyphs frame)))
-      (should= {:text "A" :x 36 :y 50 :color [128 128 128]}
+      (should= {:text "A" :x 36 :y 50 :w 12 :h 25 :color [128 128 128]}
                (first (:glyphs frame)))))
 
   (it "does not create a glyph command for a space glyph"
@@ -64,5 +64,5 @@
       (should= 1 (count (:glyphs frame)))
       (should= {:x 36 :y 50 :w 12 :h 25 :color [192 192 192]}
                (first (:rects frame)))
-      (should= {:text "Q" :x 36 :y 50 :color [0 0 0]}
+      (should= {:text "Q" :x 36 :y 50 :w 12 :h 25 :color [0 0 0]}
                (first (:glyphs frame))))))
