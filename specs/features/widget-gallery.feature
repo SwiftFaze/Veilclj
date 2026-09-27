@@ -1,0 +1,177 @@
+Feature: Widget Gallery
+  A developer screen that shows every widget from terminal-chrome-widgets.feature
+  with fake data, so they can be playtested before any real screen uses them.
+  Opened with F12 from the main menu, closed with Esc; not a player-facing
+  menu item.
+
+  Covers: F12 opening the Gallery from the main menu (its translation to an
+    input is keyboard-input.feature's), and doing nothing from any other
+    screen (including the Gallery itself); Esc closing the Gallery back to
+    the main menu with its selection kept; the Gallery not appearing in the
+    menu items; typing a fake item's accelerator showing an activation
+    message on the status line, and every other key changing nothing; the
+    Gallery's own chrome (title bar, a frame, status line, hint bar) in place
+    of the whole-grid border; the hint bar listing exactly the Gallery's own
+    bindings; a badge and a chip shown in every semantic color, at fixed
+    positions; and every cell the Gallery draws naming a color the active
+    theme defines.
+  Supersedes: terminal-cell-grid.feature's "every screen has a single-line
+    border around the whole grid": the Gallery is the one screen without it,
+    because its title bar and hint bar take the rows the border would.
+  Out of scope: what F12 translates to (keyboard-input.feature); the
+    widgets' own rendering rules (terminal-chrome-widgets.feature draws and
+    pins those; this file only asserts they appear assembled); navigating
+    between the Gallery's chips (#13-#16); retrofitting this chrome onto the
+    main menu, map or options screens; and how the Gallery looks, which is
+    the human playtest's.
+  QA: specs/qa/widget-gallery.keys and .edn press F12 on the main menu and
+    Esc in the Gallery, checking both screen changes through the real key
+    path.
+
+  Background:
+    Given the game has just started
+
+  # --- Getting in and out ---
+
+  Scenario: F12 on the main menu opens the Widget Gallery
+    Given the selected menu item is Options
+    When the player presses F12
+    Then the current screen is the widget gallery
+
+  Scenario: The Widget Gallery is not a menu item
+    Then the menu items are New Game, Options, Quit
+
+  Scenario Outline: Esc in the Widget Gallery returns to the main menu with its selection kept
+    Given the selected menu item is <item>
+    And the player presses F12
+    When the player presses Esc
+    Then the current screen is the main menu
+    And the selected menu item is <item>
+
+    Examples:
+      | item     |
+      | New Game |
+      | Options  |
+      | Quit     |
+
+  Scenario Outline: F12 anywhere but the main menu does nothing
+    Given the game is on the <screen> screen
+    When the player presses F12
+    Then the current screen is the <screen> screen
+
+    Examples:
+      | screen         |
+      | map            |
+      | options        |
+      | widget gallery |
+
+  # --- Accelerators ---
+
+  Scenario Outline: Typing an item's accelerator activates it
+    Given the game is on the widget gallery screen
+    When the player types <char>
+    Then the gallery's status message is "Activated <item>"
+    And the current screen is the widget gallery
+
+    Examples:
+      | char | item   |
+      | a    | Apple  |
+      | b    | Banana |
+      | g    | Grape  |
+      | u    | Guava  |
+      | U    | Guava  |
+
+  Scenario Outline: Keys that are no item's accelerator change nothing in the Gallery
+    Given the game is on the widget gallery screen
+    When the player <does>
+    Then the gallery has no status message
+    And the current screen is the widget gallery
+
+    Examples:
+      | does                       |
+      | types z                    |
+      | types w                    |
+      | types u with Ctrl held     |
+      | presses Enter              |
+      | presses Down               |
+
+  # --- What it shows ---
+
+  Scenario: The Gallery is dressed in terminal chrome instead of the whole-grid border
+    Given the game is on the widget gallery screen
+    When the screen is rendered into a grid of 80 columns by 24 rows
+    Then the text "Widget Gallery" is at column 33, row 0
+    And the cell at column 0, row 0 has the background SELECTED_HIGHLIGHT
+    And the cell at column 0, row 1 holds glyph U+250C in WINDOW_BORDER on BACKGROUND
+    And the cell at column 79, row 21 holds glyph U+2518 in WINDOW_BORDER on BACKGROUND
+    And the text "Chrome" is at column 3, row 1
+    And the keycap "Esc" is at column 0, row 23
+
+  Scenario: The Gallery's hint bar lists exactly its own bindings, in order
+    Given the game is on the widget gallery screen
+    When the screen is rendered into a grid of 80 columns by 24 rows
+    Then the hints shown are Esc "Close", A "Apple", B "Banana", G "Grape", U "Guava"
+
+  Scenario: Activating an item shows on the Gallery's status line
+    Given the game is on the widget gallery screen
+    And the player types u
+    When the screen is rendered into a grid of 80 columns by 24 rows
+    Then the text "[ Activated Guava ]" is at column 30, row 22
+
+  Scenario Outline: The Gallery shows a badge and a chip in each semantic color
+    Given the game is on the widget gallery screen
+    When the screen is rendered into a grid of 80 columns by 24 rows
+    Then the text " <abbr> " is at column <col>, row 8
+    And " <abbr> " is drawn in BACKGROUND on <color>
+    And the text "[<abbr>]" is at column <col>, row 10
+    And "[<abbr>]" is drawn in <color> on BACKGROUND
+
+    Examples:
+      | color   | abbr | col |
+      | SUCCESS | SUC  | 3   |
+      | ERROR   | ERR  | 9   |
+      | WARNING | WRN  | 15  |
+      | INFO    | INF  | 21  |
+      | ACCENT  | ACC  | 27  |
+
+  Scenario: Every cell of the Gallery names a color the active theme defines
+    Given the game is on the widget gallery screen
+    When the screen is rendered into a grid of 80 columns by 24 rows
+    And the buffer is turned into draw commands for cells 12 by 25 pixels
+    Then building the draw commands succeeds
+
+# Non-goals:
+#   - Re-pinning how a frame, title bar, status line, keycap, hint bar,
+#     accelerator, badge or chip renders in isolation:
+#     terminal-chrome-widgets.feature owns those rules; this file only checks
+#     they show up correctly assembled on a real screen.
+#   - Navigating between the Gallery's chips or any other focus movement:
+#     #13-#16.
+#   - Chrome on the main menu, map and options screens: out of scope for this
+#     issue, they keep terminal-cell-grid.feature's border and layout.
+#   - The Gallery's exact layout inside its frame beyond what the scenarios
+#     pin; how it looks is the playtest's.
+#
+# Risks:
+#   - Single answer (docs/architecture.md). The hint bar must be built from
+#     the same bindings veil.game.state dispatches on, not a parallel list in
+#     veil.ui, or the two drift. Likewise the Gallery's accelerator letters
+#     live with its items in veil.game; veil.ui only highlights the letter it
+#     is told. "The Gallery's hint bar lists exactly its own bindings" is
+#     what pins it, together with the accelerator scenarios.
+#   - The Gallery's status message is new state, under a :gallery key rather
+#     than :menu, so Esc and F12 leave the menu selection alone.
+#   - F12's translation to an input (and F1 through F11 staying untranslated)
+#     is keyboard-input.feature's, not this file's; F12 is added there so
+#     one file owns "what a key translates to". It's also added to the QA
+#     script vocabulary (veil.ui.qa.script/special-keys) so the QA run here
+#     can reach the Gallery; deterministic-keyboard-qa.feature's key list
+#     grows by one.
+#   - The Gallery screen adds a value (:widget-gallery) to :screen/changed's
+#     :from/:to; no new event kind.
+#   - The badge and chip rows (8 and 10) and the item list share the same
+#     frame (rows 1-21); the item list's own position is deliberately
+#     unpinned (see Non-goals) so it can move without touching this
+#     scenario, as long as it stays clear of rows 8 and 10.
+#
+# Open questions: see the grilling round in specs/intent/terminal-chrome-widgets.md.

@@ -15,15 +15,16 @@ Feature: Keyboard input and focus-first dispatch
   which is where the W/S aliases and the accelerators live.
 
   Covers: what each key translates to (navigation actions, printable
-    characters, Ctrl chords, Shift+Tab, and keys with no translation); Esc
-    meaning back rather than quit; the focus-first chain (the earliest
-    consumer winning, an unconsumed input falling through to the screen
-    bindings, and an empty chain behaving as the screen bindings alone); and
-    the existing three screens keeping their behaviour through the chain,
-    including W and S moving the menu selection as screen-level aliases rather
-    than as something the translator knows. Translation preserves the case the
-    player typed, so the menu's W/S aliases accept either case - which is what
-    keeps main-menu.feature's uppercase W and S examples passing.
+    characters, Ctrl chords, Shift+Tab, keys with no translation, and F12 -
+    the one function key with a translation); Esc meaning back rather than
+    quit; the focus-first chain (the earliest consumer winning, an unconsumed
+    input falling through to the screen bindings, and an empty chain behaving
+    as the screen bindings alone); and the existing three screens keeping
+    their behaviour through the chain, including W and S moving the menu
+    selection as screen-level aliases rather than as something the translator
+    knows. Translation preserves the case the player typed, so the menu's
+    W/S aliases accept either case - which is what keeps main-menu.feature's
+    uppercase W and S examples passing.
   Supersedes: the key-to-input vocabulary wherever another feature file
     pinned it. deterministic-keyboard-qa.feature's "A script key reaches the
     game as the same input a real key press gives" table asserted the old
@@ -107,6 +108,10 @@ Feature: Keyboard input and focus-first dispatch
   Scenario: Tab with Shift held is a different action from Tab
     When the player presses Tab with Shift held
     Then the input is the shift-tab action
+
+  Scenario: F12 becomes the f12 action
+    When the player presses F12
+    Then the input is the f12 action
 
   Scenario Outline: A key with no translation becomes no input at all
     When the player presses <key>
@@ -289,6 +294,12 @@ Feature: Keyboard input and focus-first dispatch
 #     dispatch scenario here therefore asserts on the outcome rather than on
 #     who saw what. If a future contract lets a non-consuming handler record
 #     something, that becomes observable and gets its own scenarios.
+#
+#   - F12 is the one function key with a translation, added by
+#     widget-gallery.feature (#11) so F12 can open the Widget Gallery; F1 and
+#     every other F-key stay untranslated ("A key with no translation..."
+#     above). F12 is also added to the QA script vocabulary
+#     (veil.ui.qa.script/special-keys) so bb qa can reach the Gallery.
 #
 # Open questions:
 #   - The handler contract (a handler returns the new state, or nil to bubble)
