@@ -10,8 +10,9 @@ Feature: Widget Gallery
     the main menu with its selection kept; the Gallery not appearing in the
     menu items; typing a fake item's accelerator showing an activation
     message on the status line, and every other key changing nothing; the
-    Gallery's own chrome (title bar, a frame, status line, hint bar) in place
-    of the whole-grid border; the hint bar listing exactly the Gallery's own
+    Gallery's own chrome (title bar, one titled frame per widget group -
+    Items, Badges, Chips - status line, hint bar) in place of the
+    whole-grid border; the hint bar listing exactly the Gallery's own
     bindings; a badge and a chip shown in every semantic color, at fixed
     positions; and every cell the Gallery draws naming a color the active
     theme defines.
@@ -103,8 +104,13 @@ Feature: Widget Gallery
     Then the text "Widget Gallery" is at column 33, row 0
     And the cell at column 0, row 0 has the background SELECTED_HIGHLIGHT
     And the cell at column 0, row 1 holds glyph U+250C in WINDOW_BORDER on BACKGROUND
-    And the cell at column 79, row 21 holds glyph U+2518 in WINDOW_BORDER on BACKGROUND
-    And the text "Chrome" is at column 3, row 1
+    And the cell at column 79, row 6 holds glyph U+2518 in WINDOW_BORDER on BACKGROUND
+    And the text "Items" is at column 3, row 1
+    And the cell at column 0, row 8 holds glyph U+250C in WINDOW_BORDER on BACKGROUND
+    And the text "Badges" is at column 3, row 8
+    And the cell at column 0, row 12 holds glyph U+250C in WINDOW_BORDER on BACKGROUND
+    And the text "Chips" is at column 3, row 12
+    And the cell at column 79, row 14 holds glyph U+2518 in WINDOW_BORDER on BACKGROUND
     And the keycap "Esc" is at column 0, row 23
 
   Scenario: The Gallery's hint bar lists exactly its own bindings, in order
@@ -121,9 +127,9 @@ Feature: Widget Gallery
   Scenario Outline: The Gallery shows a badge and a chip in each semantic color
     Given the game is on the widget gallery screen
     When the screen is rendered into a grid of 80 columns by 24 rows
-    Then the text " <abbr> " is at column <col>, row 8
+    Then the text " <abbr> " is at column <col>, row 9
     And " <abbr> " is drawn in BACKGROUND on <color>
-    And the text "[<abbr>]" is at column <col>, row 10
+    And the text "[<abbr>]" is at column <col>, row 13
     And "[<abbr>]" is drawn in <color> on BACKGROUND
 
     Examples:
@@ -169,9 +175,15 @@ Feature: Widget Gallery
 #     grows by one.
 #   - The Gallery screen adds a value (:widget-gallery) to :screen/changed's
 #     :from/:to; no new event kind.
-#   - The badge and chip rows (8 and 10) and the item list share the same
-#     frame (rows 1-21); the item list's own position is deliberately
-#     unpinned (see Non-goals) so it can move without touching this
-#     scenario, as long as it stays clear of rows 8 and 10.
+#   - Layout revised after the human playtest (Clarifications): the single
+#     unlabeled "Chrome" frame spanning rows 1-21 was replaced by one titled
+#     frame per widget group - "Items" (rows 1-6, the accelerator list),
+#     "Badges" (rows 8-10, interior row 9), "Chips" (rows 12-14, interior
+#     row 13) - each full width (columns 0-79), with a blank row between
+#     each (7, 11) and unused rows 15-21 below. This both labels each
+#     component and gives every group its own border padding instead of
+#     everything crowding one shared frame's edges. The item list's own
+#     position inside its frame is still deliberately unpinned beyond "one
+#     per interior row" (see Non-goals).
 #
 # Open questions: see the grilling round in specs/intent/terminal-chrome-widgets.md.
