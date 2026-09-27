@@ -62,14 +62,15 @@ is a judgment-checklist line (`docs/clean-code-gate.md`).
 
 ## Screens and menu
 
-The game has three screens: `:main-menu`, `:map`, and `:options`. Each screen
-consumes a subset of game inputs.
+The game has four screens: `:main-menu`, `:map`, `:options`, and
+`:widget-gallery`. Each screen consumes a subset of game inputs.
 
 ```
 :main-menu
   :up/:down        - navigate menu (wrapping)
   {:char \w}/{:char \s} (either case) - the same, as a screen-level alias
   :confirm         - select menu item, transition to :map/:options, or set :over?
+  :f12             - open :widget-gallery
   :back            - ignored
   
 :map
@@ -79,10 +80,19 @@ consumes a subset of game inputs.
 :options
   :back        - return to :main-menu, keeping menu selection
   other inputs - ignored
+
+:widget-gallery
+  :back                     - return to :main-menu, keeping menu selection
+  {:char c} (no modifiers)  - if c is a gallery item's accelerator letter
+                              (case-insensitive), record its activation message
+  other inputs              - ignored
 ```
 
 The menu has three items: `"New Game"`, `"Options"`, `"Quit"`. The `:selected`
 field (0-based index) tracks which is active, with wrapping at both ends.
+`:widget-gallery` is a developer screen for playtesting chrome widgets
+(`veil.ui.widgets`) - reached only by `:f12` from the main menu, never a menu
+item itself.
 
 ## Input: translation and focus-first dispatch
 
@@ -110,7 +120,8 @@ state --view/buffer--> buffer --commands/frame--> draw commands --draw!--> pixel
 | `veil.ui.buffer` | the buffer, `{:cols :rows :cells}`: a vector of rows of cells, each `{:glyph :fg :bg}`. `blank`, `cell`, `row-text`, `write-text`, `fill-rect` and `draw-box` return new buffers; anything outside the grid is clipped |
 | `veil.ui.grid` | `size`: whole cells that fit a window in pixels, with the 80x24 minimum; `cell-size`: a cell's pixel size from a character's measured width and the font's ascent and descent |
 | `veil.ui.commands` | `frame`: a buffer to `{:background :rects :glyphs}`, the pixel-positioned commands |
-| `veil.ui.view` | what each screen shows: `buffer` writes a screen's lines into a buffer (centered across, at their rows, reverse video on the selected menu item, a single-line border around the whole grid); `scene` composes cell size, grid size, buffer and commands |
+| `veil.ui.widgets` | pure terminal-chrome widgets that write into a buffer: frame (titled box), title bar, status line, keycap, hint bar, inline accelerator label, badge, chip. No screen wiring or fake data of its own - `veil.ui.view` composes them |
+| `veil.ui.view` | what each screen shows: `buffer` writes a screen's lines into a buffer (centered across, at their rows, reverse video on the selected menu item, a single-line border around the whole grid); the Widget Gallery screen instead composes `veil.ui.widgets` into its own chrome (`specs/features/widget-gallery.feature`); `scene` composes cell size, grid size, buffer and commands |
 | `veil.ui.font` | opens the font file (I/O; see below) |
 | `veil.ui.draw` | carries the commands out with Quil; no decisions |
 
@@ -134,7 +145,11 @@ I/O, so it is specced against real and temp files and is not a mutation target.
 
 **Single answer.** `view/buffer` asks `veil.game.state` (`screen`,
 `menu-items`, `selected-item`) what to show and never works out the selection
-itself; the colors are `veil.game.theme/color`'s.
+itself; the colors are `veil.game.theme/color`'s. Likewise the Widget
+Gallery's item labels and accelerator letters live in
+`veil.game.state/gallery-items` (also `gallery-hints`'s source) - `veil.ui.view`
+calls it rather than keeping its own copy, and `veil.ui.widgets/accelerator-label`
+only highlights the letter it is told.
 
 ## The Quil shell decides nothing
 
